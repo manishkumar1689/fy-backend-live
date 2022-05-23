@@ -1,0 +1,392 @@
+.
+├── app.controller.spec.ts
+├── app.controller.ts
+├── app.gateway.spec.ts
+├── app.gateway.ts
+├── app.module.ts
+├── app.service.ts
+├── astrologic
+│   ├── astrologic.controller.spec.ts
+│   ├── astrologic.controller.ts
+│   ├── astrologic.module.ts
+│   ├── astrologic.service.spec.ts
+│   ├── astrologic.service.ts
+│   ├── dto
+│   │   ├── base-chart.dto.ts
+│   │   ├── base-graha.dto.ts
+│   │   ├── body-speed.dto.ts
+│   │   ├── chart-input.dto.ts
+│   │   ├── create-chart.dto.ts
+│   │   ├── geo-coords.dto.ts
+│   │   ├── graha-transition.dto.ts
+│   │   ├── house-system.dto.ts
+│   │   ├── i-time.dto.ts
+│   │   ├── key-num-value.dto.ts
+│   │   ├── lng-lat.dto.ts
+│   │   ├── object-match-set.dto.ts
+│   │   ├── object-match.dto.ts
+│   │   ├── paired-chart-input.dto.ts
+│   │   ├── paired-chart.dto.ts
+│   │   ├── subject.dto.ts
+│   │   ├── tag.dto.ts
+│   │   ├── variant-set.dto.ts
+│   │   └── variant.dto.ts
+│   ├── ephe
+│   │   ├── ast0
+│   │   │   └── se00433s.se1
+│   │   ├── fixstars.cat
+│   │   ├── s118230s.se1
+│   │   ├── s134340s.se1
+│   │   ├── s136108s.se1
+│   │   ├── s136199.se1
+│   │   ├── s136472s.se1
+│   │   ├── s145593s.se1
+│   │   ├── s146199s.se1
+│   │   ├── s432971s.se1
+│   │   ├── se00005.se1
+│   │   ├── se00006s.se1
+│   │   ├── se00007s.se1
+│   │   ├── se00008s.se1
+│   │   ├── se00009s.se1
+│   │   ├── se00010s.se1
+│   │   ├── se00011s.se1
+│   │   ├── se00012s.se1
+│   │   ├── se00013s.se1
+│   │   ├── se00014s.se1
+│   │   ├── se00015s.se1
+│   │   ├── se00016s.se1
+│   │   ├── se00017s.se1
+│   │   ├── se00018s.se1
+│   │   ├── se00019s.se1
+│   │   ├── se00020s.se1
+│   │   ├── se00021s.se1
+│   │   ├── se00022s.se1
+│   │   ├── se00023s.se1
+│   │   ├── se00024s.se1
+│   │   ├── se00025s.se1
+│   │   ├── se00026s.se1
+│   │   ├── se00027s.se1
+│   │   ├── se00028s.se1
+│   │   ├── se00029s.se1
+│   │   ├── se00030s.se1
+│   │   ├── se00055s.se1
+│   │   ├── se00060s.se1
+│   │   ├── se00062s.se1
+│   │   ├── se00075s.se1
+│   │   ├── se00076s.se1
+│   │   ├── se00077s.se1
+│   │   ├── se00080s.se1
+│   │   ├── se00103s.se1
+│   │   ├── se00109s.se1
+│   │   ├── se00118s.se1
+│   │   ├── se00120s.se1
+│   │   ├── se00128s.se1
+│   │   ├── se00151s.se1
+│   │   ├── se00157s.se1
+│   │   ├── se00171s.se1
+│   │   ├── se00240s.se1
+│   │   ├── se00307s.se1
+│   │   ├── se00361s.se1
+│   │   ├── se00390s.se1
+│   │   ├── se00393s.se1
+│   │   ├── se00408s.se1
+│   │   ├── se00433s.se1
+│   │   ├── se00447s.se1
+│   │   ├── se00582s.se1
+│   │   ├── se00672s.se1
+│   │   ├── se00763s.se1
+│   │   ├── se00875s.se1
+│   │   ├── se01022s.se1
+│   │   ├── se01181s.se1
+│   │   ├── seas_00.se1
+│   │   ├── seas_06.se1
+│   │   ├── seas_12.se1
+│   │   ├── seas_18.se1
+│   │   ├── seas_24.se1
+│   │   ├── seas_30.se1
+│   │   ├── seas_36.se1
+│   │   ├── seas_42.se1
+│   │   ├── seas_48.se1
+│   │   ├── seasm06.se1
+│   │   ├── seasm12.se1
+│   │   ├── seasm18.se1
+│   │   ├── seasm24.se1
+│   │   ├── seasm30.se1
+│   │   ├── seasm36.se1
+│   │   ├── seasm42.se1
+│   │   ├── seasm48.se1
+│   │   ├── seasm54.se1
+│   │   ├── seasnam.txt
+│   │   ├── sedeltat.txt.inactive
+│   │   ├── sefstars.txt
+│   │   ├── seleapsec.txt
+│   │   ├── semo_00.se1
+│   │   ├── semo_06.se1
+│   │   ├── semo_12.se1
+│   │   ├── semo_18.se1
+│   │   ├── semo_24.se1
+│   │   ├── semo_30.se1
+│   │   ├── semo_36.se1
+│   │   ├── semo_42.se1
+│   │   ├── semo_48.se1
+│   │   ├── semom06.se1
+│   │   ├── semom12.se1
+│   │   ├── semom18.se1
+│   │   ├── semom24.se1
+│   │   ├── semom30.se1
+│   │   ├── semom36.se1
+│   │   ├── semom42.se1
+│   │   ├── semom48.se1
+│   │   ├── semom54.se1
+│   │   ├── seorbel.txt
+│   │   ├── sepl_00.se1
+│   │   ├── sepl_06.se1
+│   │   ├── sepl_12.se1
+│   │   ├── sepl_18.se1
+│   │   ├── sepl_24.se1
+│   │   ├── sepl_30.se1
+│   │   ├── sepl_36.se1
+│   │   ├── sepl_42.se1
+│   │   ├── sepl_48.se1
+│   │   ├── seplm06.se1
+│   │   ├── seplm12.se1
+│   │   ├── seplm18.se1
+│   │   ├── seplm24.se1
+│   │   ├── seplm30.se1
+│   │   ├── seplm36.se1
+│   │   ├── seplm42.se1
+│   │   ├── seplm48.se1
+│   │   └── seplm54.se1
+│   ├── interfaces
+│   │   ├── base-chart.interface.ts
+│   │   ├── base-graha.interface.ts
+│   │   ├── body-speed.interface.ts
+│   │   ├── body-transition.ts
+│   │   ├── chart.interface.ts
+│   │   ├── geo-coords.interface.ts
+│   │   ├── geo-pos.ts
+│   │   ├── graha-transition.interface.ts
+│   │   ├── house-system.interface.ts
+│   │   ├── i-time.interface.ts
+│   │   ├── key-num-value.interface.ts
+│   │   ├── key-value.ts
+│   │   ├── lng-lat.interface.ts
+│   │   ├── num-value.ts
+│   │   ├── object-match-set.interface.ts
+│   │   ├── object-match.interface.ts
+│   │   ├── paired-chart.interface.ts
+│   │   ├── subject.interface.ts
+│   │   ├── tag.interface.ts
+│   │   ├── variant-set.interface.ts
+│   │   └── variant.interface.ts
+│   ├── lib
+│   │   ├── astro-motion.ts
+│   │   ├── chart.ts
+│   │   ├── converters.ts
+│   │   ├── core.ts
+│   │   ├── date-funcs.ts
+│   │   ├── files.ts
+│   │   ├── mappers.ts
+│   │   ├── math-funcs.ts
+│   │   ├── models
+│   │   │   ├── base-object.ts
+│   │   │   ├── geo-loc.ts
+│   │   │   ├── graha-set.ts
+│   │   │   ├── house-set.ts
+│   │   │   ├── indian-time.ts
+│   │   │   ├── jyotish-day.ts
+│   │   │   ├── nakshatra.ts
+│   │   │   ├── rashi-set.ts
+│   │   │   └── relationship.ts
+│   │   ├── route-map.ts
+│   │   ├── settings
+│   │   │   ├── aprakasa-values.ts
+│   │   │   ├── arudha-values.ts
+│   │   │   ├── asteroid-values.ts
+│   │   │   ├── ayanamsha-values.ts
+│   │   │   ├── caughadia-data.ts
+│   │   │   ├── charakaraka-values.ts
+│   │   │   ├── file-values.ts
+│   │   │   ├── ghati-values.ts
+│   │   │   ├── graha-values.ts
+│   │   │   ├── hora-values.ts
+│   │   │   ├── indu-values.ts
+│   │   │   ├── kalam-data.ts
+│   │   │   ├── karana-data.ts
+│   │   │   ├── maitri-data.ts
+│   │   │   ├── mrityubhaga-data.ts
+│   │   │   ├── muhurta-values.ts
+│   │   │   ├── nadis.ts
+│   │   │   ├── nakshatra-values.ts
+│   │   │   ├── panchanga-values.ts
+│   │   │   ├── rashi-values.ts
+│   │   │   ├── rodden-scale-values.ts
+│   │   │   ├── sphuta-values.ts
+│   │   │   ├── star-values.ts
+│   │   │   ├── tithi-values.ts
+│   │   │   ├── upagraha-data.ts
+│   │   │   ├── vara-values.ts
+│   │   │   ├── varga-values.ts
+│   │   │   ├── yoga-values.ts
+│   │   │   └── yoni-values.ts
+│   │   ├── sweph-async.ts
+│   │   ├── sweph-test.ts
+│   │   └── transitions.ts
+│   ├── schemas
+│   │   ├── base-chart.schema.ts
+│   │   ├── base-graha.schema.ts
+│   │   ├── body-speed.schema.ts
+│   │   ├── chart.schema.ts
+│   │   ├── graha-transition.schema.ts
+│   │   ├── house-system.schema.ts
+│   │   ├── i-time.schema.ts
+│   │   ├── key-num-value.schema.ts
+│   │   ├── lng-lat.schema.ts
+│   │   ├── object-match-set.schema.ts
+│   │   ├── object-match.schema.ts
+│   │   ├── paired-chart.schema.ts
+│   │   ├── subject.schema.ts
+│   │   ├── tag.schema.ts
+│   │   ├── upagraha.schema.ts
+│   │   ├── variant-set.schema.ts
+│   │   └── variant.schema.ts
+│   └── scripts
+│       ├── astro
+│       └── astro2
+├── auth
+│   ├── admin.guard.ts
+│   ├── auth.guard.ts
+│   ├── auth.module.ts
+│   ├── auth.utils.ts
+│   └── user.guard.ts
+├── dictionary
+│   ├── dictionary.controller.spec.ts
+│   ├── dictionary.controller.ts
+│   ├── dictionary.module.ts
+│   ├── dictionary.service.spec.ts
+│   ├── dictionary.service.ts
+│   ├── dto
+│   │   ├── create-lexeme.dto.ts
+│   │   └── translation.dto.ts
+│   ├── interfaces
+│   │   ├── category-keys.ts
+│   │   ├── lexeme.interface.ts
+│   │   └── translation.interface.ts
+│   └── schemas
+│       ├── lexeme.schema.ts
+│       └── translation.schema.ts
+├── file-list.txt
+├── geo
+│   ├── api
+│   │   ├── filters.ts
+│   │   └── index.ts
+│   ├── geo.controller.spec.ts
+│   ├── geo.controller.ts
+│   ├── geo.module.ts
+│   ├── geo.service.spec.ts
+│   ├── geo.service.ts
+│   └── interfaces
+│       └── toponym.interface.ts
+├── lib
+│   ├── converters.ts
+│   ├── entities.ts
+│   ├── files.ts
+│   ├── hash.ts
+│   ├── operations.ts
+│   └── validators.ts
+├── main.ts
+├── message
+│   ├── dto
+│   │   └── create-message.dto.ts
+│   ├── interfaces
+│   │   ├── mail.interface.ts
+│   │   └── message.interface.ts
+│   ├── message.controller.spec.ts
+│   ├── message.controller.ts
+│   ├── message.module.ts
+│   ├── message.service.spec.ts
+│   ├── message.service.ts
+│   └── schemas
+│       └── message.schema.ts
+├── setting
+│   ├── dto
+│   │   └── create-setting.dto.ts
+│   ├── interfaces
+│   │   └── setting.interface.ts
+│   ├── schemas
+│   │   └── setting.schema.ts
+│   ├── setting.controller.spec.ts
+│   ├── setting.controller.ts
+│   ├── setting.module.ts
+│   ├── setting.service.spec.ts
+│   ├── setting.service.ts
+│   └── sources
+│       ├── lang-options.ts
+│       └── languages.ts
+├── snippet
+│   ├── dto
+│   │   ├── bulk-snippet.dto.ts
+│   │   ├── create-snippet.dto.ts
+│   │   └── version.dto.ts
+│   ├── interfaces
+│   │   ├── snippet.interface.ts
+│   │   └── version.interface.ts
+│   ├── schemas
+│   │   ├── snippet.schema.ts
+│   │   └── version.schema.ts
+│   ├── snippet.controller.spec.ts
+│   ├── snippet.controller.ts
+│   ├── snippet.module.ts
+│   ├── snippet.service.spec.ts
+│   └── snippet.service.ts
+└── user
+    ├── dto
+    │   ├── attributes.dto.ts
+    │   ├── create-user.dto.ts
+    │   ├── edit-status.dto.ts
+    │   ├── geo.dto.ts
+    │   ├── login.dto.ts
+    │   ├── media-item.dto.ts
+    │   ├── payment.dto.ts
+    │   ├── placename.dto.ts
+    │   ├── preference.dto.ts
+    │   ├── profile.dto.ts
+    │   ├── remove-status.dto.ts
+    │   └── status.dto.ts
+    ├── interfaces
+    │   ├── attributes.interface.ts
+    │   ├── country-option.interface.ts
+    │   ├── geo.interface.ts
+    │   ├── media-item.interface.ts
+    │   ├── payment-option.interface.ts
+    │   ├── payment.interface.ts
+    │   ├── placename.interface.ts
+    │   ├── preference-option.interface.ts
+    │   ├── preference.interface.ts
+    │   ├── profile.interface.ts
+    │   ├── role.interface.ts
+    │   ├── status.interface.ts
+    │   └── user.interface.ts
+    ├── schemas
+    │   ├── attributes.schema.ts
+    │   ├── geo.schema.ts
+    │   ├── media-item.schema.ts
+    │   ├── payment.schema.ts
+    │   ├── placename.schema.ts
+    │   ├── preference.schema.ts
+    │   ├── profile.schema.ts
+    │   ├── status.schema.ts
+    │   └── user.schema.ts
+    ├── settings
+    │   ├── countries.ts
+    │   ├── payments-options.ts
+    │   ├── permissions.ts
+    │   ├── preference-options.ts
+    │   └── roles.ts
+    ├── user.controller.spec.ts
+    ├── user.controller.ts
+    ├── user.module.ts
+    ├── user.service.spec.ts
+    └── user.service.ts
+
+37 directories, 352 files

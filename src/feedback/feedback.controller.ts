@@ -1,0 +1,401 @@
+import {
+  Controller,
+  Get,
+  Res,
+  Req,
+  HttpStatus,
+  Post,
+  Body,
+  Query,
+  Param,
+  Delete,
+  Put,
+} from '@nestjs/common';
+import { Request } from 'express';
+import { FeedbackService } from './feedback.service';
+import { UserService } from '../user/user.service';
+import { SettingService } from '../setting/setting.service';
+import { CreateFlagDTO } from './dto/create-flag.dto';
+import { pushMessage } from '../lib/notifications';
+import { notEmptyString } from '../lib/validators';
+import { SwipeDTO } from './dto/swipe.dto';
+import { sanitize, smartCastInt } from '../lib/converters';
+import { objectToMap } from '../lib/entities';
+import { isValidObjectId } from 'mongoose';
+import { fromBase64 } from '../lib/hash';
+import { SnippetService } from '../snippet/snippet.service';
+
+@Controller('feedback')
+export class FeedbackController {
+  constructor(
+    private feedbackService: FeedbackService,
+    private userService: UserService,
+    private settingService: SettingService,
+    private snippetService: SnippetService,
+  ) {}
+
+  @Get('list-by-target/:user?/:key?')
+  async getTargetUsersByCriteria(
+    @Res() res,
+    @Param('user') user,
+    @Param('key') key,
+    @Req() request: Request,
+  ) {
+    const { query } = request;
+    const data = await this.feedbackService.getByTargetUserOrKey(
+      user,
+      key,
+      query,
+    );
+    return res.json(data);
+  }
+
+  @Get('flags-by-user/:user?')
+  async getAllFlagsByUser(@Res() res, @Param('user') user) {
+    const data = await this.feedbackService.getAllUserInteractions(user);
+    return res.json(data);
+  }
+
+  @Get('member-set/:user/:uid')
+  async getMemberRatingsAndFlags(
+    @Res() res,
+    @Param('user') user,
+    @Param('uid') uid,
+  ) {
+    const data = await this.feedbackService.getMemberSet(user, uid);
+    return res.json(data);
+  }
+
+  @Post('save-flag')
+  async saveFlag(@Res() res, @Body() createFlagDTO: CreateFlagDTO) {
+    const data = await this.feedbackService.saveFlag(createFlagDTO);
+    return res.json(data);
+  }
+
+  @Post('save-member-flag')
+  async saveMemberFlag(@Res() res, @Body() createFlagDTO: CreateFlagDTO) {
+    const flags = await this.settingService.getFlags();
+    const flag = flags.find(fl => fl.key === createFlagDTO.key);
+    const { user, targetUser, key, value } = createFlagDTO;
+    let type = 'boolean';
+    let isRating = false;
+    let data: any = { valid: false };
+    const isValidValue = (value = null, type = '') => {
+      switch (type) {
+        case 'boolean':
+        case 'bool':
+          return value === true || value === false;
+        case 'double':
+        case 'bool':
+          return typeof value === 'number' && isNaN(value) === false;
+        default:
+          return false;
+      }
+    };
+    if (flag instanceof Object) {
+      type = flag.type;
+      isRating = flag.isRating === true;
+      const isEmpty = value === null || value === undefined;
+      const assignedValue = isEmpty ? flag.defaultValue : value;
+      const isValid = isValidValue(assignedValue, type);
+      if (isValid) {
+        data = await this.feedbackService.saveFlag({
+          user,
+          targetUser,
+          key,
+          value: assignedValue,
+          type,
+          isRating,
+        });
+        if (data instanceof Object) {
+          data.valid = true;
+        }
+      }
+      data.fcm = this.sendNotification(createFlagDTO);
+    }
+    return res.json(data);
+  }
+
+  @Get('send-chat-request/:from/:to/:msg?')
+  async sendChatRequest(
+    @Res() res,
+    @Param('from') from: string,
+    @Param('to') to: string,
+    @Param('msg') msg: string,
+  ) {
+    const key = 'chat_request';
+    const data: any = { valid: false, fcm: null };
+    if (isValidObjectId(from) && isValidObjectId(to)) {
+      const infoFrom = await this.userService.getBasicById(from);
+      if (
+        infoFrom instanceof Object &&
+        Object.keys(infoFrom).includes('nickName')
+      ) {
+        const title = infoFrom.nickName;
+        const text = notEmptyString(msg, 2)
+          ? fromBase64(msg)
+          : 'New chat message';
+        const createFlagDTO = {
+          user: from,
+          targetUser: to,
+          key,
+          type: 'title_text',
+          value: {
+            title,
+            text,
+          },
+        } as CreateFlagDTO;
+        data.fcm = await this.sendNotification(createFlagDTO);
+        if (data.fcm instanceof Object && data.fcm.valid) {
+          data.valid = true;
+        }
+      }
+    }
+    return res.json(data);
+  }
+
+  async sendNotification(
+    createFlagDTO: CreateFlagDTO,
+    customTitle = '',
+    customBody = '',
+  ) {
+    const targetDeviceToken = await this.userService.getUserDeviceToken(
+      createFlagDTO.targetUser,
+    );
+    let fcm: any = { valid: false, reason: 'missing device token' };
+    const { key, type, value, user, targetUser } = createFlagDTO;
+
+    if (notEmptyString(targetDeviceToken, 5)) {
+      const plainText = type === 'text' && notEmptyString(value);
+      const titleText =
+        type === 'title_text' &&
+        value instanceof Object &&
+        Object.keys(value).includes('title');
+      const hasCustomTitle = notEmptyString(customTitle, 3);
+      if (plainText || titleText || customTitle) {
+        const hasCustomBody = notEmptyString(customBody, 3);
+        const title = hasCustomTitle
+          ? customTitle
+          : plainText
+          ? key.replace(/_/g, ' ')
+          : value.title;
+        const body = hasCustomBody
+          ? customBody
+          : plainText
+          ? notEmptyString(value, 2)
+            ? value
+            : 'Someone has interacted with you.'
+          : value.text;
+        fcm = await pushMessage(targetDeviceToken, title, body, {
+          key,
+          type,
+          value,
+          user,
+          targetUser,
+        });
+      }
+    }
+    return fcm;
+  }
+
+  @Get('test-fcm')
+  async testFCM(@Res() res, @Query() query) {
+    const params = objectToMap(query);
+    const targetDeviceToken = params.has('targetDeviceToken')
+      ? params.get('targetDeviceToken')
+      : '';
+    const title = params.has('title') ? params.get('title') : '';
+    const body = params.has('body') ? params.get('body') : '';
+    const fcm = await pushMessage(targetDeviceToken, title, body);
+    return res.json(fcm);
+  }
+
+  // Fetch a particular user using ID
+  @Post('swipe')
+  async saveSwipe(@Res() res, @Body() swipeDTO: SwipeDTO) {
+    const { to, from, value, context } = swipeDTO;
+    const minRatingValue = await this.settingService.minPassValue();
+    const contextKey = notEmptyString(context)
+      ? sanitize(context, '_')
+      : 'swipe';
+    const prevSwipe = await this.feedbackService.prevSwipe(from, to);
+    const recipSwipe = await this.feedbackService.prevSwipe(to, from);
+    let intValue = smartCastInt(value, 0);
+
+    const {
+      roles,
+      likeStartTs,
+      superlikeStartTs,
+    } = await this.userService.memberRolesAndLikeStart(from);
+    const nowTs = new Date().getTime();
+    const currStartTs =
+      intValue === 1 ? likeStartTs : intValue > 1 ? superlikeStartTs : 0;
+    let numSwipes = await this.feedbackService.countRecentLikeability(
+      from,
+      intValue,
+      currStartTs,
+    );
+    // fetch the max limit for this swipe action associated with a user's current roles
+    let maxRating = await this.settingService.getMaxRatingLimit(
+      roles,
+      intValue,
+    );
+    // the like Start timestamp is in the future and the action is like
+    // set the limit to zero
+    if (currStartTs > nowTs && intValue > 0) {
+      maxRating = -1;
+    }
+    const hasPaidRole = roles.some(rk => rk.includes('member'));
+    const data: any = { valid: false, updated: false, value: intValue };
+    const hasPrevPass = prevSwipe.valid && prevSwipe.value < 1;
+    const isPass = intValue <= 0;
+    // for free members set pass value to 0 if the other has liked them
+    /* if (isPass && !hasPaidRole && recipSwipe.value > 0) {
+      intValue = 0;
+      isPass = false;
+    } */
+    const prevPass = isPass && hasPrevPass ? prevSwipe.value : 0;
+    if (contextKey.includes('like') === false && intValue < 1 && isPass) {
+      const isHardPass = intValue <= minRatingValue;
+      if (isHardPass) {
+        intValue = minRatingValue;
+      } else if (hasPrevPass) {
+        intValue = prevSwipe.value - 1;
+      }
+    }
+    data.remaining = maxRating > 0 ? maxRating - numSwipes : 0;
+    data.nextStartTs = currStartTs;
+    data.secondsToWait =
+      maxRating < 1 ? Math.ceil((currStartTs - nowTs - 50) / 1000) : 0;
+    data.roles = roles;
+
+    // skip maxRating check only if value is zero. If likes are used up, the value will be -1
+    if (
+      (numSwipes < maxRating || maxRating === 0) &&
+      prevPass > minRatingValue
+    ) {
+      const flagData = {
+        user: from,
+        targetUser: to,
+        key: 'likeability',
+        type: 'int',
+        isRating: true,
+        value: intValue,
+      } as CreateFlagDTO;
+      const flag = await this.feedbackService.saveFlag(flagData);
+      const valid = Object.keys(flag).includes('value');
+      const sendMsg = intValue >= 1;
+      let fcm = {};
+      if (sendMsg) {
+        const {
+          lang,
+          pushNotifications,
+        } = await this.userService.getPreferredLangAndPnOptions(
+          flagData.targetUser,
+        );
+        const pnKey =
+          recipSwipe.value > 0
+            ? 'been_matched'
+            : intValue > 1
+            ? 'been_superliked'
+            : 'been_liked';
+        const maySend = pushNotifications.includes(pnKey);
+        if (maySend) {
+          const nickName = await this.userService.getNickName(flagData.user);
+
+          const {
+            title,
+            body,
+          } = await this.snippetService.buildRatingTitleBody(
+            nickName,
+            intValue,
+            recipSwipe.value,
+            lang,
+          );
+          fcm = await this.sendNotification(flagData, title, body);
+        }
+      }
+      data.valid = valid;
+      data.flag = flag;
+      data.fcm = fcm;
+      data.prevSwipe = prevSwipe;
+      if (valid && prevSwipe.value !== intValue) {
+        numSwipes++;
+        data.remaining--;
+        data.updated = true;
+      }
+      data.count = numSwipes;
+    }
+    if (
+      intValue > 0 &&
+      !hasPaidRole &&
+      data.remaining < 1 &&
+      data.secondsToWait < 1
+    ) {
+      const hrsReset = await this.settingService.getFreeMemberLikeResetHours();
+      const nextTs = await this.userService.updateLikeStartTs(
+        from,
+        hrsReset,
+        intValue,
+      );
+      if (nextTs > 0) {
+        data.nextStartTs = nextTs;
+        data.secondsToWait = Math.ceil((nextTs - nowTs - 50) / 1000);
+      }
+    }
+    return res.status(HttpStatus.OK).json({ ...data, recipSwipe, hasPaidRole });
+  }
+
+  @Delete('delete-flag/:key/:user/:user2/:mutual?')
+  async deleteFlag(
+    @Res() res,
+    @Param('key') key,
+    @Param('user') user,
+    @Param('user2') user2,
+    @Param('mutual') mutual,
+  ) {
+    const isMutual = smartCastInt(mutual, 0) > 0;
+    const { result, result2 } = await this.feedbackService.deleteFlag(
+      key,
+      user,
+      user2,
+      isMutual,
+    );
+    const deleted = [];
+    let delValue: any = null;
+    let delValueRecip: any = null;
+    if (result instanceof Object) {
+      delValue = result.value;
+      deleted.push('from');
+    }
+    if (result2 instanceof Object) {
+      delValueRecip = result.value;
+      deleted.push('to');
+    }
+    return res.json({
+      user,
+      user2,
+      isMutual,
+      key,
+      deleted,
+      delValue,
+      delValueRecip,
+    });
+  }
+
+  @Get('deactivate/:user?/?')
+  async getUsersByCriteria(
+    @Res() res,
+    @Param('user') user,
+    @Param('key') key,
+    @Req() request: Request,
+  ) {
+    const { query } = request;
+    const data = await this.feedbackService.getByTargetUserOrKey(
+      user,
+      key,
+      query,
+    );
+    return res.json(data);
+  }
+}

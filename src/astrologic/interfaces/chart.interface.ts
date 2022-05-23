@@ -1,0 +1,44 @@
+import { Document } from 'mongoose';
+import { Geo } from '../../user/interfaces/geo.interface';
+import { Placename } from '../../user/interfaces/placename.interface';
+import { Subject } from './subject.interface';
+import { BaseGraha } from './base-graha.interface';
+import { HouseSystem } from './house-system.interface';
+import { ITime } from './i-time.interface';
+import { KeyNumValue } from './key-num-value.interface';
+import { VariantSet } from './variant-set.interface';
+import { ObjectMatchSet } from './object-match-set.interface';
+import { RashiSet } from '../lib/models/rashi-set';
+import { StringValue } from './string-value.interface';
+import { ProgressItem } from './progress-item.interface';
+
+export interface Chart extends Document {
+  readonly user: string;
+  readonly isDefaultBirthChart: boolean;
+  readonly subject: Subject;
+  readonly status?: string;
+  readonly parent?: string;
+  readonly datetime: Date;
+  readonly jd: number;
+  readonly geo: Geo;
+  readonly placenames: Placename[];
+  readonly tz: string;
+  readonly tzOffset: number;
+  readonly ascendant: number;
+  readonly mc: number;
+  readonly vertex: number;
+  readonly grahas: BaseGraha[];
+  readonly houses: HouseSystem[];
+  readonly indianTime: ITime;
+  readonly ayanamshas: KeyNumValue[];
+  readonly upagrahas?: KeyNumValue[];
+  readonly sphutas?: VariantSet[];
+  readonly numValues?: KeyNumValue[];
+  readonly stringValues?: StringValue[];
+  readonly objects?: ObjectMatchSet[];
+  readonly rashis?: RashiSet[];
+  readonly progressItems?: ProgressItem[];
+  readonly notes: string;
+  readonly createdAt: Date;
+  readonly modifiedAt: Date;
+}
