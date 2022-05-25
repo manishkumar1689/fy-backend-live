@@ -97,7 +97,7 @@ import { mapLikeabilityRelations, UserFlagSet } from '../lib/notifications';
 import { User } from '../user/interfaces/user.interface';
 import { KeyNumValue } from '../lib/interfaces';
 import { calcKsetraBala, calcNavamshaBala, calcUccaBalaValues, calcUdayaBalaValues, calcVakraBala } from './lib/calc-sbc';
-import { calcKotaChakraScoreData, KotaCakraScoreSet } from './lib/settings/kota-values';
+import { calcKotaChakraScoreData } from './lib/settings/kota-values';
 import { addSnippetKeyToSynastryAspectMatches } from './lib/synastry-aspect-mapper';
 const { ObjectId } = Types;
 
@@ -842,7 +842,6 @@ export class AstrologicService {
     aspect: string,
     orb = -1,
     ayanamshaKey = 'true_citra',
-    mode = 'rows',
   ) {
     return await this.findAspectMatch(
       k1,
@@ -1402,8 +1401,7 @@ export class AstrologicService {
     chartID: string,
     sort = 'modifiedAt',
     limit = 0,
-    chartID2 = '',
-    relType = '',
+    chartID2 = ''
   ) {
     const max = limit > 0 && limit < 1000 ? limit : 1000;
     let sortDir = -1;
@@ -1419,7 +1417,7 @@ export class AstrologicService {
       .find({
         $or: [cond1, cond2],
       })
-      .limit(limit)
+      .limit(max)
       .sort([[sort, sortDir]])
       .populate(['c1', 'c2'])
       .exec();
@@ -1503,7 +1501,7 @@ export class AstrologicService {
           },
         },
       ])
-      .limit(limit)
+      .limit(max)
       .exec();
     return items.map(item => {
       const { _id, timespace, relType, chart1, chart2, modifiedAt } = item;
@@ -2876,70 +2874,4 @@ export class AstrologicService {
     return { rows, datetime: chartData.datetime, geo: chartData.geo };
   }
 
-  async pairedDuplicates(start = 0, limit = 20000) {
-    const steps = [
-      {
-        $skip: start,
-      },
-      {
-        $limit: limit,
-      },
-      {
-        $lookup: {
-          from: 'charts',
-          localField: 'c1',
-          foreignField: '_id',
-          as: 'chart1',
-        },
-      },
-      {
-        $lookup: {
-          from: 'charts',
-          localField: 'c2',
-          foreignField: '_id',
-          as: 'chart2',
-        },
-      },
-      {
-        $unwind: '$chart1',
-      },
-      {
-        $unwind: '$chart2',
-      },
-      {
-        $project: {
-          c1: '$chart1._id',
-          s1: '$chart1.subject.name',
-          d1: '$chart1.datetime',
-          c2: '$chart2._id',
-          s2: '$chart2.subject.name',
-          d2: '$chart2.datetime',
-          relTYpe: 1,
-        },
-      },
-    ];
-    return await this.pairedChartModel.aggregate(steps);
-  }
-
-  async bulkDeletePaired(before: string, max = 1000000) {
-    //const result = await this.pairedChartModel.deleteMany({ createdAt: {} }).exec();
-    const dt = new Date(before);
-    const totalAfter = await this.pairedChartModel.count({
-      createdAt: { $gte: dt },
-    });
-    const total = await this.pairedChartModel.count({});
-    let deleted = false;
-    if (totalAfter > minRemainingPaired) {
-      await this.pairedChartModel
-        .deleteMany({
-          createdAt: {
-            $lt: dt,
-          },
-        })
-        .exec();
-      deleted = true;
-    }
-    const totalBefore = total - totalAfter;
-    return { total, before: totalBefore, after: totalAfter, deleted };
-  }
 }

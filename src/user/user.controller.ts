@@ -101,7 +101,6 @@ import {
   summariseJungianAnswers,
   big5FacetedScaleOffset,
   compareJungianPolarities,
-  toSimplePolarityValues,
   extractSurveyScoresByType,
 } from '../setting/lib/mappers';
 import { PublicUserDTO } from './dto/public-user.dto';
@@ -382,7 +381,6 @@ export class UserController {
       ['password', 'oldPassword'].includes(entry[0]),
     );
     let msg = 'invalid payload';
-    let userObj: any = {};
     let status = HttpStatus.NOT_ACCEPTABLE;
     let reason = 'invalid_input';
     let valid = false;
@@ -395,7 +393,6 @@ export class UserController {
         reasonKey,
       } = await this.userService.updateUser(userID, filteredDTO, roles);
       msg = message;
-      userObj = user;
       reason = reasonKey;
       valid = user instanceof Object && keys.length > 0;
       status = valid ? HttpStatus.OK : HttpStatus.NOT_ACCEPTABLE;

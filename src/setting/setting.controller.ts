@@ -9,11 +9,8 @@ import {
   NotFoundException,
   Delete,
   Param,
-  UseInterceptors,
-  UploadedFile,
   UseGuards,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
 import { SettingService } from './setting.service';
 import { UserService } from '../user/user.service';
 import { SnippetService } from '../snippet/snippet.service';
@@ -21,24 +18,17 @@ import { CreateSettingDTO } from './dto/create-setting.dto';
 import { IdBoolDTO } from './dto/id-bool.dto';
 import { ScoreDTO } from './dto/score.dto';
 import { isNumeric, notEmptyString, validISODateString } from '../lib/validators';
-import { extractDocId } from '../lib/entities';
 import { exportCollection, listFiles } from '../lib/operations';
 import {
   checkFileExists,
   buildFullPath,
-  extractJsonData,
-  writeSettingFile,
-  uploadSwissEphDataFile,
   matchFullPath,
   writeSourceFile,
 } from '../lib/files';
-import * as moment from 'moment-timezone';
 import availableLanguages from './sources/languages';
 import defaultLanguageOptions from './sources/lang-options';
 import { AdminGuard } from '../auth/admin.guard';
 import { ProtocolDTO } from './dto/protocol.dto';
-import { parseAstroBankCSV } from '../lib/parse-astro-csv';
-import { deleteSwissEpheFile } from '../astrologic/lib/files';
 import { ipWhitelistFileData } from '../auth/auth.utils';
 import { StringsDTO } from './dto/strings.dto';
 import { PredictiveRuleSetDTO } from './dto/predictive-rule-set.dto';
@@ -561,8 +551,6 @@ export class SettingController {
     return res.status(HttpStatus.CREATED).send(data);
   }
 
-
-
   @Post('predictive-rules-status')
   async savePredictiveRuleStatus(@Res() res, @Body() items: IdBoolDTO[]) {
     const result: Map<string, any> = new Map([['valid', false]]);
@@ -598,7 +586,7 @@ export class SettingController {
   async resetCustomCache(@Res() res, @Param('userID') userID) {
     const isAdmin = await this.userService.isAdminUser(userID);
     let valid = false;
-    if (isAdmin) { 
+    if (isAdmin) {
       valid = await this.settingService.resetCustomSettingsCache();
     }
     return res.json({valid});
@@ -671,148 +659,5 @@ export class SettingController {
     }
   }
 
-  @Post('import-custom/:key')
-  @UseInterceptors(FileInterceptor('file'))
-  async uploadCustom(@Res() res, @Param('key') key, @UploadedFile() file) {
-    const jsonData = extractJsonData(file, key, 'replace');
-    let statusCode = HttpStatus.NOT_ACCEPTABLE;
-    if (jsonData.get('valid')) {
-      const setting = await this.settingService.getByKey(key);
-      if (setting) {
-        if (setting.value instanceof Object) {
-          const customValue = setting.value;
-          const dateSuffix = moment().format('YYYY-MM-DD-HH-mm-ss');
-          const fileName = [
-            'custom-setting-',
-            key,
-            '-',
-            dateSuffix,
-            '.json',
-          ].join('');
-          writeSettingFile(fileName, customValue);
-          jsonData.set('restore', fileName);
-          statusCode = HttpStatus.OK;
-        }
-      }
-    }
-    return res.status(statusCode).json(Object.fromEntries(jsonData));
-  }
-
-  @Post('upload-swiss-ephemeris/:userID/:newName?/:subDir?/:mode?')
-  @UseInterceptors(FileInterceptor('file'))
-  async uploadSwissEphFile(
-    @Res() res,
-    @Param('userID') userID,
-    @Param('newName') newName,
-    @Param('subDir') subDir,
-    @Param('mode') mode,
-    @UploadedFile() file,
-  ) {
-    const result: Map<string, any> = new Map();
-    let msg = '';
-    let statusCode = HttpStatus.ACCEPTED;
-    if (this.userService.isAdminUser(userID)) {
-      const { originalname, mimetype, size, buffer } = file;
-      const targetName = notEmptyString(newName, 5) ? newName : originalname;
-      const subDirKey =
-        notEmptyString(subDir) && /\w+/.test(subDir) ? subDir : '';
-      const modeKey = notEmptyString(mode) ? mode : 'add';
-      const data = uploadSwissEphDataFile(
-        targetName,
-        subDirKey,
-        buffer,
-        modeKey,
-      );
-
-      Object.entries(data).forEach(entry => {
-        const [key, val] = entry;
-        result.set(key, val);
-      });
-      const newSize = result.has('newSize') ? result.get('newSize') : 0;
-      result.set('dataSize', size);
-      result.set('mimetype', mimetype);
-      const validSize = newSize > 0;
-      result.set('valid', validSize);
-      const exists = result.get('exists') === true;
-      const replaced = result.get('replaced') === true;
-      if (validSize) {
-        msg = replaced ? 'File uploaded and replaced' : 'New file uploaded';
-      } else if (exists === true && !replaced) {
-        msg = 'Could not be replaced';
-      }
-    } else {
-      result.set('valid', false);
-      msg = 'Not authorised';
-      statusCode = HttpStatus.FORBIDDEN;
-    }
-    result.set('message', msg);
-    return res.status(statusCode).json(Object.fromEntries(result));
-  }
-
-  @Delete('delete-swisseph-file/:userID/:fn/:subDir?')
-  async deleteSwephFile(
-    @Res() res,
-    @Param('userID') userID,
-    @Param('fn') fn,
-    @Param('subDir') subDir,
-  ) {
-    const result = { valid: false, deleted: false, file: fn, subDir };
-    if (this.userService.isAdminUser(userID)) {
-      result.deleted = deleteSwissEpheFile(fn, subDir);
-      result.valid = true;
-    }
-    return res.json(result);
-  }
-
-  @Post('import/:mode/:key')
-  @UseInterceptors(FileInterceptor('file'))
-  async uploadCollection(
-    @Res() res,
-    @Param('mode') mode,
-    @Param('key') key,
-    @UploadedFile() file,
-  ) {
-    const jsonData = extractJsonData(file, key, mode);
-    let statusCode = HttpStatus.NOT_ACCEPTABLE;
-    if (jsonData.get('isArrayOfObjects')) {
-      let module = '';
-      let schemaName = '';
-      switch (key) {
-        case 'users':
-        case 'user':
-          module = 'user';
-          schemaName = 'user';
-          break;
-      }
-      const schemaPath = '../' + module + '/schemas/' + schemaName + '.schema';
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const schemas = require(schemaPath);
-
-      if (schemas.constructor instanceof Function) {
-        Object.entries(schemas).forEach(entry => {
-          const name = entry[0];
-          const item: any = entry[1];
-          if (name.endsWith('Schema')) {
-            if (item instanceof Object) {
-              const objKeys = Object.keys(item);
-              if (objKeys.includes('obj')) {
-                if (item.obj instanceof Object) {
-                  const validKeys = Object.keys(item.obj);
-                  jsonData.set('validKeys', validKeys);
-                  statusCode = HttpStatus.OK;
-                }
-              }
-            }
-          }
-        });
-      }
-    }
-    return res.status(statusCode).json(Object.fromEntries(jsonData));
-  }
-
-  @Get('test-records/import')
-  async importTestRecords(@Res() res) {
-    const result = await parseAstroBankCSV();
-    return res.send(result);
-  }
+  
 }

@@ -99,10 +99,8 @@ import { readEpheFiles } from './lib/files';
 import { ChartInputDTO } from './dto/chart-input.dto';
 import {
   smartCastInt,
-  sanitize,
   smartCastFloat,
   smartCastBool,
-  roundNumber,
 } from '../lib/converters';
 import { PairedChartInputDTO } from './dto/paired-chart-input.dto';
 import {
@@ -112,12 +110,6 @@ import {
   approxTransitTimes,
 } from './lib/math-funcs';
 import { PairedChartDTO } from './dto/paired-chart.dto';
-import {
-  mapPairedChartInput,
-  mapToChartInput,
-  parseAstroBankJSON,
-  Record,
-} from '../lib/parse-astro-csv';
 import { Kuta } from './lib/kuta';
 import {
   basicSetToFullChart,
@@ -146,8 +138,6 @@ import { KeyName } from './lib/interfaces';
 import { TagReassignDTO } from './dto/tag-reassign.dto';
 import { TagDTO } from './dto/tag.dto';
 import { RuleSetDTO } from '../setting/dto/rule-set.dto';
-import { SingleCore } from './interfaces/single-core';
-import { AssignPairedDTO } from './dto/assign-paired.dto';
 import { matchPlanetNum } from './lib/settings/graha-values';
 import { CreateUserDTO } from '../user/dto/create-user.dto';
 import {
@@ -2312,26 +2302,7 @@ export class AstrologicController {
       items,
     });
   }
-
-  @Get('bulk-delete-paired/:before/:max?')
-  async bulkDeletePaired(
-    @Res() res,
-    @Param('before') before,
-    @Param('max') max,
-  ) {
-    const data = { valid: false, result: null };
-    const maxInt = smartCastInt(max, 1000000);
-    if (validISODateString(before)) {
-      data.result = await this.astrologicService.bulkDeletePaired(
-        before,
-        maxInt,
-      );
-    }
-    return res.status(HttpStatus.OK).json(data);
-  }
-
- 
-
+  
   @Get('core-values/:ayanamsha?/:start?/:limit?')
   async getCoreValues(
     @Res() res,
