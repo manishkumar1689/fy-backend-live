@@ -14,7 +14,6 @@ import { MessageModule } from './message/message.module';
 import { SnippetModule } from './snippet/snippet.module';
 import { UserService } from './user/user.service';
 import { UserSchema } from './user/schemas/user.schema';
-import { AppGateway } from './app.gateway';
 import { FeedbackModule } from './feedback/feedback.module';
 import { PublicUserSchema } from './user/schemas/public-user.schema';
 import { AnswerSetSchema } from './user/schemas/answer-set.schema';
@@ -62,6 +61,6 @@ import { AnswerSetSchema } from './user/schemas/answer-set.schema';
     FeedbackModule,
   ],
   controllers: [AppController],
-  providers: [AppService, UserService, AppGateway],
+  providers: [AppService, UserService],
 })
 export class AppModule {}
