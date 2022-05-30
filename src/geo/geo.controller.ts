@@ -6,7 +6,7 @@ import {
   Param,
 } from '@nestjs/common';
 import { GeoService } from './geo.service';
-import { isNumeric, validISODateString } from '../lib/validators';
+import { isNumeric, validISODateString, validLocationParameter } from '../lib/validators';
 import { locStringToGeo } from '../astrologic/lib/converters';
 import { currentISODate } from '../astrologic/lib/date-funcs';
 
@@ -100,7 +100,7 @@ export class GeoController {
     const data = { valid: false, items: [] };
     const skipStored = skip > 0;
 
-    const geo = /^-?\d+(\.\d+)?,-?\d+(\.\d+)/.test(loc)
+    const geo = validLocationParameter(loc)
       ? locStringToGeo(loc)
       : null;
     if (search.length > 1) {

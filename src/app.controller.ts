@@ -13,7 +13,7 @@ export class AppController {
   welcome(@Res() res): string {
     const welcomeData = {
       valid: true,
-      msg: 'Welcome to Finding you API',
+      msg: 'Welcome to the FindingYou API',
     };
     return res.status(HttpStatus.OK).json(welcomeData);
   }

@@ -1922,7 +1922,7 @@ const matchPPRulesToMinutes = (minJd = 0, rules: PPRule[], endSubJd = -1) => {
   let score = 0;
   let ppScore = 0;
   const names: string[] = [];
-  let peakJd = 0;
+  const peaks = [];
   for (const rule of rules) { 
     if (rule.isMatched) {
       // a rule may only match one in a given minute even if valid match spans may overlap
@@ -1934,7 +1934,7 @@ const matchPPRulesToMinutes = (minJd = 0, rules: PPRule[], endSubJd = -1) => {
             if (endSubJd < 0 || (peak <= endSubJd && endSubJd > 0)) {
               score += (rule.score * fraction);
               names.push(rule.name);
-              peakJd = peak;
+              peaks.push(peak);
             }
           } else {
             if (rule.validateAtMinJd(minJd)) {
@@ -1949,7 +1949,7 @@ const matchPPRulesToMinutes = (minJd = 0, rules: PPRule[], endSubJd = -1) => {
       }
     }
   }
-  return { minuteScore: score, ppScore, names, peakJd };
+  return { minuteScore: score, ppScore, names, peaks };
 }
 
 const translateTransitionKey = (key = '', isTr = false) => {
@@ -2328,6 +2328,7 @@ export const calculatePanchaPakshiData = async (
         const maxMins = Math.ceil(dayLength * minsDay);
         const minuteMatches: MinuteMatch[] = [];
         const times: PeakTime[] = [];
+        const peaksUsed: number[] = [];
         if (showMinutes) {
           const cutOff = customCutoff > 0? customCutoff : maxPPValue + 10;
           data.set('cutOff', cutOff);
@@ -2354,7 +2355,7 @@ export const calculatePanchaPakshiData = async (
             }); */
             const currSub = allSubs.find(s => currJd >= s.start && currJd <= s.end)
             const endSubJd = applySubYamaTransitCutoff ? currSub instanceof Object ? currSub.end : -1 : -1;
-            const { minuteScore, ppScore, names, peakJd } = matchPPRulesToMinutes(currJd, rules, endSubJd);
+            const { minuteScore, ppScore, names, peaks } = matchPPRulesToMinutes(currJd, rules, endSubJd);
             scores.push(minuteScore);
             names.forEach(nm => {
               if (matchedRulesNames.indexOf(nm) < 0) {
@@ -2384,8 +2385,11 @@ export const calculatePanchaPakshiData = async (
                 times.push(pk);
                 if (minuteScore > pk.max) {
                   pk.setMax(minuteScore);
-                  if (peakJd > 0 && pk.notExactPeak) {
-                    pk.setPeak(julToDateParts(peakJd).unixTimeInt);
+                  if (peaks.length > 0 && pk.notExactPeak) {
+                    const pkIndex = peaks.findIndex(pk => peaksUsed.indexOf(pk) < 0);
+                    const peakIndex = pkIndex < 0 ? 0 : pkIndex;
+                    pk.setPeak(julToDateParts(peaks[peakIndex]).unixTimeInt);
+                    peaksUsed.push(peaks[peakIndex]);
                   }
                 }
               }
@@ -2407,6 +2411,23 @@ export const calculatePanchaPakshiData = async (
               lastTime.setEnd(scores.length - 1);
             }
             times.push(lastTime);
+            const lastTimeIndex = times.length - 1;
+            for (let i = 0; i < times.length; i++) {
+              const { start, peak, end } = times[i];
+              if (end <= start) {
+                let endMatched = false;
+                if (i < lastTimeIndex) {
+                  const nextEnd = times[i+1].end;
+                  if (nextEnd < start + 600) {
+                    times[i].end = nextEnd;
+                    endMatched = true;
+                  }
+                }
+                if (!endMatched) {
+                  times[i].end = peak + 60;
+                }
+              }
+            }
           }
         }
         const notMatchedRuleNames = rules.map(r => r.name).filter(nm => matchedRulesNames.indexOf(nm) < 0);
