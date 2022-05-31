@@ -422,3 +422,11 @@ export const dtStringToNearest15Minutes = (dtStr = '') => {
     return dtStr;
   }
 }
+
+/*
+  mainly for debugging
+*/
+export const unixTsToISODateString = (ts = 0, milliSecs = false) => {
+  const multiple = milliSecs? 1 : 1000;
+  return new Date(ts * multiple).toISOString().split('.').shift();
+}

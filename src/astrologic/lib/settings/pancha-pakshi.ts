@@ -28,12 +28,14 @@ export class PeakTime {
   end = 0;
   max = -1;
   peak = 0;
+  startMinIndex = 0;
 
   constructor(startTs = 0, startMinIndex = 0, endMinIndex = 0) {
     this.startTs = startTs;
+    this.startMinIndex = startMinIndex;
     this.start = startTs + (startMinIndex * 60);
     if (endMinIndex > startMinIndex) {
-      this.setEnd(endMinIndex)
+      this.setEnd(endMinIndex);
     }
   }
 
@@ -2430,13 +2432,26 @@ export const calculatePanchaPakshiData = async (
                   // if an end time cannot be matched set the end to 1 minute past the peak
                   times[i].end = peak + 60;
                 }
+              } else if (peak < start) {
+                if (i > 0 && times[i-1].start < start - 600) {
+                  times[i].start = times[i-1].start;
+                } else {
+                  times[i].start = peak - 60;
+                }
               }
             }
           }
         }
         times.sort((a, b) => a.peak - b.peak);
         const notMatchedRuleNames = rules.map(r => r.name).filter(nm => matchedRulesNames.indexOf(nm) < 0);
-        
+/*         console.log(times.map(time => {
+          const before = time.end < time.peak;
+          const beforeStart = time.peak < time.start;
+          const s = new Date(time.start * 1000).toISOString();
+          const p = new Date(time.peak * 1000).toISOString();
+          const e = new Date(time.end * 1000).toISOString();
+          return {...time, before, beforeStart, s, p, e};
+        })) */
         data.set('rules', rules.map(simplifyRule));
         if (showMinutes) {
           data.set('minutes', scores);
