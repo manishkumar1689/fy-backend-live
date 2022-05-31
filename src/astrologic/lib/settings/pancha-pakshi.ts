@@ -2383,14 +2383,15 @@ export const calculatePanchaPakshiData = async (
                 const pk = new PeakTime(startTs, i);
                 peakTimeIndex = times.length;
                 times.push(pk);
-                if (minuteScore > pk.max) {
-                  pk.setMax(minuteScore);
-                  if (peaks.length > 0 && pk.notExactPeak) {
-                    const pkIndex = peaks.findIndex(pk => peaksUsed.indexOf(pk) < 0);
-                    const peakIndex = pkIndex < 0 ? 0 : pkIndex;
-                    pk.setPeak(julToDateParts(peaks[peakIndex]).unixTimeInt);
-                    peaksUsed.push(peaks[peakIndex]);
-                  }
+              }
+              const pk = times[peakTimeIndex]
+              if (minuteScore > pk.max) {
+                pk.setMax(minuteScore);
+                if (peaks.length > 0 && pk.notExactPeak) {
+                  const pkIndex = peaks.findIndex(pk => peaksUsed.indexOf(pk) < 0);
+                  const peakIndex = pkIndex < 0 ? 0 : pkIndex;
+                  pk.setPeak(julToDateParts(peaks[peakIndex]).unixTimeInt);
+                  peaksUsed.push(peaks[peakIndex]);
                 }
               }
               isLucky = true;
@@ -2418,18 +2419,22 @@ export const calculatePanchaPakshiData = async (
                 let endMatched = false;
                 if (i < lastTimeIndex) {
                   const nextEnd = times[i+1].end;
+                  // if there is another peak time within ten minutes use that
+                  // as they almost definitely overlap
                   if (nextEnd < start + 600) {
                     times[i].end = nextEnd;
                     endMatched = true;
                   }
                 }
                 if (!endMatched) {
+                  // if an end time cannot be matched set the end to 1 minute past the peak
                   times[i].end = peak + 60;
                 }
               }
             }
           }
         }
+        times.sort((a, b) => a.peak - b.peak);
         const notMatchedRuleNames = rules.map(r => r.name).filter(nm => matchedRulesNames.indexOf(nm) < 0);
         
         data.set('rules', rules.map(simplifyRule));
