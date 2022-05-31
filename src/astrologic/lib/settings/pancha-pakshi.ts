@@ -2415,7 +2415,7 @@ export const calculatePanchaPakshiData = async (
             const lastTimeIndex = times.length - 1;
             for (let i = 0; i < times.length; i++) {
               const { start, peak, end } = times[i];
-              if (end <= start) {
+              if (end <= start || end <= peak) {
                 let endMatched = false;
                 if (i < lastTimeIndex) {
                   const nextEnd = times[i+1].end;
