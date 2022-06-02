@@ -2100,6 +2100,45 @@ const processPPTransition = (r: PPRule, chart: Chart, allSubs = [], birthTransit
   };
 }
 
+const matchRuleTransitionKey = (key: string): string => {
+  if (key.length === 2) {
+    return key;
+  } else {
+    switch (key) {
+      case 'spirit':
+        return 'lotOfSpirit';
+      case 'fortune':
+        return 'lotOfFortune';
+      case 'yogi_graha':
+        return 'yogiGraha';
+      case 'yogi_point':
+        return 'yogi';
+      case 'avayogi_graha':
+        return 'avayogiGraha';
+      case 'avayogi_point':
+        return 'avaYogi';
+      case 'yogi_graha':
+        return 'yogiGraha';
+      case 'brighu_bindu':
+        return 'brghuBindu';
+      default:
+        return key;
+    }
+  }
+}
+
+const matchTransitionKeys = (rules: PPRule[] = []) => {
+  const ruleKeys = rules.filter(r => ['mc', 'ic', 'as', 'ds', 'rise', 'set'].includes(r.action)).map(r => r.key);
+  const keys: string[] = [];
+  ruleKeys.forEach(rk => {
+    const key = matchRuleTransitionKey(rk);
+    if (keys.indexOf(key) < 0) {
+      keys.push(key);
+    }
+  });
+  return keys;
+}
+
 export const calculatePanchaPakshiData = async (
   chart: Chart,
   jd = 0,
@@ -2146,7 +2185,6 @@ export const calculatePanchaPakshiData = async (
       transitions,
       birthTransitions,
     } = await buildCurrentAndBirthExtendedTransitions(chart, geo, jd);
-
     data.set('transitions', transitions);
     data.set('birthTransitions', birthTransitions);
     //const transitRules = rules.filter(r => r.from.includes('transit'));

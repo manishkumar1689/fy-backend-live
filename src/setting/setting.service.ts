@@ -33,7 +33,6 @@ import { RedisService } from 'nestjs-redis';
 import * as Redis from 'ioredis';
 import {
   ProtocolSettings,
-  translateActionToGerund,
 } from '../astrologic/lib/models/protocol-models';
 import { smartCastFloat, smartCastInt } from '../lib/converters';
 import permissionValues, {
@@ -814,6 +813,7 @@ export class SettingService {
     }
     return value;
   }
+
   async enforcePaidMembershipLogic(resetCache = false): Promise<boolean> {
     let value = false;
     let hasCached = false;

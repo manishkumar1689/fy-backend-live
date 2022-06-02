@@ -2153,10 +2153,13 @@ export class AstrologicService {
 
   async relatedChartSubjects(chartID: string) {
     const criteria = new Map();
+    const refChart = await this.chartModel.findById(chartID).select('jd');
+    const refJd = refChart instanceof Object ? refChart.jd : 0;
     criteria.set('$or', [
       { _id: ObjectId(chartID) },
       { parent: ObjectId(chartID) },
     ]);
+    criteria.set('jd', { $gte: refJd } );
     const items = await this.list(criteria, 0, 500, true, true);
     return items.sort((a, b) => a.jd - b.jd);
   }

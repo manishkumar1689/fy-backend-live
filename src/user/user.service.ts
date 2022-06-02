@@ -2073,7 +2073,7 @@ export class UserService {
       .filter(key => key.endsWith('image_upload'));
     const limits = permLimits.filter(pl => perms.includes(pl.key));
     limits.sort((a, b) => b.value - a.value);
-    const limit = limits.length > 0 ? limits[0].value : 0;
+    const limit = limits.length > 0 ? limits[0].value : 10;
     let numUploaded = 0;
     if (active && roles.length > 0 && roles.includes('blocked') === false) {
       const profiles =

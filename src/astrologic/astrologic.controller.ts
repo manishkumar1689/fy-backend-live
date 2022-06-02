@@ -2293,8 +2293,9 @@ export class AstrologicController {
   @Get('life-events/:chartID')
   async getRelated(@Res() res, @Param('chartID') chartID) {
     const criteria: Map<string, any> = new Map();
+    const validId = isValidObjectId(chartID) && /^[0-9a-f]+$/i.test(chartID);
     criteria.set('$or', [{ _id: chartID }, { parent: chartID }]);
-    const items = await this.astrologicService.relatedChartSubjects(chartID);
+    const items = validId? await this.astrologicService.relatedChartSubjects(chartID) : [];
     const num = items.length;
     return res.json({
       valid: num > 0,

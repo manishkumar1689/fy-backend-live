@@ -751,7 +751,6 @@ export const buildCurrentAndBirthExtendedTransitions = async (
   offset = -0.5,
 ) => {
   const result = await buildExtendedTransitions(geo, jd + offset, 'extended', '', chart);
- 
   const { transitions } = result;
   const gps = chart.bodies.map(({ lng, lat, lngSpeed, key }) => {
     return { lng, lat, lngSpeed, key };
