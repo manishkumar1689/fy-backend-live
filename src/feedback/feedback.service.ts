@@ -189,7 +189,15 @@ export class FeedbackService {
         active: 0,
       });
       const mutualIds = mutualRows.map(r => r.targetUser.toString());
-      return rows.map(r => {
+      // match and exclude ids of users that have been rejected (passed) 3 times or more
+      const criteriaObj3 = {
+        targetUser: { $in: rows.map(r => r.user) },
+        user: userId,
+        value: { $lte: -3 },
+      };
+      const rejectedRows = await this.flagModel.find(criteriaObj3).select('targetUser');
+      const rejectedIds = rejectedRows.length > 0 ? rejectedRows.map(r => r.targetUser.toString()) : [];
+      return rows.filter(r => rejectedIds.includes(r.user.toString()) === false).map(r => {
         const isMutual = mutualIds.includes(r.user.toString());
         return { ...r.toObject(), isMutual };
       });

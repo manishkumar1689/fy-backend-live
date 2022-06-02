@@ -570,6 +570,7 @@ export class UserController {
     const searchMode = context === 'search';
     const filteredForUser = hasUser && searchMode;
     const paramKeys = Object.keys(params);
+    const filterPartnerAgeRangePrefs = queryKeys.includes('ar') && smartCastInt(query.ar, 0) > 0; 
     // filter ids by members who have liked or superliked the referenced user
     const likeabilityKeys = [
       'liked',
@@ -655,7 +656,7 @@ export class UserController {
       const enforcePaidMembership = await this.settingService.enforcePaidMembershipLogic();
 
       const currQueryKeys = Object.keys(query);
-      if (userAge > 17) {
+      if (userAge > 17 && filterPartnerAgeRangePrefs) {
         query.ageRange = userAge;
       }
       if (hasUser) {
