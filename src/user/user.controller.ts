@@ -602,7 +602,7 @@ export class UserController {
           gte,
           mutualMode,
         );
-        const skipMutuality = !mutual && !unrated;
+        const skipMutuality = (!mutual && !unrated) || ['liked','liked2'].includes(context);
         filterIds =
           flags instanceof Array
             ? flags
@@ -715,8 +715,12 @@ export class UserController {
       notFlags = notEmptyString(notFlagStr) ? notFlagStr.split(',') : [];
       trueFlags = notEmptyString(trueFlagStr) ? trueFlagStr.split(',') : [];
     }
+    if (context === 'liked') {
+      trueFlags = ['liked1'];
+    } else if (context === 'superliked') {
+      trueFlags = ['liked2'];
+    }
     const preFetchFlags = notFlags.length > 0 || trueFlags.length > 0;
-    //const prefOptions = await this.settingService.getPreferences();
     const {
       userFlags,
       excludedIds,
@@ -729,7 +733,7 @@ export class UserController {
       searchMode,
       repeatInterval,
     );
-    if (includedIds instanceof Array && trueFlags.length > 0) {
+    if (includedIds instanceof Array && trueFlags.length > 0 && includedIds.length > 0) {
       filterIds = includedIds;
       hasFilterIds = true;
     }
@@ -752,7 +756,6 @@ export class UserController {
     ); */
     const otherUserIds = preFetchFlags ? users.map(u => u._id) : [];
     const items = [];
-
     const flags: UserFlagSet =
       hasUser && !preFetchFlags
         ? await this.feedbackService.getAllUserInteractions(
@@ -762,7 +765,6 @@ export class UserController {
           )
         : userFlags;
     const jungianRef = extractSurveyScoresByType(userInfo);
-
     const customSettings = await this.settingService.customCompatibilitySettings();
     for (const user of users) {
       if (hasRefChart) {
@@ -882,7 +884,7 @@ export class UserController {
     const repeatInterval = await this.settingService.swipeMemberRepeatInterval();
     limits.push({
       key: 'members__repeat_interval',
-      name: 'Swipe member repear interval (minutes)',
+      name: 'Swipe member repeat interval (minutes)',
       value: repeatInterval
     });
     const items = Object.entries(permObj).filter(entry => typeof entry[1] !== 'number').map(entryToPerm);
