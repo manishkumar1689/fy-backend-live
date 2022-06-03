@@ -79,7 +79,7 @@ export const calcBodyLng = async (key = "", jd = 0, ayanamsha = "true_citra") =>
 
 export const calcAcceleration = async (jd, body) => {
   const { num } = body;
-  let spds = [];
+  const spds = [];
   for (let i = 0; i < 2; i++) {
     const refJd = jd + i * 0.5;
     await calcBodySpeed(refJd, num, (speed, lng) => {
@@ -209,12 +209,12 @@ const calcSwitchover = async (jd, body) => {
 };
 
 const calcPeakSpeed = async (jd, body) => {
-  const { num, yearLength } = body;
+  const { num } = body;
   const max = Math.ceil(body.yearLength);
   let rate = 0;
   let refSpeed = null;
   let polarity = 0;
-  let prevPolarity = 0;
+  //let prevPolarity = 0;
   let row: any = {
     spd: 0,
     lng: 0,
@@ -445,10 +445,12 @@ const referenceBodyPos = async (key = "", jdFl = 0, geo: GeoPos = { lat: 0, lng:
       await calcBodySpeed(jdFl, body.num, (spdVal, lngDeg) => {
         speed = spdVal;
         lng = lngDeg;
+        jd = jdFl;
       });
     }
   } else {
     lng = calcOffsetAscendant(geo.lat, geo.lng, jdFl, ayanamshaVal);
+    jd = jdFl;
   }
   return { lng, jd, speed };
 }
@@ -511,14 +513,6 @@ export const calcSignSwitchAvg = (items: SignTimelineItem[]) => {
   return numMatches > 1 ? items.slice(1).map(item => item.duration).reduce((a,b) => a + b, 0) / (numMatches - 1) : 0
 }
 
-export const calcCoreSignTimeline = async (startJd = 0, endJd = 0, ayanamshaKey = "true_citra"): Promise<SignTimelineSet[]> => {
-  return await calcCoreIntervalTimeline(12, startJd, endJd, ayanamshaKey);
-}
-
-export const calcCoreKakshaTimeline = async (startJd = 0, endJd = 0, excludeMoon = false, ayanamshaKey = "true_citra"): Promise<SignTimelineSet[]> => {
-  return await calcCoreIntervalTimeline(96, startJd, endJd, ayanamshaKey, excludeMoon);
-}
-
 export const calcCoreIntervalTimeline = async (subDiv = 12, startJd = 0, endJd = 0, ayanamshaKey = "true_citra", excludeMoon = false): Promise<SignTimelineSet[]> => {
   const coreKeys = [ "sa", "ju", "ma", "su", "ve", "me"];
   if (!excludeMoon) {
@@ -526,7 +520,7 @@ export const calcCoreIntervalTimeline = async (subDiv = 12, startJd = 0, endJd =
   }
   const degInterval = 360 / subDiv;
   const bodies = await calcBodiesJd(startJd, coreKeys);
-  const ayanamshaVal = await calcAyanamsha(startJd, ayanamshaKey);
+  //const ayanamshaVal = await calcAyanamsha(startJd, ayanamshaKey);
   const grahas = [];
   const dt = julToISODate(startJd);
   for (const gr of bodies) {
@@ -561,12 +555,12 @@ export const calcCoreIntervalTimeline = async (subDiv = 12, startJd = 0, endJd =
   return grahas;
 }
 
-export const calcAscendantTimelineSet = async (geo: LngLat, startJd = 0, endJd = 0, ayanamshaKey = "true_citra") => {
-  return await calcAscendantIntervalTimelineSet(12, geo, startJd, endJd, ayanamshaKey);
+export const calcCoreSignTimeline = async (startJd = 0, endJd = 0, ayanamshaKey = "true_citra"): Promise<SignTimelineSet[]> => {
+  return await calcCoreIntervalTimeline(12, startJd, endJd, ayanamshaKey);
 }
 
-export const calcAscendantKakshaSet = async (geo: LngLat, startJd = 0, endJd = 0, ayanamshaKey = "true_citra") => {
-  return await calcAscendantIntervalTimelineSet(96, geo, startJd, endJd, ayanamshaKey);
+export const calcCoreKakshaTimeline = async (startJd = 0, endJd = 0, excludeMoon = false, ayanamshaKey = "true_citra"): Promise<SignTimelineSet[]> => {
+  return await calcCoreIntervalTimeline(96, startJd, endJd, ayanamshaKey, excludeMoon);
 }
 
 export const calcAscendantIntervalTimelineSet = async (subDiv = 12, geo: LngLat, startJd = 0, endJd = 0, ayanamshaKey = "true_citra") => {
@@ -583,6 +577,14 @@ export const calcAscendantIntervalTimelineSet = async (subDiv = 12, geo: LngLat,
     nextMatches: items,
     avg: calcSignSwitchAvg(items)
   };
+}
+
+export const calcAscendantTimelineSet = async (geo: LngLat, startJd = 0, endJd = 0, ayanamshaKey = "true_citra") => {
+  return await calcAscendantIntervalTimelineSet(12, geo, startJd, endJd, ayanamshaKey);
+}
+
+export const calcAscendantKakshaSet = async (geo: LngLat, startJd = 0, endJd = 0, ayanamshaKey = "true_citra") => {
+  return await calcAscendantIntervalTimelineSet(96, geo, startJd, endJd, ayanamshaKey);
 }
 
 export const calcGrahaSignTimeline = async (geo: LngLat, startJd = 0, endJd = 0, ayanamshaKey = "true_citra"): Promise<SignTimelineSet[]> => {
