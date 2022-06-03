@@ -1396,13 +1396,14 @@ export class AstrologicController {
       ? 'true_citra'
       : 'top';
     const topList = !simplify ? 'top' : ayanamshaKey;
+    const fetchFull = mode === 'all';
     const data = await this.fetchCompactChart(
       loc,
       dtUtc,
       'top',
       topList,
-      false,
-      false,
+      fetchFull,
+      fetchFull,
     );
     const chart = simplify ? simplifyAstroChart(data, true, true) : data;
     if (chart instanceof Object) {

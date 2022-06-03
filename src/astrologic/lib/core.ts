@@ -1634,7 +1634,7 @@ export const calcCompactChartData = async (
   const { jd } = grahaSet;
   const dayFracOffset = tzOffset / 86400;
   const dayStartJd = Math.floor(jd + 0.5) - 0.5 - dayFracOffset;
-  const transitions = await calcAllTransitionsJd(dayStartJd, geo, 0);
+  const transitions = await calcAllTransitionsJd(dayStartJd, geo, 0, fetchFull);
   grahaSet.mergeTransitions(transitions);
   const matchedAyaNum = fetchFull
     ? 0
