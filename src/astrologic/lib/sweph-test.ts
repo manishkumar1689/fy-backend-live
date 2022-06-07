@@ -1,7 +1,7 @@
 import * as swisseph from 'swisseph';
 
 export const getFuncNames = () => {
-  let vals = [];
+  const vals = [];
   if (swisseph instanceof Object) {
     for (const name in swisseph) {
       const func = swisseph[name];
@@ -14,7 +14,7 @@ export const getFuncNames = () => {
 }
 
 export const getConstantVals = () => {
-  let vals = [];
+  const vals = [];
   if (swisseph instanceof Object) {
     for (const name in swisseph) {
       const value = swisseph[name];

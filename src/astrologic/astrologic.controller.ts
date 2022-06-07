@@ -1781,6 +1781,9 @@ export class AstrologicController {
             };
             if (notEmptyString(parent, 16)) {
               data.chart.parent = parent;
+            } else {
+              // remove parent Object ID ref altogether
+              data.chart.parent = null;
             }
             let saved = null;
             if (save) {
