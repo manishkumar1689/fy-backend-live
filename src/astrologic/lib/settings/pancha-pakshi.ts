@@ -73,6 +73,7 @@ export class PeakTime {
 
 interface MinuteMatch {
   min: number;
+  dt?: string;
   yama: number;
   sub: number;
   rules: string[];
@@ -2411,6 +2412,7 @@ export const calculatePanchaPakshiData = async (
                const yama = Math.floor(subIndex / 5) + 1;
               minuteMatches.push({
                 min: (i+1),
+                dt: julToDateParts(currJd).toISOString(),
                 yama,
                 sub: (subIndex % 5) + 1,
                 rules: names,
