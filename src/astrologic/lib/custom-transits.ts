@@ -317,7 +317,7 @@ export const sampleBaseObjects = async (jd = 0, geo: GeoPos, birthChart: Chart =
   specialTransitKeys.forEach(key => {
     prevLngs.set(key, 0);
   });
-  const hasBirthChart = birthChart instanceof Chart && birthChart.jd > 0;
+  const hasBirthChart = birthChart instanceof Chart && birthChart.jd > 0 && birthChart.indianTime instanceof Object;
   const birthAsc = await calcAscendantRaLng(birthChart);
   const isDayTime = hasBirthChart ? birthChart.indianTime.isDayTime : true;
   for (let i = startSampleIndex; i < endSampleNum; i++) {
@@ -343,7 +343,7 @@ export const sampleBaseObjects = async (jd = 0, geo: GeoPos, birthChart: Chart =
       const minMode = sk === 'ic';
       const startJd = minMode ? transitItem.ic.prevJd : transitItem.mc.prevJd;
       const endJd = minMode ? transitItem.ic.jd: transitItem.mc.jd;
-      const { matchedJd, altitude } = await innerTransitLimit(key, geo, startJd, endJd, minMode, birthAsc, birthChart.indianTime.isDayTime);
+      const { matchedJd, altitude } = await innerTransitLimit(key, geo, startJd, endJd, minMode, birthAsc, isDayTime);
       transitItem[sk].jd = matchedJd;
       transitItem[sk].val = altitude;
     }
