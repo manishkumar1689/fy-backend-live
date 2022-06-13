@@ -768,7 +768,7 @@ export class UserController {
           )
         : userFlags;
     const jungianRef = extractSurveyScoresByType(userInfo);
-    const kutaDict = await this.dictionaryService.getKutaDictMap();
+    const kutaDict = await this.getKutaDict();
     const customSettings = await this.settingService.customCompatibilitySettings(kutaDict);
     for (const user of users) {
       if (hasRefChart) {
@@ -784,18 +784,26 @@ export class UserController {
     return items;
   }
 
-  async getKutaDict() {
+  async getKutaDict(): Promise<Map<string, string>> {
     const key = 'kuta_dict';
-    let data = await this.redisGet(key)
-    if (data instanceof Map && data.size > 10) {
-      return data;
-    } else {
-      data = await this.dictionaryService.getKutaDictMap();
-      if (data instanceof Map && data.size > 10) {
-        this.redisSet(key, data);
+    const stored = await this.redisGet(key)
+    let mp: Map<string, string> = new Map();
+    let hasStored = false;
+    if (stored instanceof Object) {
+      const entries = Object.entries(stored);
+      if (entries.length > 10) {
+        mp = new Map(entries) as Map<string, string>;
+        hasStored = true;
       }
     }
-    return data;
+    if (!hasStored) {
+      const data = await this.dictionaryService.getKutaDictMap();
+      if (data instanceof Map && data.size > 10) {
+        this.redisSet(key, Object.fromEntries(data.entries()));
+        mp = data;
+      }
+    }
+    return mp;
   }
 
   /*
