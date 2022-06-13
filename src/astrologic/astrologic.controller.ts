@@ -2120,6 +2120,23 @@ export class AstrologicController {
   }
 
   /*
+  * #astrotesting
+  * fetch altitude of any point in the sky at a given location
+  * Can be used to calculate transits
+  */
+  @Get('altitude/:loc/:dt/:lng/:lat/:equal?')
+  async matchAltitude(@Res() res, @Param('loc') loc, @Param('dt') dt, @Param('lng') lng, @Param('lat') lat, @Param('equal') equal) {
+    const { jd, dtUtc } = matchJdAndDatetime(dt);
+    const geo = locStringToGeo(loc);
+    const flLng = smartCastFloat(lng);
+    const flLat = smartCastFloat(lat);
+    const isEqual = smartCastInt(equal) > 0;
+    const altitude = await calcAltitudeSE(jd, geo, flLng, flLat, isEqual);
+    
+    return res.json({ altitude, lng: flLng, lat: flLat, geo, jd, dtUtc });
+  }
+
+  /*
   #astrotesting
   check rules sets
   */

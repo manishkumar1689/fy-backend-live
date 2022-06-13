@@ -69,7 +69,7 @@ import {
   calcCoreGrahaPositions,
 } from './lib/core';
 import { Chart as ChartClass } from './lib/models/chart';
-import { Kuta } from './lib/kuta';
+import { Kuta, KutaValueSetItems } from './lib/kuta';
 import { AspectSet, buildDegreeRange, buildLngRange } from './lib/calc-orbs';
 import {
   sanitize,
@@ -1600,6 +1600,32 @@ export class AstrologicService {
     return Object.fromEntries(types);
   }
 
+  
+
+  mapKutaColValues(kutas: KutaValueSetItems[], dictMap: Map<string, string>) {
+    const simplifyKey = (key: string) => {
+      let parts = key.split('/');
+      if (parts.length > 2) {
+        parts = parts.slice(0, 2);
+      }
+      return parts.join('/');
+    }
+    return kutas.map(row => {
+      const values = row.values.map(item => {
+        const dk1 = simplifyKey(item.c1Value);
+        if (dictMap.has(dk1)) {
+          item.c1Value = dictMap.get(dk1);
+        }
+        const dk2 = simplifyKey(item.c2Value);
+        if (dictMap.has(dk2)) {
+          item.c2Value = dictMap.get(dk2);
+        }
+        return item;
+      });
+      return {...row, values };
+    });
+  }
+
   async getTraits(shortOnly = true, limit = 100000) {
     const pcs = await this.pairedChartModel
       .aggregate([
@@ -1752,7 +1778,7 @@ export class AstrologicService {
     const chartData = hasChart ? fullChart ? chart : simplifyChart(chartSource, ayanamshaKey, simpleMode) : {};
     const refUserId = user._id.toString();
     // kutaSet: any = null, kcScoreSet: KotaCakraScoreSet, orbMap = null
-    const { kutaSet, kcScoreSet, orbMap, p2Scores } = customSettings;
+    const { kutaSet, kcScoreSet, orbMap, p2Scores, dictMap } = customSettings;
     const preferences =
       user.preferences instanceof Array && user.preferences.length > 0
         ? user.preferences.filter(filterCorePreference)
@@ -1761,12 +1787,12 @@ export class AstrologicService {
           from: mapLikeabilityRelations(flags.likeability.from, refUserId),
           to: mapLikeabilityRelations(flags.likeability.to, refUserId),
         };
-    const kutaRow = hasChart? this._calcKutas(
+    const kutaRows: KutaValueSetItems[] = hasChart? this._calcKutas(
       refChart,
       chart,
       kutaSet,
       'ashta',
-    ) : {};
+    ) : [];
     addExtraPanchangeNumValuesFromClass(chartData, chart, 'true_citra');
     const pd = calcProgressAspectDataFromProgressItems(chart.matchProgressItems(), refChart.matchProgressItems());
     const p2Summary = pd.num > 0 ? calcProgressSummary(pd.items, true, p2Scores) : {};
@@ -1781,7 +1807,7 @@ export class AstrologicService {
       hasChart,
       chart: chartData,
       preferences,
-      kutas: kutaRow,
+      kutas: this.mapKutaColValues(kutaRows, dictMap),
       aspects,
       p2: p2Summary,
       kc: { 
@@ -1803,7 +1829,7 @@ export class AstrologicService {
     const kutaBuilder = new Kuta(c1, c2);
     kutaBuilder.loadCompatibility(kutaSet);
     const grahaKeys = ['su', 'mo', 've', 'as'];
-    return kutaBuilder.calcAllSingleKutas(true, grahaKeys, kutaTypeKey, false);
+    return kutaBuilder.calcAllSingleFullKutas(grahaKeys, kutaTypeKey, false);
   }
 
   async getChartsByUser(
@@ -2838,7 +2864,7 @@ export class AstrologicService {
     const kakshyaMap: Map<number, any> = new Map();
     const numKeys = kakshyaKeys.length;
 
-    times.forEach((row, index) => {
+    times.forEach((row) => {
       const index96 = Math.floor(row.lng / (360 / 96));
       const num = index96 + 1;
       const kakshyaIndex = index96 % 8;

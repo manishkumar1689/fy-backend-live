@@ -23,6 +23,8 @@ import { PredictiveRuleSetSchema } from '../setting/schemas/predictive-rule-set.
 import { FeedbackSchema } from '../feedback/schemas/feedback.schema';
 import { FlagSchema } from '../feedback/schemas/flag.schema';
 import { AnswerSetSchema } from './schemas/answer-set.schema';
+import { DictionaryService } from '../dictionary/dictionary.service';
+import { LexemeSchema } from '../dictionary/schemas/lexeme.schema';
 
 @Global()
 @Module({
@@ -44,6 +46,7 @@ import { AnswerSetSchema } from './schemas/answer-set.schema';
       { name: 'PredictiveRuleSet', schema: PredictiveRuleSetSchema },
       { name: 'Feedback', schema: FeedbackSchema },
       { name: 'Flag', schema: FlagSchema },
+      { name: 'Lexeme', schema: LexemeSchema },
     ]),
   ],
   providers: [
@@ -51,6 +54,7 @@ import { AnswerSetSchema } from './schemas/answer-set.schema';
     MessageService,
     SettingService,
     SnippetService,
+    DictionaryService,
     AstrologicService,
     GeoService,
     FeedbackService,

@@ -46,6 +46,16 @@ export class DictionaryService {
     return await this.lexemeModel.findOne({ key }).exec();
   }
 
+  async getByCategory(key: string): Promise<Lexeme[]> {
+    const rgx = new RegExp('^' + key + '__');
+    return await this.lexemeModel.find({ key: rgx });
+  }
+
+  async getByCategories(keys: string[] = []): Promise<Lexeme[]> {
+    const rgx = new RegExp('^(' + keys.join('|') + ')__');
+    return await this.lexemeModel.find({ key: rgx });
+  }
+
   async getCategoriesKeys(): Promise<Array<any>> {
     const keyRows = await this.lexemeModel
       .find({})
@@ -157,4 +167,26 @@ export class DictionaryService {
     }
     return hashMapToObject(mp);
   }
+
+
+  async getKutaDictMap(): Promise<Map<string, string>> {
+    const mp: Map<string, string> = new Map();
+    const lexemes = await this.getByCategories(['kuta', 'rashi', 'nakshatra', 'dignity']);
+    const matchKey = (longKey: string) => {
+      const [start, end] = longKey.split('__');
+      if (start === 'kuta') {
+        return end.replace(/_/, '/');
+      } else if (start === 'rashi') {
+        return ['sign', end].join('/');
+      } else {
+        return [start, end].join('/');
+      }
+    }
+    lexemes.forEach(lex => {
+      const mKey = matchKey(lex.key);
+      mp.set(mKey, lex.name);
+    });
+    return mp;
+  }
+
 }

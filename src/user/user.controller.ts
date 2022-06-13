@@ -20,6 +20,7 @@ import { UserService } from './user.service';
 import { MessageService } from '../message/message.service';
 import { SettingService } from '../setting/setting.service';
 import { GeoService } from '../geo/geo.service';
+import { DictionaryService } from '../dictionary/dictionary.service';
 import { CreateUserDTO } from './dto/create-user.dto';
 import { LoginDTO } from './dto/login.dto';
 import {
@@ -139,6 +140,7 @@ export class UserController {
     private astrologicService: AstrologicService,
     private geoService: GeoService,
     private feedbackService: FeedbackService,
+    private dictionaryService: DictionaryService,
     private readonly redisService: RedisService,
     private mailerService: MailerService,
   ) {}
@@ -766,7 +768,8 @@ export class UserController {
           )
         : userFlags;
     const jungianRef = extractSurveyScoresByType(userInfo);
-    const customSettings = await this.settingService.customCompatibilitySettings();
+    const kutaDict = await this.dictionaryService.getKutaDictMap();
+    const customSettings = await this.settingService.customCompatibilitySettings(kutaDict);
     for (const user of users) {
       if (hasRefChart) {
         const extraData = await this.astrologicService.expandUserWithChartData(user, flags, refChart, customSettings, fullChart, ayanamshaKey, simpleMode);
@@ -779,6 +782,20 @@ export class UserController {
     }
     items.sort((a, b) => (b.hasChart ? 1 : -1));
     return items;
+  }
+
+  async getKutaDict() {
+    const key = 'kuta_dict';
+    let data = await this.redisGet(key)
+    if (data instanceof Map && data.size > 10) {
+      return data;
+    } else {
+      data = await this.dictionaryService.getKutaDictMap();
+      if (data instanceof Map && data.size > 10) {
+        this.redisSet(key, data);
+      }
+    }
+    return data;
   }
 
   /*

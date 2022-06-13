@@ -1199,13 +1199,14 @@ export class SettingService {
     return await this.fetchCachedSetting(key, skipCache, 1);
   }
 
-  async customCompatibilitySettings() {
+  async customCompatibilitySettings(kutaDictMap: any = null) {
     const kutaSet = await this.getKutaSettings();
     const kcScoreSet = await this.getKotaChakraScoreSet();
     const orbMap = await this.synastryOrbs();
     const p2Scores = await this.p2Scores();
+    const dictMap: Map<string, string> = kutaDictMap instanceof Map ? kutaDictMap : new Map();
     return {
-      kutaSet, kcScoreSet, orbMap, p2Scores
+      kutaSet, kcScoreSet, orbMap, p2Scores, dictMap
     }
   }
 

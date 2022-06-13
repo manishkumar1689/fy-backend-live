@@ -1,3 +1,4 @@
+import { KeyNumValue } from '../../lib/interfaces';
 import { smartCastFloat } from '../../lib/converters';
 import { inRange, isNumeric, notEmptyString } from '../../lib/validators';
 import { matchNakshatra } from './core';
@@ -202,6 +203,12 @@ export interface KutaValueSetItems {
   k1: string;
   k2: string;
   values: KutaValueSet[];
+}
+
+export interface KutaValueSetValues {
+  k1: string;
+  k2: string;
+  values: KeyNumValue[];
 }
 
 class KutaKeyVariant {
@@ -549,7 +556,7 @@ export class Kuta {
     return grahas;
   } */
 
-  calcAllSingleKutasFull(grahaKeys: string[] = [], allCombos = true) {
+  calcAllSingleKutasFull(grahaKeys: string[] = [], allCombos = true): KutaValueSetItems[] {
     const items = [];
     const refKeys = grahaKeys.length > 1 ? grahaKeys : this.allKeys;
     refKeys.forEach(k1 => {
@@ -570,7 +577,7 @@ export class Kuta {
     grahaKeys: string[] = [],
     kutaType = 'all',
     allCombos = true,
-  ) {
+  ): KutaValueSetItems[] | KutaValueSetValues[] {
     this.kutaType = kutaType;
     const items = this.calcAllSingleKutasFull(grahaKeys, allCombos);
     const simplifyKuta = (item: KutaValueSet) => {
@@ -589,6 +596,10 @@ export class Kuta {
             values: values.map(simplifyKuta),
           };
         });
+  }
+
+  calcAllSingleFullKutas( grahaKeys: string[] = [], kutaType = 'all', allCombos = true): KutaValueSetItems[] {
+    return this.calcAllSingleKutas(true,grahaKeys,kutaType,allCombos) as KutaValueSetItems[];
   }
 
   calcSingleKutasAsObj(gr1: Graha, gr2: Graha) {
