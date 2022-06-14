@@ -2376,8 +2376,11 @@ export const calculatePanchaPakshiData = async (
           let isLucky = false;
           let peakTimeIndex = -1;
           let prevPP = -1;
+          // round minutes to next exact minute after sunrise to make it easier to remap to exact 24 hour days
+          const roundedStartJd = Math.ceil(startJd * 1440) / 1440;
+          data.set('minuteStart', julToDateParts(roundedStartJd).unixTimeInt);
           for (let i = 0; i < maxMins; i++) {
-            const currJd = startJd + minJd * i;
+            const currJd = roundedStartJd + minJd * i;
             /* const refSub = subPeriods.find(
               sp => currJd >= sp.start && currJd <= sp.end,
             );
@@ -2525,7 +2528,7 @@ export const calcLuckyTimes = async (chart: Chart, jd = 0, geo: GeoLoc, rules: a
     customCutoff
   );
   if (ppData.get('valid') === true) {
-    const keys = ['max', 'cutOff', 'minutes', 'times'];
+    const keys = ['minuteStart', 'cutOff', 'minutes', 'times'];
     if (showRules) {
       keys.push('rules');
     }

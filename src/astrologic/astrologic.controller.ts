@@ -79,6 +79,7 @@ import {
   matchJdAndDatetime,
   matchEndJdAndDatetime,
   julToUnixTime,
+  matchLocaleJulianDayData,
 } from './lib/date-funcs';
 import { chartData } from './lib/chart';
 import { getFuncNames, getConstantVals } from './lib/sweph-test';
@@ -2134,6 +2135,30 @@ export class AstrologicController {
     const altitude = await calcAltitudeSE(jd, geo, flLng, flLat, isEqual);
     
     return res.json({ altitude, lng: flLng, lat: flLat, geo, jd, dtUtc });
+  }
+
+   /*
+  * #astrotesting
+  * fetch equatorial position including the declination
+  * Can be used to calculate transits
+  */
+  @Get('declination/:key/:dt')
+  async calcEqPoistion(@Res() res, @Param('key') key, @Param('dt') dt) {
+    const { jd, dtUtc } = matchJdAndDatetime(dt);
+    const grNum = matchPlanetNum(key);
+    const dV = await calcDeclination(jd, grNum);
+    return res.json({...dV, dtUtc });
+  }
+
+  @Get('noon-jd/:loc/:dt?')
+  async fetchNoonJd(
+    @Res() res,
+    @Param('loc') loc,
+    @Param('dt') dt,
+  ) {
+    const geo = locStringToGeo(loc);
+    const result = matchLocaleJulianDayData(dt, geo);
+    return res.json(result);
   }
 
   /*

@@ -87,6 +87,7 @@ import { ActiveStatusDTO } from './dto/active-status.dto';
 import {
   dateAgoString,
   matchJdAndDatetime,
+  matchLocaleJulianDayData,
 } from '../astrologic/lib/date-funcs';
 import {
   cleanSnippet,
@@ -126,9 +127,10 @@ import {
 } from '../lib/mappers';
 import { Kuta } from '../astrologic/lib/kuta';
 import { julToDateParts } from '../astrologic/lib/julian-date';
-import { calcLuckyTimes } from '../astrologic/lib/settings/pancha-pakshi';
+import { calcLuckyTimes, PPRule } from '../astrologic/lib/settings/pancha-pakshi';
 import { locStringToGeo } from '../astrologic/lib/converters';
 import { calcKotaChakraScoreData } from '../astrologic/lib/settings/kota-values';
+import { GeoLoc } from '../astrologic/lib/models/geo-loc';
 
 @Controller('user')
 export class UserController {
@@ -1583,8 +1585,15 @@ export class UserController {
         if (showLuckyTimes) {
           const rules = await this.settingService.getPPRules();
           const customCutoff = await this.settingService.getPPCutoff();
-          const ppData = await calcLuckyTimes(chart, jd, geo, rules, customCutoff, dateMode, false);
-          ctData.set('luckyTimes', Object.fromEntries(ppData.entries()));
+          //const ppData = await calcLuckyTimes(chart, jd, geo, rules, customCutoff, dateMode, false);
+          //const luckyData = Object.fromEntries(ppData.entries());
+          const luckyDataPrev = await this.fetchLuckyTimes(false, chart, jd, geo, rules, customCutoff, dateMode);
+
+          const luckyData = await this.fetchLuckyTimes(true, chart, jd, geo, rules, customCutoff, dateMode);
+          ctData.set('luckyTimes', luckyData);
+          ctData.set('luckyTimesPrev', luckyDataPrev);
+          const tzData = await this.geoService.fetchTzData(geo, julToDateParts(jd).isoDate, true);
+          ctData.set('tzData', tzData)
         }
         const kcScoreSet = await this.settingService.getKotaChakraScoreSet();
         const geoLoc = geo instanceof Object ? geo : chart.geo;
@@ -1608,9 +1617,30 @@ export class UserController {
       allowedKeys.push('ranges', 'currentToBirth', 'currentToProgressed', 'progressedToBirth', 'progressedToProgressed');
     }
     if (showLuckyTimes) {
-      allowedKeys.push('luckyTimes');
+      allowedKeys.push('luckyTimes','luckyTimesPrev', 'tzData');
     }
     return res.json(Object.fromEntries([...rsMap.entries()].filter(entry => allowedKeys.includes(entry[0]))));
+  }
+
+  async fetchLuckyTimes(current = true, chart: Chart, jd = 0, geo: GeoLoc, rules: PPRule[], customCutoff = 0, dateMode = 'simple') {
+    const { noonJd } = matchLocaleJulianDayData(jd, geo);
+    const refNoonJd = current? noonJd : noonJd - 1;
+    const ltKey  =  ['lucky-times',chart._id, refNoonJd].join('-');
+    const refJd = current? jd : jd - 1;
+    const stored = await this.redisGet(ltKey);
+    const hasStored = stored instanceof Object && Object.keys(stored).includes('minutes') && stored.minutes instanceof Array && stored.minutes.length > 720;
+    if (hasStored) {
+      return stored;
+    } else {
+      const data = await calcLuckyTimes(chart, refJd, geo, rules, customCutoff, dateMode, false);
+      if (data instanceof Map) {
+        const dataObj = Object.fromEntries(data.entries());
+        this.redisSet(ltKey, dataObj);
+        return dataObj
+      } else {
+        return { start: 9, sunset: 0, end: 0,max: 0, cutOff: customCutoff,minutes: [], times: [] };
+      }
+    }
   }
 
   /*

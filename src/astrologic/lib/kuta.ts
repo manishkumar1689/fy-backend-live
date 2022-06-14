@@ -735,7 +735,7 @@ export class Kuta {
               this._calcVashya(settings, result, dataSets, femaleFirst);
               break;
             case 'grahamaitri':
-              this._calcGrahamaitri(settings, result, dataSets);
+              this._calcGrahamaitri(settings, result, dataSets, femaleFirst);
               break;
             case 'tara':
               this._calcTara(settings, result, dataSets);

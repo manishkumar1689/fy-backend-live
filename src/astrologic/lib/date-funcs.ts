@@ -3,6 +3,7 @@ import * as moment from 'moment-timezone';
 import { isNumeric, isInteger, validISODateString } from '../../lib/validators';
 import { Moment } from 'moment';
 import { zeroPad } from '../../lib/converters';
+import { GeoLoc } from './models/geo-loc';
 
 export const defaultDateParts = { year: 0, month: 0, day: 0, hour: 0 };
 
@@ -181,6 +182,21 @@ export const matchJdAndDatetime = (
   const jd = hasFl ? refFl : calcJulDate(dtUtc);
   return { dtUtc, jd };
 };
+
+export const matchLocaleJulianDayData = (dtRef = null, geo: GeoLoc) => {
+  const { jd, dtUtc } = matchJdAndDatetime(dtRef);
+    const hoursOffset = geo.lng / 15;
+    const utcFrac = jd % 1;
+    const jdOffset = hoursOffset / 24;
+    const jdNoonFrac = (1 - jdOffset) % 1;
+    const utcHours = (utcFrac * 24 + 12) % 24;
+    const geoHours = ((utcFrac + jdOffset) * 24 + 12) % 24;
+    const isAm = geoHours < 12;
+    const jdInt = parseInt(jd, 10);
+    const baseJd = isAm ? jdInt : jdInt - 1;
+    const noonJd = baseJd + jdNoonFrac;
+    return { jd, dtUtc, geo, hoursOffset, jdNoonFrac, geoHours, utcHours, isAm, noonJd };
+}
 
 export const matchEndJdAndDatetime = (strRef = '', startJd = 0) => {
   const { jd, dtUtc } = matchJdAndDatetime(strRef, startJd);
