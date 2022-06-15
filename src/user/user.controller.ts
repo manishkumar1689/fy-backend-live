@@ -1587,13 +1587,20 @@ export class UserController {
           const customCutoff = await this.settingService.getPPCutoff();
           //const ppData = await calcLuckyTimes(chart, jd, geo, rules, customCutoff, dateMode, false);
           //const luckyData = Object.fromEntries(ppData.entries());
-          const luckyDataPrev = await this.fetchLuckyTimes(false, chart, jd, geo, rules, customCutoff, dateMode);
+          //const luckyDataPrev = await this.fetchLuckyTimes(false, chart, jd, geo, rules, customCutoff, dateMode);
 
-          const luckyData = await this.fetchLuckyTimes(true, chart, jd, geo, rules, customCutoff, dateMode);
+          //const luckyData = await this.fetchLuckyTimes(true, chart, jd, geo, rules, customCutoff, dateMode);
+          //ctData.set('luckyTimes', luckyData);
+          //ctData.set('luckyTimesPrev', luckyDataPrev);
+          const luckyData = await this.fetchLuckyTimes24h(chart, jd, geo, rules, customCutoff, dateMode);
           ctData.set('luckyTimes', luckyData);
-          ctData.set('luckyTimesPrev', luckyDataPrev);
-          const tzData = await this.geoService.fetchTzData(geo, julToDateParts(jd).isoDate, true);
-          ctData.set('tzData', tzData)
+          /* const tzData = await this.geoService.fetchTzData(geo, julToDateParts(jd).isoDate, true);
+          
+          const nowDt = new Date(julToDateParts(jd).unixMillisecs);
+          nowDt.setHours(0,0,0);
+          const serverTsOffset = (nowDt.getTimezoneOffset() * 60);
+          const midnightTs = Math.round((Math.round(nowDt.getTime() / 1000) - tzData.tzOffset - serverTsOffset) / 60) * 60; */
+          //ctData.set('tzData', {...tzData, midnightTs });
         }
         const kcScoreSet = await this.settingService.getKotaChakraScoreSet();
         const geoLoc = geo instanceof Object ? geo : chart.geo;
@@ -1622,17 +1629,59 @@ export class UserController {
     return res.json(Object.fromEntries([...rsMap.entries()].filter(entry => allowedKeys.includes(entry[0]))));
   }
 
+
+  async fetchLuckyTimes24h(chart: Chart, jd = 0, geo: GeoLoc, rules: PPRule[], customCutoff = 0, dateMode = 'simple') {
+    const ltPrev = await this.fetchLuckyTimes(false, chart, jd, geo, rules, customCutoff, dateMode);
+    const ltCurr = await this.fetchLuckyTimes(true, chart, jd, geo, rules, customCutoff, dateMode);
+    const tzData = await this.geoService.fetchTzData(geo, julToDateParts(jd).isoDate, true);      
+    const nowDt = new Date(julToDateParts(jd).unixMillisecs);
+    nowDt.setHours(0,0,0);
+    const serverTsOffset = (nowDt.getTimezoneOffset() * 60);
+    const midNightTs = Math.round(nowDt.getTime() / 1000);
+    const midnightTs = Math.round((midNightTs - tzData.tzOffset - serverTsOffset) / 60) * 60;
+    const minuteDiff = (midnightTs - ltCurr.minuteStart) / 60;
+    const data = { minutes: [], start: 0, end: 0, times: [], sunrise: 0, sunset: 0, tzData };
+    if (ltPrev.minutes instanceof Array && ltCurr.minutes instanceof Array && ltCurr.minutes.length > 360 && ltPrev.minutes.length >= minuteDiff) {
+      const remainder = 1440 + minuteDiff;
+      const numOffset = 1440 - ltPrev.minutes.length;
+      const prevOffset = minuteDiff + numOffset; 
+      data.minutes = [...ltPrev.minutes.slice(prevOffset, numOffset), ...ltCurr.minutes.slice(0, remainder)];
+      data.start = midnightTs;
+      data.end = data.start + (24 * 60 * 60);
+      data.sunrise = ltCurr.start;
+      data.sunset = ltCurr.sunset;
+      /* console.log({numMins: minutes.length})
+      //console.log({midnightTs}, minutes.length, minuteDiff, ltCurr.minuteStart - midnightTs, nowTs - midnightTs);
+      console.log(midnightTs - ltCurr.minuteStart, minuteDiff) */
+      if (ltPrev.times instanceof Array) {
+        ltPrev.times.forEach(row => {
+          if (row.peak >= data.start && row.peak <= data.end) {
+            data.times.push(row);
+          }
+        })
+      }
+      if (ltCurr.times instanceof Array) {
+        ltCurr.times.forEach(row => {
+          if (row.peak >= data.start && row.peak <= data.end) {
+            data.times.push(row);
+          }
+        })
+      }
+    }
+    return data;
+  }
+
   async fetchLuckyTimes(current = true, chart: Chart, jd = 0, geo: GeoLoc, rules: PPRule[], customCutoff = 0, dateMode = 'simple') {
     const { noonJd } = matchLocaleJulianDayData(jd, geo);
     const refNoonJd = current? noonJd : noonJd - 1;
     const ltKey  =  ['lucky-times',chart._id, refNoonJd].join('-');
-    const refJd = current? jd : jd - 1;
+    //const refJd = current? jd : jd - 1;
     const stored = await this.redisGet(ltKey);
     const hasStored = stored instanceof Object && Object.keys(stored).includes('minutes') && stored.minutes instanceof Array && stored.minutes.length > 720;
     if (hasStored) {
       return stored;
     } else {
-      const data = await calcLuckyTimes(chart, refJd, geo, rules, customCutoff, dateMode, false);
+      const data = await calcLuckyTimes(chart, refNoonJd, geo, rules, customCutoff, dateMode, false);
       if (data instanceof Map) {
         const dataObj = Object.fromEntries(data.entries());
         this.redisSet(ltKey, dataObj);

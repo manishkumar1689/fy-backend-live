@@ -4,6 +4,7 @@ import { isNumeric, isInteger, validISODateString } from '../../lib/validators';
 import { Moment } from 'moment';
 import { zeroPad } from '../../lib/converters';
 import { GeoLoc } from './models/geo-loc';
+import { julToDateParts } from './julian-date';
 
 export const defaultDateParts = { year: 0, month: 0, day: 0, hour: 0 };
 
@@ -193,8 +194,10 @@ export const matchLocaleJulianDayData = (dtRef = null, geo: GeoLoc) => {
     const geoHours = ((utcFrac + jdOffset) * 24 + 12) % 24;
     const isAm = geoHours < 12;
     const jdInt = parseInt(jd, 10);
-    const baseJd = isAm ? jdInt : jdInt - 1;
-    const noonJd = baseJd + jdNoonFrac;
+    //const baseJd = isAm ? jdInt : jdInt - 1;
+    //const noonJd = baseJd + jdNoonFrac;
+    const noonJd = jdInt + jdNoonFrac;
+    //console.log({ base: julToDateParts(baseJd).toISOString(), dtUtc, jdNoonFrac })
     return { jd, dtUtc, geo, hoursOffset, jdNoonFrac, geoHours, utcHours, isAm, noonJd };
 }
 

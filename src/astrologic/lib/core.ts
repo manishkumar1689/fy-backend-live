@@ -780,6 +780,7 @@ export const buildCurrentAndBirthExtendedTransitions = async (
     }
   }
   const ds = await calcTransposedGrahaTransitions(jd + offset, geo, gps);
+  const emptyTimeSet = { type: '', jd: 0, after: false };
   const birthTransitions: TransitionData[] = ds
     .filter(
       gSet =>
@@ -787,10 +788,14 @@ export const buildCurrentAndBirthExtendedTransitions = async (
     )
     .map(gSet => {
       const { key, transitions } = gSet;
-      const rise = transitions.find(item => item.type === 'rise');
-      const set = transitions.find(item => item.type === 'set');
-      const mc = transitions.find(item => item.type === 'mc');
-      const ic = transitions.find(item => item.type === 'ic');
+      const riseRow = transitions.find(item => item.type === 'rise');
+      const setRow = transitions.find(item => item.type === 'set');
+      const mcRow = transitions.find(item => item.type === 'mc');
+      const icRow = transitions.find(item => item.type === 'ic');
+      const rise = riseRow instanceof Object? riseRow : {...emptyTimeSet};
+      const set = setRow instanceof Object? setRow : {...emptyTimeSet};
+      const mc = mcRow instanceof Object? mcRow : {...emptyTimeSet};
+      const ic = icRow instanceof Object? icRow : {...emptyTimeSet};
       return { key, rise, set, mc, ic };
     });
   if (offset === -0.5) {

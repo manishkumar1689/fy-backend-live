@@ -1852,20 +1852,25 @@ export interface PPMatchRange {
 }
 
 export const matchTransitionPeak = (rk = '', relTr: TransitionData): number => {
-  switch (rk) {
-    case 'as':
-    case 'rise':
-    case 'rising':
-      return relTr.rise.jd;
-    case 'ds':
-    case 'set':
-    case 'setting':
-      return relTr.set.jd;
-    case 'mc':
-    case 'ic':
-      return relTr[rk].jd;
-    default:
-      return -1;
+  if (relTr instanceof Object) {
+    const keys = Object.keys(relTr);
+    switch (rk) {
+      case 'as':
+      case 'rise':
+      case 'rising':
+        return keys.includes('rise')? relTr.rise.jd : -1;
+      case 'ds':
+      case 'set':
+      case 'setting':
+        return keys.includes('set')? relTr.set.jd : -1;
+      case 'mc':
+      case 'ic':
+        return keys.includes(rk)? relTr[rk].jd : -1;
+      default:
+        return -1;
+    }
+  } else {
+    return -1;
   }
 };
 
