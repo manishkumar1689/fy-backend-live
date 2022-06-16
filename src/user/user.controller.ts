@@ -1674,7 +1674,8 @@ export class UserController {
   async fetchLuckyTimes(current = true, chart: Chart, jd = 0, geo: GeoLoc, rules: PPRule[], customCutoff = 0, dateMode = 'simple') {
     const { noonJd } = matchLocaleJulianDayData(jd, geo);
     const refNoonJd = current? noonJd : noonJd - 1;
-    const ltKey  =  ['lucky-times',chart._id, refNoonJd].join('-');
+    const ltKey  =  ['lucky-times',chart._id, refNoonJd.toFixed(3), geo.lat.toFixed(2), geo.lng.toFixed(2)].join('-');
+    
     //const refJd = current? jd : jd - 1;
     const stored = await this.redisGet(ltKey);
     const hasStored = stored instanceof Object && Object.keys(stored).includes('minutes') && stored.minutes instanceof Array && stored.minutes.length > 720;
