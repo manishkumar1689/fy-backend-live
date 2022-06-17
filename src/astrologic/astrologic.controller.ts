@@ -1753,18 +1753,20 @@ export class AstrologicController {
               : extractCorePlaceNames(placenames);
             data.shortTz = toShortTzAbbr(dtUtc, geoInfo.tz);
             // Update DOB field in the user table
-            const userMap: Map<string, any> = new Map();
-            if (hasValidDatetime) {
-              userMap.set('dob', utcDate(datetime));
-            }
-            if (notEmptyString(pobRef, 3)) {
-              userMap.set('pob', pobRef);
-            }
-            if (userMap.size > 0) {
-              const userData = Object.fromEntries(
-                userMap.entries(),
-              ) as CreateUserDTO;
-              this.userService.updateUser(user, userData);
+            if (isDefaultBirthChart) {
+              const userMap: Map<string, any> = new Map();
+              if (hasValidDatetime) {
+                userMap.set('dob', utcDate(datetime));
+              }
+              if (notEmptyString(pobRef, 3)) {
+                userMap.set('pob', pobRef);
+              }
+              if (userMap.size > 0) {
+                const userData = Object.fromEntries(
+                  userMap.entries(),
+                ) as CreateUserDTO;
+                this.userService.updateUser(user, userData);
+              }
             }
             const progressItems = await buildSingleProgressSetKeyValues(
               chartData.jd,
@@ -3718,14 +3720,19 @@ export class AstrologicController {
     const items: any[] = [];
     let num = 0;
     let valid = false;
+    const matchedIds: string[] = [];
     if (ids.length > 0) {
       for (const id of ids) {
         const c = await this.astrologicService.getChart(id);
         if (c instanceof Model) {
-          items.push(c);
-          num++;
-          if (!valid) {
-            valid = true;
+          const cid = c._id.toString();
+          if (matchedIds.includes(cid) === false) {
+            items.push(c);
+            num++;
+            matchedIds.push()
+            if (!valid) {
+              valid = true;
+            }
           }
         }
       }
@@ -3742,11 +3749,15 @@ export class AstrologicController {
       );
       if (charts.length > 0) {
         for (const c of charts) {
-          items.push(c);
+          const cid = c._id.toString();
+          if (matchedIds.includes(cid) === false) {
+            items.push(c);
+            num++;
+          }
         }
       }
     }
-    return res.json({ valid, items, num});
+    return res.json({ valid, num, items });
   }
 
   @Get('chart-names-by-user/:userID/:search/:nameMode?')
