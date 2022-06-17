@@ -3706,6 +3706,49 @@ export class AstrologicController {
     return res.status(HttpStatus.OK).json(data);
   }
 
+  @Put('save-chart-order/:userID')
+  async saveRecentChartOrder(@Res() res, @Param('userID') userID: string, @Body() idStrings: string[]) {
+    const result = await this.userService.saveRecentChartOrder(userID, idStrings);
+    return res.json(result);
+  }
+
+  @Get('recent-charts/:userID')
+  async getRecentCharts(@Res() res, @Param('userID') userID: string) {
+    const ids = await this.userService.getRecentChartIds(userID);
+    const items: any[] = [];
+    let num = 0;
+    let valid = false;
+    if (ids.length > 0) {
+      for (const id of ids) {
+        const c = await this.astrologicService.getChart(id);
+        if (c instanceof Model) {
+          items.push(c);
+          num++;
+          if (!valid) {
+            valid = true;
+          }
+        }
+      }
+    }
+    if (items.length < 5) {
+      const max = 20 - items.length;
+      const charts = await this.astrologicService.getChartsByUser(
+        userID,
+        0,
+        max,
+        false,
+        null,
+        false,
+      );
+      if (charts.length > 0) {
+        for (const c of charts) {
+          items.push(c);
+        }
+      }
+    }
+    return res.json({ valid, items, num});
+  }
+
   @Get('chart-names-by-user/:userID/:search/:nameMode?')
   async fetchChartsByName(
     @Res() res,

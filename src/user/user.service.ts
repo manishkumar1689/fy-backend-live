@@ -1477,6 +1477,40 @@ export class UserService {
     return userObj;
   }
 
+  async saveRecentChartOrder(userID: string, idRefs: string[] = []) {
+    const data = {
+      user: null,
+      valid: false,
+    };
+    if (notEmptyString(userID, 16) && idRefs instanceof Array && idRefs.length > 0) {
+      const preference = {
+        key: 'recent_chart_ids',
+        type: 'array_string',
+        value: idRefs, 
+      } as PreferenceDTO;
+      const sd = await this.savePreferences(userID, [preference]);
+      if (sd.valid) {
+        data.user = sd.user;
+        data.valid = true;
+      }
+    }
+    return data;
+  }
+
+  async getRecentChartIds(userID: string) {
+    const user = await this.userModel.findById(userID).select('preferences');
+    let ids: string[] = [];
+    if (user instanceof Model) {
+      if (user.preferences instanceof Array) {
+        const row = user.preferences.find(pr => pr.key === 'recent_chart_ids');
+        if (row instanceof Object && row.value instanceof Array) {
+          ids = row.value;
+        }
+      }
+    }
+    return ids;
+  }
+
   mergePreferences(user: User, prefItems: PreferenceDTO[] = []) {
     const userData = user.toObject();
     const { preferences } = userData;
