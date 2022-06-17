@@ -3727,11 +3727,13 @@ export class AstrologicController {
         if (c instanceof Model) {
           const cid = c._id.toString();
           if (matchedIds.includes(cid) === false) {
-            items.push(c);
-            num++;
-            matchedIds.push()
-            if (!valid) {
-              valid = true;
+            if (c.subject.eventType === 'birth') {
+              items.push(c);
+              num++;
+              matchedIds.push()
+              if (!valid) {
+                valid = true;
+              }
             }
           }
         }
@@ -3751,8 +3753,10 @@ export class AstrologicController {
         for (const c of charts) {
           const cid = c._id.toString();
           if (matchedIds.includes(cid) === false) {
-            items.push(c);
-            num++;
+            if (c.subject.eventType === 'birth') {
+              items.push(c);
+              num++;
+            }
           }
         }
       }
