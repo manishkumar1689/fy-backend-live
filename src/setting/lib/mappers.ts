@@ -573,7 +573,7 @@ export const toSimplePolarityValues = (jungian: KeyNumValue[] = []) => {
   jungian.forEach(({key, value}) => {
     const isNeg = value < 0;
     const letter = isNeg ? key.substring(0, 1) : key.substring(1, 2)
-    const numVal = Math.abs(value);
+    const numVal = 50 + (Math.abs(value) / 2);
     mp.set(letter, numVal);
   });
   return Object.fromEntries(mp.entries());

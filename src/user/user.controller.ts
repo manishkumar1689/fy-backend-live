@@ -1650,9 +1650,6 @@ export class UserController {
       data.end = data.start + (24 * 60 * 60);
       data.sunrise = ltCurr.start;
       data.sunset = ltCurr.sunset;
-      /* console.log({numMins: minutes.length})
-      //console.log({midnightTs}, minutes.length, minuteDiff, ltCurr.minuteStart - midnightTs, nowTs - midnightTs);
-      console.log(midnightTs - ltCurr.minuteStart, minuteDiff) */
       if (ltPrev.times instanceof Array) {
         ltPrev.times.forEach(row => {
           if (row.peak >= data.start && row.peak <= data.end) {
