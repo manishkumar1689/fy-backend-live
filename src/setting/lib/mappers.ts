@@ -413,7 +413,8 @@ export const synopsiseJungianAnswers = (
       const resultLetter = domKey.charAt(domKeyIndex);
       if (asRanges) {
         const domRangeVal = domKeyIndex < 1 ? 0 - domResult : domResult;
-        domainItems.set(domKey, domRangeVal);
+        const upperRangeVal = 50 + (domRangeVal / 2);
+        domainItems.set(domKey, upperRangeVal);
       } else {
         domainItems.set(resultLetter, domResult);
       }
