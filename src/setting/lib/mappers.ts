@@ -413,10 +413,10 @@ export const synopsiseJungianAnswers = (
       const resultLetter = domKey.charAt(domKeyIndex);
       if (asRanges) {
         const domRangeVal = domKeyIndex < 1 ? 0 - domResult : domResult;
-        const upperRangeVal = 50 + (domRangeVal / 2);
-        domainItems.set(domKey, upperRangeVal);
+        domainItems.set(domKey, domRangeVal);
       } else {
-        domainItems.set(resultLetter, domResult);
+        const upper50Val = 50 + (domResult / 2);
+        domainItems.set(resultLetter, upper50Val);
       }
     });
   }
