@@ -200,7 +200,7 @@ export class FeedbackService {
       return rows.filter(r => rejectedIds.includes(r.user.toString()) === false).map(r => {
         const isMutual = mutualIds.includes(r.user.toString());
         return { ...r.toObject(), isMutual };
-      });
+      }).filter(r => r.isMutual === mutualMode > 0);
     } else {
       return rows;
     }
@@ -221,7 +221,7 @@ export class FeedbackService {
     trueFlags = [],
     preFetchFlags = false,
     searchMode = false,
-    repeatInterval = 0,
+    repeatInterval = 0
   ) {
     const userFlags = preFetchFlags
       ? await this.getAllUserInteractions(userId, 1, [])
@@ -246,7 +246,6 @@ export class FeedbackService {
     const toLikeFlags = likeability.to.map(fi => {
       return { ...fi, key: 'likeability' };
     });
-
     const fromFlags = preFetchFlags ? [...fromLikeFlags, ...from] : [];
 
     const toFlags = preFetchFlags ? [...toLikeFlags, ...to] : [];

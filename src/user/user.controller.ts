@@ -569,6 +569,7 @@ export class UserController {
     let hasRefChart = false;
     const context = queryKeys.includes('context') ? query.context : '';
     const hasContext = hasUser && notEmptyString(context, 2);
+    // assign parameters by context
     const params = hasContext ? filterLikeabilityContext(context) : query;
     let repeatInterval = -1;
     const searchMode = context === 'search';
@@ -576,6 +577,7 @@ export class UserController {
     const paramKeys = Object.keys(params);
     const filterPartnerAgeRangePrefs = queryKeys.includes('ar') && smartCastInt(query.ar, 0) > 0; 
     // filter ids by members who have liked or superliked the referenced user
+    // legacy block for liked, liked1, liked2, mutual etc parameters. Now assigned via context
     const likeabilityKeys = [
       'liked',
       'liked1',
@@ -594,11 +596,10 @@ export class UserController {
         const { refNum, gte } = filterLikeabilityKey(matchedKey);
         const startDate = toStartRef(params[matchedKey]);
         const mutual =
-          paramKeys.includes('mutual') && parseInt(params.mutual, 10) > 0;
+          paramKeys.includes('mutual') && smartCastInt(params.mutual, 0) > 0;
         const unrated =
           !mutual &&
-          paramKeys.includes('unrated') &&
-          parseInt(params.unrated, 10) > 0;
+          paramKeys.includes('unrated') && smartCastInt(params.unrated, 0) > 0;
         const mutualMode = mutual ? 1 : unrated ? -1 : 0;
         const flags = await this.feedbackService.fetchByLikeability(
           query.user,
@@ -622,6 +623,7 @@ export class UserController {
         hasFilterIds = true;
       }
     }
+    // end of like parameter matching
     if (queryKeys.includes('mode') && notEmptyString(query.mode)) {
       switch (query.mode) {
         case 'simple':
@@ -726,6 +728,7 @@ export class UserController {
       trueFlags = ['liked2'];
     }
     const preFetchFlags = notFlags.length > 0 || trueFlags.length > 0;
+    // fetch inclusions and exclusions by context
     const {
       userFlags,
       excludedIds,
@@ -736,7 +739,7 @@ export class UserController {
       trueFlags,
       preFetchFlags,
       searchMode,
-      repeatInterval,
+      repeatInterval
     );
     if (includedIds instanceof Array && trueFlags.length > 0 && includedIds.length > 0) {
       filterIds = includedIds;

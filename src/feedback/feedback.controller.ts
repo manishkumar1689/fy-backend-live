@@ -210,7 +210,7 @@ export class FeedbackController {
     return res.json(fcm);
   }
 
-  // Fetch a particular user using ID
+  // Rate another user (like = 1, superlike = 2, pass = -1, -2, -3)
   @Post('swipe')
   async saveSwipe(@Res() res, @Body() swipeDTO: SwipeDTO) {
     const { to, from, value, context } = swipeDTO;
