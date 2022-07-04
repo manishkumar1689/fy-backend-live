@@ -173,7 +173,7 @@ export class FeedbackService {
     });
     const filterMutual = mutualMode !== 0;
     if (filterMutual) {
-      const mutualValueFilter = mutualMode > 0 ? valueFilter : { $ne: 0 };
+      const mutualValueFilter = mutualMode > 0 ? valueFilter : { $nin: [0, -1, -2] };
       const criteriaObj2 = {
         targetUser: { $in: rows.map(r => r.user) },
         user: userId,
@@ -251,7 +251,9 @@ export class FeedbackService {
     const toFlags = preFetchFlags ? [...toLikeFlags, ...to] : [];
 
     const excludeLikedMinVal = filterLiked2 ? 2 : filterLiked1 ? 1 : 3;
-
+    if (notFlagItems.length < 1 && !searchMode) {
+     // notFlagItems.push({ key: 'passed3', value: -2, op: 'lt' } );
+    }
     const excludedRecent = repeatInterval > 0;
     const excludeAllStartTs = excludedRecent
       ? minutesAgoTs(repeatInterval)

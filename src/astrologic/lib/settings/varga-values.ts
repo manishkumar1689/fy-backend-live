@@ -25,7 +25,6 @@ const vargaValues = [
   {
     key: 'd02',
     num: 2,
-
     parashari: true,
     tajik: true,
     nadi: true,
@@ -33,7 +32,6 @@ const vargaValues = [
   {
     key: 'd03',
     num: 3,
-
     parashari: true,
     tajik: true,
     nadi: true,
@@ -41,7 +39,6 @@ const vargaValues = [
   {
     key: 'd04',
     num: 4,
-
     parashari: true,
     tajik: true,
     nadi: true,
@@ -49,7 +46,6 @@ const vargaValues = [
   {
     key: 'd07',
     num: 7,
-
     parashari: true,
     tajik: true,
     nadi: true,
@@ -109,7 +105,6 @@ const vargaValues = [
   {
     key: 'd30',
     num: 30,
-
     parashari: true,
     tajik: true,
     nadi: true,
