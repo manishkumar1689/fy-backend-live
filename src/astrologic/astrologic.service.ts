@@ -82,11 +82,10 @@ import {
   generateNameSearchRegex,
   calcCoordsDistance,
 } from './lib/helpers';
-import { minRemainingPaired } from '../.config';
 import { calcTropicalAscendantDt } from './lib/calc-ascendant';
 import { GeoLoc } from './lib/models/geo-loc';
 import { LngLat } from './lib/interfaces';
-import { addExtraPanchangeNumValuesFromClass, simplifyChart } from './lib/member-charts';
+import { addExtraPanchangaNumValuesFromClass, simplifyChart } from './lib/member-charts';
 import { getAshtakavargaBodyGrid } from './lib/settings/ashtakavarga-values';
 import { GeoPos } from './interfaces/geo-pos';
 import { ProgressItemDTO } from './dto/progress-item.dto';
@@ -1793,7 +1792,7 @@ export class AstrologicService {
       kutaSet,
       'ashta',
     ) : [];
-    addExtraPanchangeNumValuesFromClass(chartData, chart, 'true_citra');
+    addExtraPanchangaNumValuesFromClass(chartData, chart, 'true_citra');
     const pd = calcProgressAspectDataFromProgressItems(chart.matchProgressItems(), refChart.matchProgressItems());
     const p2Summary = pd.num > 0 ? calcProgressSummary(pd.items, true, p2Scores) : {};
     const kcS1 = calcKotaChakraScoreData(refChart, chart, kcScoreSet, true);
@@ -1815,6 +1814,35 @@ export class AstrologicService {
         b: kcS2.total,
       },
       likeability: filteredLikes,
+    };
+  }
+
+  compareCharts(refChart: ChartClass, chart: ChartClass, customSettings: any = {}) {
+    // kutaSet: any = null, kcScoreSet: KotaCakraScoreSet, orbMap = null
+    const { kutaSet, kcScoreSet, orbMap, p2Scores, dictMap } = customSettings;
+    
+    const kutaRows: KutaValueSetItems[] = this._calcKutas(
+      refChart,
+      chart,
+      kutaSet,
+      'ashta',
+    );
+    const pd = calcProgressAspectDataFromProgressItems(chart.matchProgressItems(), refChart.matchProgressItems());
+    const p2Summary = pd.num > 0 ? calcProgressSummary(pd.items, true, p2Scores) : {};
+    const kcS1 = calcKotaChakraScoreData(refChart, chart, kcScoreSet, true);
+    const kcS2 = calcKotaChakraScoreData(chart, refChart, kcScoreSet, true);
+    const baseAspectKeys = ['as','su','mo','me','ve','ma'];
+    const ascAspectKeys = [...baseAspectKeys, 'ju','sa', 'ur', 'pl'];
+    const aspectMatches = calcAspectMatches(refChart, chart, baseAspectKeys, ascAspectKeys, orbMap);
+    const aspects = addSnippetKeyToSynastryAspectMatches(aspectMatches, refChart.shortName, chart.shortName);
+    return {
+      kutas: this.mapKutaColValues(kutaRows, dictMap),
+      aspects,
+      p2: p2Summary,
+      kc: { 
+        a: kcS1.total,
+        b: kcS2.total,
+      },
     };
   }
 

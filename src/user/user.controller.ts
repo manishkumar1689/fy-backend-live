@@ -76,7 +76,7 @@ import {
   uploadMediaFile,
 } from '../lib/files';
 import { PreferenceDTO } from './dto/preference.dto';
-import { addExtraPanchangeNumValues, simplifyChart } from '../astrologic/lib/member-charts';
+import { addExtraPanchangaNumValues, simplifyChart } from '../astrologic/lib/member-charts';
 import { MediaItemDTO } from './dto/media-item.dto';
 import {
   filterLikeabilityContext,
@@ -773,7 +773,7 @@ export class UserController {
           )
         : userFlags;
     const jungianRef = extractSurveyScoresByType(userInfo);
-    const kutaDict = await this.getKutaDict();
+    const kutaDict = await this.dictionaryService.getKutaDict();
     const customSettings = await this.settingService.customCompatibilitySettings(kutaDict);
     for (const user of users) {
       if (hasRefChart) {
@@ -787,28 +787,6 @@ export class UserController {
     }
     items.sort((a, b) => (b.hasChart ? 1 : -1));
     return items;
-  }
-
-  async getKutaDict(): Promise<Map<string, string>> {
-    const key = 'kuta_dict';
-    const stored = await this.redisGet(key)
-    let mp: Map<string, string> = new Map();
-    let hasStored = false;
-    if (stored instanceof Object) {
-      const entries = Object.entries(stored);
-      if (entries.length > 10) {
-        mp = new Map(entries) as Map<string, string>;
-        hasStored = true;
-      }
-    }
-    if (!hasStored) {
-      const data = await this.dictionaryService.getKutaDictMap();
-      if (data instanceof Map && data.size > 10) {
-        this.redisSet(key, Object.fromEntries(data.entries()));
-        mp = data;
-      }
-    }
-    return mp;
   }
 
   /*
@@ -1338,7 +1316,7 @@ export class UserController {
         if (chart instanceof Object) {
           const chartObj = isMemberLogin ? simplifyChart(chart, 'true_citra', 'basic') : chart;
           if (isMemberLogin) {
-            addExtraPanchangeNumValues(chartObj, 'true_citra');
+            addExtraPanchangaNumValues(chartObj, 'true_citra');
           }
           userData.set('chart', chartObj);
         }

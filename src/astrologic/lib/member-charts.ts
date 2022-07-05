@@ -143,7 +143,7 @@ export const simplifyChart = (chartRef = null, ayanamshaKey = 'true_citra', mode
   return chart;
 };
 
-export const addExtraPanchangeNumValuesFromClass = (chartData = null, chart: Chart, ayaKey = 'true_citra') => {
+export const addExtraPanchangaNumValuesFromClass = (chartData = null, chart: Chart, ayaKey = 'true_citra') => {
   if (chartData instanceof Object && Object.keys(chartData).includes('numValues') && chartData.numValues instanceof Array) {
     chart.setAyanamshaItemByKey(ayaKey);
     const varaNum = chart.vara.num;
@@ -153,9 +153,9 @@ export const addExtraPanchangeNumValuesFromClass = (chartData = null, chart: Cha
   }
 }
 
-export const addExtraPanchangeNumValues = (chartData = null, ayaKey = 'true_citra') => {
+export const addExtraPanchangaNumValues = (chartData = null, ayaKey = 'true_citra') => {
   const chart = new Chart(chartData);
-  return addExtraPanchangeNumValuesFromClass(chartData, chart, ayaKey);
+  return addExtraPanchangaNumValuesFromClass(chartData, chart, ayaKey);
 }
 
 export const simplifyAstroChart = (data: any = null, applyAyanamsha = true, adjustAscendant = true) => {

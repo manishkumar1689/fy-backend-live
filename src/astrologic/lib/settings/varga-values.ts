@@ -17,7 +17,6 @@ const vargaValues = [
   {
     key: 'd01',
     num: 1,
-
     parashari: true,
     tajik: true,
     nadi: true,
