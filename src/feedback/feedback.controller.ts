@@ -346,6 +346,72 @@ export class FeedbackController {
     return res.status(HttpStatus.OK).json({ ...data, recipSwipe, hasPaidRole });
   }
 
+  @Get('friend/:mode/:fromId/:toId')
+  async handleFriendRequest(
+    @Res() res,
+    @Param('mode') mode,
+    @Param('fromId') fromId,
+    @Param('toId') toId,
+  ) {
+    let result = -1;
+    let fcm: any = null;
+    const fromUser = await this.userService.getBasicById(fromId);
+    const otherUser = await this.userService.getBasicById(toId);
+    if (otherUser instanceof Object && notEmptyString(otherUser.nickName) && otherUser.active && fromUser instanceof Object) {
+      switch (mode) {
+        case 'request':
+          result = await this.feedbackService.sendFriendRequest(fromId, toId);
+          break;
+        case 'accept':
+          result = await this.feedbackService.acceptFriendRequest(fromId, toId);
+          break;
+      }
+    }
+    const valid = result > 0;
+    if (valid) {
+      const key = ['friend', mode].join('_');
+      const requestMode = mode === 'request';
+      const title = requestMode ? 'Friend request' : 'Friend request accepted';
+      const body = requestMode ? `${fromUser.nickName} would like to connect with you.` : `${fromUser.nickName} has accepted your friend request`;
+      const type = 'int';
+      const value = requestMode ? 1 : 2;
+      if (notEmptyString(otherUser.deviceToken)) {
+        fcm = await pushMessage(otherUser.deviceToken, title, body, {
+          key,
+          type,
+          value,
+          user: fromId,
+          targetUser: toId,
+        });
+      }
+    }
+    const status = valid ? HttpStatus.OK : HttpStatus.NOT_ACCEPTABLE;
+    return res.status(status).json({ valid, result, mode, fromId, toId, fcm })
+  }
+
+  @Get('friends/:userId')
+  async getFriendIds(
+    @Res() res,
+    @Param('userId') userId,
+  ) {
+    const result = await this.feedbackService.getFriends(userId)
+    const valid = isValidObjectId(userId);
+    const status = valid ? HttpStatus.OK : HttpStatus.NOT_ACCEPTABLE;
+    return res.status(status).json({ valid, ...result })
+  }
+
+  @Delete('unfriend/:fromId/:toId')
+  async removeFriend(
+    @Res() res,
+    @Param('fromId') fromId,
+    @Param('toId') toId,
+  ) {
+    const result = await this.feedbackService.unfriend(fromId, toId);
+    const valid = result > 0;
+    const status = valid ? HttpStatus.OK : HttpStatus.NOT_ACCEPTABLE;
+    return res.status(status).json({ valid, result, mode: 'unfriend', fromId, toId })
+  }
+
   @Delete('delete-flag/:key/:user/:user2/:mutual?')
   async deleteFlag(
     @Res() res,

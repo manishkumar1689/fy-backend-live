@@ -470,6 +470,72 @@ export class FeedbackService {
     return Object.fromEntries(filter.entries());
   }
 
+  async getFriends(userId = ''): Promise<{ friendIds: string[], sentIds: string[], receivedIds: string[] }> {
+    const criteria: any = { key: 'friend', $or: [ { user: userId }, { targetUser: userId } ] };
+    const rows = await this.flagModel.find(criteria);
+    const friendIds: string[] = [];
+    const sentIds: string[] = [];
+    const receivedIds: string[] = [];
+    const fromIds = rows.map(row => row.user.toString()).filter(uid => uid !== userId);
+    const toIds = rows.map(row => row.targetUser.toString()).filter(uid => uid !== userId);
+    if (rows.length > 0) {
+      rows.forEach(row => {
+        const fromId = row.user.toString();
+        const toId = row.targetUser.toString();
+        if (fromId === userId) {
+          if (fromIds.includes(toId)) {
+            if (friendIds.includes(toId) === false) {
+              friendIds.push(toId);
+            }
+          } else {
+            sentIds.push(toId);
+          }
+        } else if (toId === userId) {
+          if (toIds.includes(fromId)) {
+            if (friendIds.includes(fromId) === false) {
+              friendIds.push(fromId);
+            }
+          } else {
+            receivedIds.push(fromId);
+          }
+        }
+      });  
+    }
+    return { friendIds, sentIds, receivedIds };
+  }
+
+  async handleFriendRequest(fromId: string, toId: string, value = 1): Promise<number> {
+    const criteria = {key: 'friend', user: fromId, targetUser: toId};
+    const current = await this.flagModel.findOne(criteria);
+    if (current instanceof Object) {
+      return parseInt(current.value, 10);
+    } else {
+      const nowDt = new Date();
+      const fieldData = { ...criteria, value, type: 'int', isRating: true, createdAt: nowDt, modifiedAt: nowDt };
+      const newFlag = new this.flagModel(fieldData);
+      newFlag.save();
+      return fieldData.value;
+    }
+  }
+
+  async sendFriendRequest(fromId: string, toId: string): Promise<number> {
+    return await this.handleFriendRequest(fromId, toId, 1);
+  }
+
+  async acceptFriendRequest(acceptingUserId: string, referrerId: string): Promise<number> {
+    return await this.handleFriendRequest(acceptingUserId, referrerId, 2);
+  }
+
+  async unfriend(fromId: string, toId: string): Promise<number> {
+    const criteria = {key: 'friend', user: fromId, targetUser: toId};
+    const deleted = await this.flagModel.deleteOne(criteria);
+    if (deleted instanceof Object) {
+      return deleted.deletedCount;
+    } else {
+      return 0;
+    } 
+  }
+
   async saveFlag(flagDto: CreateFlagDTO | SimpleFlag) {
     const { user, targetUser, key, type, value, isRating } = flagDto;
     const uid = user;

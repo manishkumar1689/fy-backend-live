@@ -235,7 +235,7 @@ export class UserService {
     const fieldList =
       fields.length > 0
         ? fields.join(' ')
-        : '_id active nickName dob geo gender roles profiles preferences surveys';
+        : '_id active nickName dob geo gender roles profiles preferences surveys deviceToken';
     const items = await this.userModel
       .find({
         _id: uid,
