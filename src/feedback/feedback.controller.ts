@@ -394,10 +394,22 @@ export class FeedbackController {
     @Res() res,
     @Param('userId') userId,
   ) {
-    const result = await this.feedbackService.getFriends(userId)
-    const valid = isValidObjectId(userId);
+    const validUser = isValidObjectId(userId);
+    let valid = false;
+    let friends: any[] = [];
+    let sent: any[] = [];
+    let received: any[] = [];
+    const result = validUser ? await this.feedbackService.getFriends(userId) : null;
+    if (result instanceof Object) {
+      valid = result.friendIds instanceof Array;
+      friends = valid && result.friendIds.length > 0 ? await this.userService.getBasicByIds(result.friendIds, userId) : [];
+      const validSent = result.sentIds instanceof Array;
+      sent = validSent && result.sentIds.length > 0 ? await this.userService.getBasicByIds(result.sentIds, userId) : [];
+      const validReceived = result.receivedIds instanceof Array;
+      received = validReceived && result.receivedIds.length > 0 ? await this.userService.getBasicByIds(result.receivedIds, userId) : [];
+    }
     const status = valid ? HttpStatus.OK : HttpStatus.NOT_ACCEPTABLE;
-    return res.status(status).json({ valid, ...result })
+    return res.status(status).json({ valid, friends, received, sent })
   }
 
   @Delete('unfriend/:fromId/:toId')
