@@ -1970,7 +1970,7 @@ const mapPPRuleResults = (ym = null, rules: PPRule[] = []) => {
   const isValid = ym instanceof Object && Object.keys(ym).includes('subs') && ym.subs instanceof Array;
     const subs = isValid ? ym.subs.map(sy => {
       const result = matchPPRulesOnly(sy.start + (1 / 1440), rules);
-      return { ...sy, result: result.ppScore };
+      return { ...sy, result: result.ppScore, rules: result.names };
     }) : [];
     const item = isValid ? ym : [];
     return { ...item, subs };
