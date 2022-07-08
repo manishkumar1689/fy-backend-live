@@ -1926,7 +1926,7 @@ const calcValueWithinOrb = (minJd = 0, start = 0, end = 0): { fraction: number; 
   return { fraction, peak };
 }
 
-const matchPPRulesToMinutes = (minJd = 0, rules: PPRule[], endSubJd = -1) => {
+const matchPPRulesToMinutes = (minJd = 0, rules: PPRule[], endSubJd = -1, skipTransitions = false) => {
   let score = 0;
   let ppScore = 0;
   const names: string[] = [];
@@ -1938,11 +1938,13 @@ const matchPPRulesToMinutes = (minJd = 0, rules: PPRule[], endSubJd = -1) => {
       for (const match of rule.validMatches) {
         if (!isMatched && minJd >= match.start && minJd <= match.end) {
           if (match.type === 'orb') {
-            const { fraction, peak } = calcValueWithinOrb(minJd, match.start, match.end);
-            if (endSubJd < 0 || (peak <= endSubJd && endSubJd > 0)) {
-              score += (rule.score * fraction);
-              names.push(rule.name);
-              peaks.push(peak);
+            if (!skipTransitions) {
+              const { fraction, peak } = calcValueWithinOrb(minJd, match.start, match.end);
+              if (endSubJd < 0 || (peak <= endSubJd && endSubJd > 0)) {
+                score += (rule.score * fraction);
+                names.push(rule.name);
+                peaks.push(peak);
+              }
             }
           } else {
             if (rule.validateAtMinJd(minJd)) {
@@ -1958,6 +1960,20 @@ const matchPPRulesToMinutes = (minJd = 0, rules: PPRule[], endSubJd = -1) => {
     }
   }
   return { minuteScore: score, ppScore, names, peaks };
+}
+
+const matchPPRulesOnly = (minJd = 0, rules: PPRule[]) => {
+  return matchPPRulesToMinutes(minJd, rules, 0, true);
+}
+
+const mapPPRuleResults = (ym = null, rules: PPRule[] = []) => {
+  const isValid = ym instanceof Object && Object.keys(ym).includes('subs') && ym.subs instanceof Array;
+    const subs = isValid ? ym.subs.map(sy => {
+      const result = matchPPRulesOnly(sy.start + (1 / 1440), rules);
+      return { ...sy, result: result.ppScore };
+    }) : [];
+    const item = isValid ? ym : [];
+    return { ...item, subs };
 }
 
 const translateTransitionKey = (key = '', isTr = false) => {
@@ -2489,8 +2505,17 @@ export const calculatePanchaPakshiData = async (
               }
             }
           }
+          const ys1 = ym1.map(ym => {
+            return mapPPRuleResults(ym, rules);
+          });
+          const ys2 = ym2.map(ym => {
+            return mapPPRuleResults(ym, rules);
+          });
+          data.set('yamas', ys1);
+          data.set('yamas2', ys2);
         }
         times.sort((a, b) => a.peak - b.peak);
+        
         const notMatchedRuleNames = rules.map(r => r.name).filter(nm => matchedRulesNames.indexOf(nm) < 0);
 /*         console.log(times.map(time => {
           const before = time.end < time.peak;

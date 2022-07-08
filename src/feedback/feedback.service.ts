@@ -284,6 +284,14 @@ export class FeedbackService {
       });
     }
     //const extraExcludedIds = filterByLiked? toFlags.filter(fl => fl.value >= excludeLikedMinVal).map(fl => fl.user) : [];
+    // exclude people who have the current user 3 times
+    if (searchMode && likeability.to instanceof Array) {
+      likeability.to.forEach(row => {
+        if (row.value <= -3 && extraExcludedIds.includes(row.user) === false) {
+          extraExcludedIds.push(row.user);
+        }
+      })
+    }
     if (extraExcludedIds.length > 0) {
       extraExcludedIds.forEach(id => {
         excludedIds.push(id);
