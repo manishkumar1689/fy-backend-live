@@ -81,6 +81,7 @@ import {
   shortenName,
   generateNameSearchRegex,
   calcCoordsDistance,
+  toFirstName,
 } from './lib/helpers';
 import { calcTropicalAscendantDt } from './lib/calc-ascendant';
 import { GeoLoc } from './lib/models/geo-loc';
@@ -1628,7 +1629,8 @@ export class AstrologicService {
       });
       const score = values.map(v => v.score).reduce((a,b) => a + b, 0);
       const max = values.map(v => v.max).reduce((a,b) => a + b, 0);
-      return {...row, values, score, max };
+      const title = 'Kūṭa';
+      return { title, ...row, values, score, max };
     });
   }
 
@@ -1808,7 +1810,7 @@ export class AstrologicService {
     const ascAspectKeys = [...baseAspectKeys, 'ju','sa', 'ur', 'pl'];
     const aspectMatches = calcAspectMatches(refChart, chart, baseAspectKeys, ascAspectKeys, orbMap);
     const aspects = addSnippetKeyToSynastryAspectMatches(aspectMatches, refChart.shortName, chart.shortName);
-    const shortName = user.nickName.split(' ').shift();
+    const shortName = toFirstName(user.nickName);
     return {
       ...user,
       shortName,
