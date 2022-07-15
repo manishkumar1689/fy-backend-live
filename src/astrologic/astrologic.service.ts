@@ -1612,6 +1612,10 @@ export class AstrologicService {
     return kutas.map(row => {
       const values = row.values.map(item => {
         const dk1 = simplifyKey(item.c1Value);
+        const titleKey = [item.key,0].join('/');
+        if (dictMap.has(titleKey)) {
+          item.title = dictMap.get(titleKey);
+        }
         if (dictMap.has(dk1)) {
           item.c1Value = dictMap.get(dk1);
         }

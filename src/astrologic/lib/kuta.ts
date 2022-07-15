@@ -158,6 +158,7 @@ export interface KutaScoreMatch {
 
 export class KutaValueSet {
   key = '';
+  title = '';
   head = '';
   c1Value = '-';
   c2Value = '-';
@@ -175,6 +176,7 @@ export class KutaValueSet {
           case 'c1Value':
           case 'c2Value':
           case 'variantRef':
+          case 'title':
             if (typeof v === 'string') {
               this[k] = v;
             }

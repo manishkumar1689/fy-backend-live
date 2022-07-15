@@ -15,6 +15,39 @@ export interface GrahaPos {
   lngSpeed?: number;
 }
 
+export interface AltitudeResult {
+  altitude: number;
+  azimuth: number;
+  apparentAltitude: number;
+}
+
+export const calcAltitudeResult = async (
+  jd: number,
+  geo: GeoPos,
+  lng: number,
+  lat: number,
+  isEqual = false,
+): Promise<AltitudeResult> => {
+  const flag = isEqual ? swisseph.SE_EQU2HOR : swisseph.SE_ECL2HOR;
+  let value = 0;
+  let apparentAltitude = 0;
+  let azimuth = 0;
+  await getAzalt(jd, flag, geo.lng, geo.lat, geo.alt, 0, 0, lng, lat).catch(
+    async result => {
+      if (result instanceof Object) {
+        if (!result.error) {
+          if (Object.keys(result).includes('trueAltitude')) {
+            value = result.trueAltitude;
+            azimuth = result.azimuth;
+            apparentAltitude = result.apparentAltitude;
+          }
+        }
+      }
+    },
+  );
+  return { altitude: value, azimuth, apparentAltitude };
+};
+
 export const calcAltitudeSE = async (
   jd: number,
   geo: GeoPos,
@@ -22,22 +55,9 @@ export const calcAltitudeSE = async (
   lat: number,
   isEqual = false,
 ): Promise<number> => {
-  const flag = isEqual ? swisseph.SE_EQU2HOR : swisseph.SE_ECL2HOR;
-  let value = 0;
-
-  await getAzalt(jd, flag, geo.lng, geo.lat, geo.alt, 0, 0, lng, lat).catch(
-    async result => {
-      if (result instanceof Object) {
-        if (!result.error) {
-          if (Object.keys(result).includes('trueAltitude')) {
-            value = result.trueAltitude;
-          }
-        }
-      }
-    },
-  );
-  return value;
-};
+  const result = await calcAltitudeResult(jd, geo, lng, lat, isEqual);
+  return result.altitude
+}
 
 export class AltitudeSample {
   type = '';
