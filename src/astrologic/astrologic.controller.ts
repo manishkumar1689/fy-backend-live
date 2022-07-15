@@ -169,7 +169,6 @@ import {
   panchaPakshiDayNightSet,
 } from './lib/settings/pancha-pakshi';
 import { PairsSetDTO } from './dto/pairs-set.dto';
-import { randomCompatibilityText } from './lib/settings/compatibility-texts';
 import {
   buildProgressSetPairs,
   buildSingleProgressSet,

@@ -1623,9 +1623,12 @@ export class AstrologicService {
         if (dictMap.has(dk2)) {
           item.c2Value = dictMap.get(dk2);
         }
-        return item;
+        const { key, title, c1Value, c2Value, score, max } = item;
+        return { key, title, c1Value, c2Value, score, max };
       });
-      return {...row, values };
+      const score = values.map(v => v.score).reduce((a,b) => a + b, 0);
+      const max = values.map(v => v.max).reduce((a,b) => a + b, 0);
+      return {...row, values, score, max };
     });
   }
 
@@ -1805,8 +1808,10 @@ export class AstrologicService {
     const ascAspectKeys = [...baseAspectKeys, 'ju','sa', 'ur', 'pl'];
     const aspectMatches = calcAspectMatches(refChart, chart, baseAspectKeys, ascAspectKeys, orbMap);
     const aspects = addSnippetKeyToSynastryAspectMatches(aspectMatches, refChart.shortName, chart.shortName);
+    const shortName = user.nickName.split(' ').shift();
     return {
       ...user,
+      shortName,
       hasChart,
       chart: chartData,
       preferences,

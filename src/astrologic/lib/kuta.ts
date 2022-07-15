@@ -201,10 +201,25 @@ export class KutaValueSet {
   }
 }
 
+export interface KutaVSet {
+  key?:	string;
+  title: string;
+  c1Value:	string;
+  c2Value: string;
+  score: number;
+  max: number;
+}
+
 export interface KutaValueSetItems {
   k1: string;
   k2: string;
   values: KutaValueSet[];
+}
+
+export interface KutaVSetItems {
+  k1: string;
+  k2: string;
+  values: KutaVSet[];
 }
 
 export interface KutaValueSetValues {
@@ -720,7 +735,7 @@ export class Kuta {
       if (settings instanceof Object) {
         const femaleIndex = dataSets.findIndex(ds => ds.gender === 'f');
         const maleIndex = dataSets.findIndex(ds => ds.gender === 'm');
-        const hasMale = maleIndex >= 0;
+        //const hasMale = maleIndex >= 0;
         const hasFemale = femaleIndex >= 0;
         const femaleFirst = hasFemale && femaleIndex < maleIndex;
         /* const female = hasFemale ? dataSets[femaleIndex] : null;
