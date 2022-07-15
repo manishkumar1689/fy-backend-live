@@ -90,7 +90,7 @@ import { addExtraPanchangaNumValuesFromClass, simplifyChart } from './lib/member
 import { getAshtakavargaBodyGrid } from './lib/settings/ashtakavarga-values';
 import { GeoPos } from './interfaces/geo-pos';
 import { ProgressItemDTO } from './dto/progress-item.dto';
-import { buildSingleProgressSetKeyValues, calcProgressAspectDataFromProgressItems, calcProgressAspectsFromJds, calcProgressSummary, progressItemsToDataSet } from './lib/settings/progression';
+import { buildSingleProgressSetKeyValues, calcProgressAspectDataFromProgressItems, calcProgressAspectsFromJds, calcProgressSummary, calcProgressSummaryMembers, progressItemsToDataSet } from './lib/settings/progression';
 import { currentJulianDay } from './lib/julian-date';
 import { filterCorePreference } from '../lib/mappers';
 import { mapLikeabilityRelations, UserFlagSet } from '../lib/notifications';
@@ -1803,7 +1803,7 @@ export class AstrologicService {
     ) : [];
     addExtraPanchangaNumValuesFromClass(chartData, chart, 'true_citra');
     const pd = calcProgressAspectDataFromProgressItems(chart.matchProgressItems(), refChart.matchProgressItems());
-    const p2Summary = pd.num > 0 ? calcProgressSummary(pd.items, true, p2Scores) : {};
+    const p2Summary = pd.num > 0 ? calcProgressSummaryMembers(pd.items, true, p2Scores) : {};
     const kcS1 = calcKotaChakraScoreData(refChart, chart, kcScoreSet, true);
     const kcS2 = calcKotaChakraScoreData(chart, refChart, kcScoreSet, true);
     const baseAspectKeys = ['as','su','mo','me','ve','ma'];

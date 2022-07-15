@@ -197,7 +197,6 @@ export const matchLocaleJulianDayData = (dtRef = null, geo: GeoLoc) => {
     //const baseJd = isAm ? jdInt : jdInt - 1;
     //const noonJd = baseJd + jdNoonFrac;
     const noonJd = jdInt + jdNoonFrac;
-    //console.log({ base: julToDateParts(baseJd).toISOString(), dtUtc, jdNoonFrac })
     return { jd, dtUtc, geo, hoursOffset, jdNoonFrac, geoHours, utcHours, isAm, noonJd };
 }
 

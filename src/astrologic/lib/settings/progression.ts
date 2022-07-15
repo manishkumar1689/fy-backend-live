@@ -328,7 +328,7 @@ export const calcProgressAspectDataFromProgressItems = (p1: any[] = [], p2: any[
   return progressItemsToDataSet(items);
 }
 
-export const calcProgressSummary = (items: any[] = [], widenOrb = false, customConfig = null, maxDistance = 2 + 1/60) => {
+export const calcProgressSummary = (items: any[] = [], widenOrb = false, customConfig = null, maxDistance = 2 + 1/60, asArraySets = false) => {
   const mp: Map<string, any> = new Map();
   const currJd = currentJulianDay();
   const initMaxOrb = widenOrb? maxDistance * 1.5 : maxDistance;
@@ -409,11 +409,40 @@ export const calcProgressSummary = (items: any[] = [], widenOrb = false, customC
       const genMax = scores.map(entry => entry[1].max).reduce((a,b) => a + b, 0);
       pc = (genScore / genMax * 100 / 2) + 50;
       //mp.set('general', { score: genScore, max: genMax});
-      mp.set('scores', Object.fromEntries(scores));
+      if (asArraySets) {
+        const scoreItems = scores.map(([key, item]) => { return { key, ...item} });
+        mp.set('scores', scoreItems);
+      } else {
+        mp.set('scores', Object.fromEntries(scores));
+      }
     }
   }
   mp.set('percent', pc);
-  return Object.fromEntries(mp.entries());
+  if (asArraySets) {
+    let scores = [];
+    let percent = 0;
+    const aspects = [];
+    for (const [key, val] of mp.entries()) {
+      switch (key) {
+        case 'percent':
+          percent = val;
+          break;
+        case 'scores':
+          scores = val;
+          break;
+        default:
+          aspects.push({ key, values: val});
+          break;
+      }
+    }
+    return { aspects, scores, percent };
+  } else {
+    return Object.fromEntries(mp.entries());
+  }
+}
+
+export const calcProgressSummaryMembers = (items: any[] = [], widenOrb = false, customConfig = null, maxDistance = 2 + 1/60) => {
+  return calcProgressSummary(items, widenOrb, customConfig, maxDistance, true)
 }
 
 export const buildSingleProgressSetKeyValues = async (jd = 0, yearsAgo = 2, years = 11, perYear = 2) => {
