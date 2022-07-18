@@ -328,6 +328,10 @@ export const calcProgressAspectDataFromProgressItems = (p1: any[] = [], p2: any[
   return progressItemsToDataSet(items);
 }
 
+export const shortenAspectComboKey = (key: string): string => {
+  return key.length > 9 && key.includes('_') ? key.substring(0,9) : key.length > 3 ? key.substring(0, 3) : key;
+}
+
 export const calcProgressSummary = (items: any[] = [], widenOrb = false, customConfig = null, maxDistance = 2 + 1/60, asArraySets = false) => {
   const mp: Map<string, any> = new Map();
   const currJd = currentJulianDay();
@@ -410,7 +414,7 @@ export const calcProgressSummary = (items: any[] = [], widenOrb = false, customC
       pc = (genScore / genMax * 100 / 2) + 50;
       //mp.set('general', { score: genScore, max: genMax});
       if (asArraySets) {
-        const scoreItems = scores.map(([key, item]) => { return { key, ...item} });
+        const scoreItems = scores.map(([key, item]) => { return { key: shortenAspectComboKey(key), ...item} });
         mp.set('scores', scoreItems);
       } else {
         mp.set('scores', Object.fromEntries(scores));
@@ -431,7 +435,7 @@ export const calcProgressSummary = (items: any[] = [], widenOrb = false, customC
           scores = val;
           break;
         default:
-          aspects.push({ key, values: val});
+          aspects.push({ key: shortenAspectComboKey(key), values: val});
           break;
       }
     }
