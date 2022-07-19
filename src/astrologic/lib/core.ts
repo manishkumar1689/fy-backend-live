@@ -1981,6 +1981,9 @@ export const calcAspectMatches = (c1: Chart, c2: Chart, grahaKeys1: string[] = [
           range
         }
       }).filter(r => r.valid);
+      if (c2._id.toString() === '60e2f22833e7820499bb5159' && asp.k1 === 'ma') {
+        console.log(asp, ranges, orbRow, aspectDegs);
+      }
       return {
         ranges,
         orb: orbRow.orb,

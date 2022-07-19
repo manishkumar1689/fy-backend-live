@@ -124,9 +124,9 @@ export const matchSynastryOrb = (k1: string, k2: string, orbMap = null): number 
 export const matchSynastryOrbRange = (k1: string, k2: string, deg = 0, orbMap = null) => {
   const orb = matchSynastryOrb(k1, k2, orbMap);
   const ranges = [[subtractLng360(deg, orb), (deg+orb) % 360 ]];
-  if (orb > 0 && orb < 180) {
-    const deg2 = 360 - orb;
-    ranges.push([subtractLng360(deg2, orb), (deg2+orb) % 360 ])
+  if (deg > 0 && deg < 180) {
+    const deg2 = 360 - deg;
+    ranges.push([subtractLng360(deg2, orb), (deg2+orb) % 360 ]);
   }
   return {
     ranges,
