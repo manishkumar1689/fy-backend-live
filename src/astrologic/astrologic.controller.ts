@@ -1431,6 +1431,8 @@ export class AstrologicController {
     const geoInfo = await this.fetchGeoInfo(geo, refDt);
     const gender = keys.includes('gender') ? query.gender : '';
     const name = keys.includes('gender') ? query.name : 'N/A';
+    const showUserChart = keys.includes('uc') ? smartCastInt(query.uc, 0) > 0 : false;
+    const showP2 = keys.includes('p2') ? smartCastInt(query.p2, 0) > 0 : false;
     const dtUtc = applyTzOffsetToDateString(refDt, geoInfo.offset);
     const data = await this.fetchCompactChart(
       loc,
@@ -1441,6 +1443,7 @@ export class AstrologicController {
       false,
     );
     data.isDefaultBirthChart = false;
+    
     data.subject = {
       name,
       gender,
@@ -1448,6 +1451,9 @@ export class AstrologicController {
       eventType: 'birth',
       roddenValue
     }
+    data.progressItems = showP2 ? await buildSingleProgressSetKeyValues(
+      data.jd,
+    ) : [];
     const c2 = new Chart(data);
     const otherChart = simplifyAstroChart(c2, true, true);
     addExtraPanchangaNumValuesFromClass(data, c2, 'true_citra');
@@ -1471,7 +1477,8 @@ export class AstrologicController {
       const kutaDict = await this.dictionaryService.getKutaDict();
       const customSettings = await this.settingService.customCompatibilitySettings(kutaDict);
       const compatibility = this.astrologicService.compareCharts(c1, c2,customSettings);
-      return res.json({ valid: true, compatibility, otherChart, userChart });
+      const result = showUserChart ? { valid: true, ...compatibility, otherChart, userChart } : { valid: true, ...compatibility, otherChart };
+      return res.json(result);
     } else {
       return res.status(HttpStatus.BAD_REQUEST).json({ valid: false });
     }

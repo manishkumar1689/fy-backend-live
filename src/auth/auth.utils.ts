@@ -110,9 +110,10 @@ export const maySkipValidation = (request: Request): boolean => {
     ? headers['x-real-ip'].toString()
     : '0.0.0.0';
   const { path } = request.route;
+  const alias = path.length > 1 ? path.substring(1) : path;
   const ipOverrides = fetchIpWhitelist();
   const mode =
-    ipOverrides.includes(ip) || pathWhitelist.includes(path)
+    ipOverrides.includes(ip) || pathWhitelist.includes(path) || pathWhitelist.includes(alias)
       ? 'skip'
       : authMode.toString();
   switch (mode) {
