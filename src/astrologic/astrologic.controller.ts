@@ -1477,7 +1477,7 @@ export class AstrologicController {
       const kutaDict = await this.dictionaryService.getKutaDict();
       const customSettings = await this.settingService.customCompatibilitySettings(kutaDict);
       const compatibility = this.astrologicService.compareCharts(c1, c2,customSettings);
-      const result = showUserChart ? { valid: true, ...compatibility, otherChart, userChart } : { valid: true, ...compatibility, otherChart };
+      const result = showUserChart ? { valid: true, ...compatibility, otherChart, userChart } : { valid: true, ...compatibility, chart: otherChart };
       return res.json(result);
     } else {
       return res.status(HttpStatus.BAD_REQUEST).json({ valid: false });
