@@ -328,8 +328,25 @@ export const calcProgressAspectDataFromProgressItems = (p1: any[] = [], p2: any[
   return progressItemsToDataSet(items);
 }
 
-export const shortenAspectComboKey = (key: string): string => {
-  return key.length > 9 && key.includes('_') ? key.substring(0,9) : key.length > 3 ? key.substring(0, 3) : key;
+export const normaliseAspectComboKey = (key: string) => {
+  const parts = key.split('_');
+  if (parts.length  === 3 && notEmptyString(parts[2])) {
+    const [k1, k2, aspect] = key.split('_');
+    const keyOrder = ['su','ve','ma'];
+    const k1Index = keyOrder.indexOf(k1);
+    const k2Index = keyOrder.indexOf(k2);
+    const b1Index = k1Index < 0 ? 100000 : k1Index;
+    const b2Index = k2Index < 0 ? 100000 : k2Index;
+    const reverse = b1Index > b2Index;
+    const b1 = reverse ? k2 : k1;
+    const b2 = reverse ? k1 : k2;
+    return [b1, b2, aspect.substring(0, 3)].join('_')
+  }
+  return key;
+}
+
+export const shortenAspectComboKey = (key: string, resortKeys = false): string => {
+  return key.length > 9 && key.includes('_') ? resortKeys ? normaliseAspectComboKey(key) : key.substring(0,9) : key.length > 3 ? key.substring(0, 3) : key;
 }
 
 export const calcProgressSummary = (items: any[] = [], widenOrb = false, customConfig = null, maxDistance = 2 + 1/60, asArraySets = false) => {
@@ -414,7 +431,7 @@ export const calcProgressSummary = (items: any[] = [], widenOrb = false, customC
       pc = (genScore / genMax * 100 / 2) + 50;
       //mp.set('general', { score: genScore, max: genMax});
       if (asArraySets) {
-        const scoreItems = scores.map(([key, item]) => { return { key: shortenAspectComboKey(key), ...item} });
+        const scoreItems = scores.map(([key, item]) => { return { key: shortenAspectComboKey(key, true), ...item} });
         mp.set('scores', scoreItems);
       } else {
         mp.set('scores', Object.fromEntries(scores));
@@ -435,7 +452,7 @@ export const calcProgressSummary = (items: any[] = [], widenOrb = false, customC
           scores = val;
           break;
         default:
-          aspects.push({ key: shortenAspectComboKey(key), values: val});
+          aspects.push({ key: shortenAspectComboKey(key, true), values: val});
           break;
       }
     }
