@@ -336,12 +336,25 @@ export class UserService {
         const val = criteria[key];
         switch (key) {
           case 'roles':
-            if (val instanceof Array) {
+            const roles = val instanceof Array ? val : val.split(',');
+            if (roles instanceof Array) {
               filter.set(key, val);
             }
             break;
+          case 'type':
+            switch (val) {
+              case 'admin':
+              case 'admins':
+                filter.set('$or', [{roles: 'superadmin'}, {roles: 'admin'}, {roles: 'editor'}]);
+                break;
+              case 'members':
+              case 'member':
+                filter.set('roles', 'active');
+                break;
+            }
+          break;
           case 'active':
-            filter.set(key, val > 0 ? true : false);
+            filter.set(key, smartCastInt(val,0) > 0 ? true : false);
             break;
           case 'fullName':
           case 'nickName':
@@ -353,8 +366,9 @@ export class UserService {
             break;
           case 'usearch':
             const rgx = new RegExp('\\b' + val, 'i');
+            const rgxEm = new RegExp('\\b' + val.replace('.', '\\.')+ '.?@', 'i');
             filter.set('$or', [
-              { identifier: rgx },
+              { identifier: rgxEm },
               { nickName: rgx },
               { fullName: rgx },
             ]);
