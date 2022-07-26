@@ -11,6 +11,7 @@ import {
   Param,
   UseGuards,
 } from '@nestjs/common';
+import { Model } from 'mongoose';
 import { SettingService } from './setting.service';
 import { UserService } from '../user/user.service';
 import { SnippetService } from '../snippet/snippet.service';
@@ -35,6 +36,7 @@ import { PredictiveRuleSetDTO } from './dto/predictive-rule-set.dto';
 import { smartCastInt } from '../lib/converters';
 import { DeviceVersion } from './lib/interfaces';
 import { DeviceVersionDTO } from './dto/device-version.dto';
+import { CreateSnippetDTO } from '../snippet/dto/create-snippet.dto';
 
 @Controller('setting')
 export class SettingController {
@@ -86,7 +88,28 @@ export class SettingController {
         message = result.message;
         setting = result.setting;
       }
-      console.log(key,createSettingDTO)
+      if (createSettingDTO.type === 'preferences' && createSettingDTO.value instanceof Array && createSettingDTO.value.length > 0) {
+        for (const item of createSettingDTO.value) {
+          if (item instanceof Object) {
+            const { prompt, versions, key } = item;
+            if (notEmptyString(prompt) && versions instanceof Array && versions.length > 0) {
+              const snKey = [createSettingDTO.key, key].join('__');
+              if (versions[0].lang === 'en') {
+                const sn = await this.snippetService.getByKey(snKey);
+                if (sn instanceof Model) {
+                  const snObj = sn.toObject();
+                  if (snObj.values instanceof Array && snObj.values.length > 0) {
+                    if (snObj.values[0].lang === 'en') {
+                      snObj.values[0].text = prompt;
+                    }
+                  }
+                  this.snippetService.save(snObj as CreateSnippetDTO)
+                }
+              }
+            }
+          }
+        }
+      }
     }
     return res.status(HttpStatus.OK).json({
       message,
