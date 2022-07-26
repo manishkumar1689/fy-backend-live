@@ -79,12 +79,14 @@ export class SettingController {
   ) {
     let setting: any = {};
     let message = 'Invalid key or user ID';
-    if (this.userService.isAdminUser(userID)) {
+    const isAdmin = await this.userService.isAdminUser(userID);
+    if (isAdmin) {
       const result = await this.settingService.updateSettingByKey(key, createSettingDTO);
       if (notEmptyString(result.message)) {
         message = result.message;
         setting = result.setting;
       }
+      console.log(key,createSettingDTO)
     }
     return res.status(HttpStatus.OK).json({
       message,

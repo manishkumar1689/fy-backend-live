@@ -1101,6 +1101,7 @@ export class UserController {
     const surveyKey = notEmptyString(key, 4) ? key : 'preference_options';
     const cacheKey = ['preferences_listing', surveyKey].join('_');
     const stored = cached ? await this.redisGet(cacheKey) : null;
+    
     const validStored = stored instanceof Object && stored.valid;
     const hasLang =
       notEmptyString(lang, 2) && ['all', '--'].includes(lang) === false;
@@ -1195,7 +1196,6 @@ export class UserController {
           data.options.sort((a, b) => assignSeq(a) - assignSeq(b));
         }
       }
-      data.cached = false;
     }
     return data;
   }

@@ -718,9 +718,23 @@ export class SettingService {
       matchedSetting instanceof Object &&
       Object.keys(matchedSetting).includes('key');
     if (exists) {
+      let value = createSettingDTO.value;
+      if (createSettingDTO.type === 'preferences' && createSettingDTO.value instanceof Array) {
+        value = createSettingDTO.value.map(row => {
+          const { prompt, versions } = row;
+          const newVersions = versions instanceof Array && versions.length > 0 ? versions.map((v, vi) => {
+            let { text } = v;
+            if (vi === 0 && (v.lang === 'en') && notEmptyString(prompt)) {
+              text = prompt;
+            }
+            return { ...v, text};
+          }) : [];
+          return { ...row, versions: newVersions };
+        })
+      }
       setting = await this.updateSetting(
         extractDocId(matchedSetting),
-        createSettingDTO,
+        {...createSettingDTO, value },
       );
       if (setting) {
         message = 'Setting has been updated successfully';
