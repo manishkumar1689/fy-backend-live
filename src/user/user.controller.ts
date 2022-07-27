@@ -105,6 +105,7 @@ import {
   compareJungianPolarities,
   extractSurveyScoresByType,
   extractDefaultJungianPersonalityTypeLetters,
+  extractFromBasicJungianSummary,
 } from '../setting/lib/mappers';
 import { PublicUserDTO } from './dto/public-user.dto';
 import { User } from './interfaces/user.interface';
@@ -1334,8 +1335,9 @@ export class UserController {
             }
           }
           if (hasJungianData) {
-            const analysis = summariseJungianAnswers(answers)
+            
             const matchedLang = matchLangFromPreferences(matchedObj.preferences);
+            const analysis = hasAnswers ? summariseJungianAnswers(answers) : extractFromBasicJungianSummary(matchedObj);
             const merged = await this.mergeSurveyFeedback(analysis, 'jungian', matchedLang, true);
             const letters = hasAnswers ? merged.letters : defaultLetters;
             userData.set('surveys', {

@@ -633,7 +633,8 @@ export const extractSurveyScoresByType = (user: any = null, type = 'jungian'): K
         });
       }
     }
-  } else if (type === 'jungian') {
+  }
+  if (type === 'jungian') {
     const defaultLetters = extractDefaultJungianPersonalityTypeLetters(user);
     if (defaultLetters.length === 4) {
       const pairs = ['IE', 'SN', 'FT', 'JP'];
@@ -650,3 +651,6 @@ export const extractSurveyScoresByType = (user: any = null, type = 'jungian'): K
   return [];
 }
 
+export const extractFromBasicJungianSummary = (user = null) => {
+  return toSimplePolarityValues(extractSurveyScoresByType(user, 'jungian'));
+}
