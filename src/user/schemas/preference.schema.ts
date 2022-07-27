@@ -16,6 +16,7 @@ export const PreferenceSchema = new mongoose.Schema({
       'text', // plain text without options
       'uri', // plain text, but validated as a URI (not necessarily http, may be other schemas)
       'string', // key string stored, e.g. f/m for gender
+      'code', // as above, but without a set of option, i.e. the code will be interpreted according to custom rules
       'integer', // number stored as integer
       'scale', // integer interpreted on a scale e.g. -2 to 2 for degree of agreement (with 0 being neutral)
       'key_scale', // set of keys which arbitary integer values on a custom scale
