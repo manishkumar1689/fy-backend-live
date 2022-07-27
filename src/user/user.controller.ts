@@ -104,6 +104,7 @@ import {
   big5FacetedScaleOffset,
   compareJungianPolarities,
   extractSurveyScoresByType,
+  extractDefaultJungianPersonalityTypeLetters,
 } from '../setting/lib/mappers';
 import { PublicUserDTO } from './dto/public-user.dto';
 import { User } from './interfaces/user.interface';
@@ -1322,15 +1323,26 @@ export class UserController {
         }
         if (matchedObj.preferences instanceof Array) {
           const { answers } = await this.userService.getSurveyDomainScoresAndAnswers(userID, 'jungian', true);
-          if (answers instanceof Array) {
+          const hasAnswers = answers instanceof Array && answers.length > 8;
+          let defaultLetters = '';
+          let hasJungianData = hasAnswers;
+          if (!hasAnswers) {
+            const strLetters = extractDefaultJungianPersonalityTypeLetters(matchedObj);
+            if (strLetters.length === 4) {
+              defaultLetters = strLetters;
+              hasJungianData = true;
+            }
+          }
+          if (hasJungianData) {
             const analysis = summariseJungianAnswers(answers)
             const matchedLang = matchLangFromPreferences(matchedObj.preferences);
             const merged = await this.mergeSurveyFeedback(analysis, 'jungian', matchedLang, true);
+            const letters = hasAnswers ? merged.letters : defaultLetters;
             userData.set('surveys', {
               jungian: {
                 title: merged.title,
                 text: merged.text,
-                letters: merged.letters,
+                letters,
                 analysis,
                 categories: merged.categories,
                 answers,
@@ -1986,6 +1998,7 @@ export class UserController {
   }
 
   /*
+    #mobile
     #admin
   */
   @Put('preference/save/:userID')
@@ -1999,6 +2012,7 @@ export class UserController {
   }
 
   /*
+    #mobile
     #admin
   */
   @Put('preferences/save/:userID')
@@ -2012,6 +2026,7 @@ export class UserController {
   }
 
   /*
+    #mobile
     #admin
   */
   @Put('survey/save/:type/:userID/:lang?/:reset?')
@@ -2122,6 +2137,42 @@ export class UserController {
       categories: Object.fromEntries(categoryEntries),
     };
   }
+
+  /*
+    #mobile
+    #admin
+  */
+    @Put('jungian-type/save/:userID')
+    async saveJungianPersonalityCode(
+      @Res() res,
+      @Param('userID') userID,
+      @Body() preferenceDTO: PreferenceDTO,
+    ) {
+      const { value } = preferenceDTO;
+      const result: any = { valid: false, user: null, msg: "invalid" };
+      if (notEmptyString(value,3)) {
+        const correctedValue = value.toUpperCase().replace(/[^A-Z]/, '').trim();
+        const rgxStr = ['IE', 'SN', 'FT', 'JP'].map(pair => ['[', ...pair , ']'].join('')).join('');
+        const rgx = new RegExp('^' + rgxStr + '$');
+        if (rgx.test(correctedValue)) {
+          const prefDTO = {
+              key: 'jungian_type',
+              value: correctedValue,
+              type: 'code'
+            } as PreferenceDTO;
+            const data = await this.userService.savePreference(userID, prefDTO);
+            if (data.valid && data.user instanceof Object) {
+              result.valid = true;
+              result.user = data.user;
+            }
+        } else {
+          result.msg = "bad format";
+        }
+      } else {
+        result.msg = "too short";
+      }
+      return res.json(result);
+    }
 
   async getFacetedFeedbackItems(
     type = 'faceted',

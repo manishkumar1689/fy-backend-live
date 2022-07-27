@@ -18,6 +18,7 @@ import {
   facetedJungianFormulae,
 } from '../settings/faceted-big5';
 import { KeyNumValue } from '../../lib/interfaces';
+import e = require('express');
 
 /*
   Adding/subtracting this number converts from a -2 to 2 range to 1 to 5
@@ -604,6 +605,20 @@ export const compareJungianPolarities = (jungianRef: KeyNumValue[] = [], jungian
   return Object.fromEntries(entries);
 }
 
+export const extractDefaultJungianPersonalityTypeLetters = (userObj = null) => {
+  let defaultLetters = '';
+  if (userObj instanceof Object) {
+    const {preferences} = userObj;
+    if (preferences instanceof Array) {
+      const defaultLetterRow = preferences.find(pr => pr.key === 'jungian_type');
+      if (defaultLetterRow instanceof Object) {
+        defaultLetters = defaultLetterRow.value;
+      }
+    }
+  }
+  return defaultLetters;
+}
+
 export const extractSurveyScoresByType = (user: any = null, type = 'jungian'): KeyNumValue[] => {
   if (user instanceof Object && Object.keys(user).includes('surveys') && user.surveys instanceof Array) {
     const scoreSet = user.surveys.find(row => row.type === type);
@@ -617,6 +632,19 @@ export const extractSurveyScoresByType = (user: any = null, type = 'jungian'): K
           }
         });
       }
+    }
+  } else if (type === 'jungian') {
+    const defaultLetters = extractDefaultJungianPersonalityTypeLetters(user);
+    if (defaultLetters.length === 4) {
+      const pairs = ['IE', 'SN', 'FT', 'JP'];
+      return pairs.map(key => {
+        const [l1, l2] = key.split('');
+        const value = defaultLetters.includes(l1) ? -50 : defaultLetters.includes(l2) ? 50 : 0;
+        return {
+          key,
+          value
+        }
+      })
     }
   }
   return [];
