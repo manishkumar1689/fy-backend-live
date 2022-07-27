@@ -104,8 +104,6 @@ import {
   big5FacetedScaleOffset,
   compareJungianPolarities,
   extractSurveyScoresByType,
-  extractDefaultJungianPersonalityTypeLetters,
-  extractFromBasicJungianSummary,
 } from '../setting/lib/mappers';
 import { PublicUserDTO } from './dto/public-user.dto';
 import { User } from './interfaces/user.interface';
@@ -122,9 +120,7 @@ import { LogoutDTO } from './dto/logout.dto';
 import { ResetDTO } from './dto/reset.dto';
 import { EmailParamsDTO } from './dto/email-params.dto';
 import {
-  extractSnippet,
   filterByLang,
-  matchLangFromPreferences,
   matchValidLang,
 } from '../lib/mappers';
 import { Kuta } from '../astrologic/lib/kuta';
@@ -1323,7 +1319,7 @@ export class UserController {
           userData.set('chart', chartObj);
         }
         if (matchedObj.preferences instanceof Array) {
-          const { answers } = await this.userService.getSurveyDomainScoresAndAnswers(userID, 'jungian', true);
+         /*  const { answers } = await this.userService.getSurveyDomainScoresAndAnswers(userID, 'jungian', true);
           const hasAnswers = answers instanceof Array && answers.length > 8;
           let defaultLetters = '';
           let hasJungianData = hasAnswers;
@@ -1350,6 +1346,15 @@ export class UserController {
                 answers,
               }
             });
+          } */
+
+          const feedbackItems = await this.getFacetedFeedbackItems(
+            'jungian',
+            true,
+          );
+          const surveyData = await this.userService.matchSurveyData(userID, matchedObj, feedbackItems);
+          if (Object.keys(surveyData).length > 0) {
+            userData.set('surveys', surveyData);
           }
         }
       }
@@ -2081,7 +2086,12 @@ export class UserController {
         : analyseAnswers(type, result.answers)
       : {};
     if (isJungian) {
-      const merged = await this.mergeSurveyFeedback(result.analysis, 'jungian', matchedLang, cached);
+
+      const feedbackItems = await this.getFacetedFeedbackItems(
+        'jungian',
+        cached,
+      );
+      const merged = this.userService.mergeSurveyFeedback(result.analysis, matchedLang, feedbackItems);
       result.title = merged.title;
       result.text = merged.text;
       result.letters = merged.letters;
@@ -2089,55 +2099,6 @@ export class UserController {
       result.valid = result.answers.length > 0;
     }
     return res.json(result);
-  }
-
-  async mergeSurveyFeedback(analysis: any = null, matchedType = 'jungian', matchedLang = 'en', cached = true) {
-    const ucLetters = Object.keys(analysis)
-        .map(lt => lt.toUpperCase());
-    const spectra = ['IE', 'SN', 'FT', 'JP'];
-    const letters = spectra.map(pair => {
-      const letter = ucLetters.find(lt => lt === pair.substring(0,1) || lt === pair.substring(1,2));
-      return typeof letter === 'string'? letter : '';
-    }).join('').toLowerCase();
-      const feedbackItems = await this.getFacetedFeedbackItems(
-        matchedType,
-        cached,
-      );
-      const snKeys = [
-        ['_', 'name', letters].join('_'),
-        ['_', 'type', letters].join('_'),
-      ];
-      let title = '';
-      let text = '';
-      snKeys.forEach(sk => {
-        if (sk.includes('_name_')) {
-          title = extractSnippet(feedbackItems, sk, matchedLang);
-        } else {
-          text = extractSnippet(feedbackItems, sk, matchedLang);
-        }
-      });
-      const categoryEntries = Object.entries(analysis).map(
-        ([key, value]) => {
-          let polarity = spectra.find(pair => pair.includes(key.toUpperCase()));
-          const segment = value <= 20 ? 'ave' : 'high';
-          let text = '';
-          if (notEmptyString(polarity)) {
-            const snKey = ['_', 'sub', polarity, key, segment]
-            .join('_')
-            .toLowerCase();
-            text = extractSnippet(feedbackItems, snKey, matchedLang);
-          } else {
-            polarity = '__';
-          }
-          return [polarity, text];
-        },
-      ).filter(entry => entry[0] !== '__');
-    return { 
-      title,
-      text,
-      letters,
-      categories: Object.fromEntries(categoryEntries),
-    };
   }
 
   /*
@@ -2162,7 +2123,11 @@ export class UserController {
               value: correctedValue,
               type: 'code'
             } as PreferenceDTO;
-            const data = await this.userService.savePreference(userID, prefDTO);
+            const feedbackItems = await this.getFacetedFeedbackItems(
+              'jungian',
+              true,
+            );
+            const data = await this.userService.savePreference(userID, prefDTO, feedbackItems);
             if (data.valid && data.user instanceof Object) {
               result.valid = true;
               result.user = data.user;

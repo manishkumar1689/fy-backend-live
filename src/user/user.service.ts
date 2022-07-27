@@ -46,14 +46,17 @@ import { PreferenceDTO } from './dto/preference.dto';
 import { matchFileTypeAndMime } from '../lib/files';
 import { PublicUser } from './interfaces/public-user.interface';
 import {
+  extractDefaultJungianPersonalityTypeLetters,
+  extractFromBasicJungianSummary,
   jungianAnswersToResults,
   normalizedToPreference,
+  summariseJungianAnswers,
 } from '../setting/lib/mappers';
 import { defaultPushNotifications } from '../lib/notifications';
 import { AnswerDTO } from './dto/answer.dto';
 import { AnswerSet } from './interfaces/answer-set.interface';
 import { KeyNumValue } from '../lib/interfaces';
-import { assignGenderOpt, removeIds } from '../lib/mappers';
+import { assignGenderOpt, extractSnippet, matchLangFromPreferences, removeIds } from '../lib/mappers';
 
 const userEditPaths = [
   'fullName',
@@ -1366,7 +1369,7 @@ export class UserService {
     return false;
   }
 
-  async savePreference(userID: string, preference: PreferenceDTO) {
+  async savePreference(userID: string, preference: PreferenceDTO, feedbackItems: any[] = []) {
     const data = {
       user: null,
       valid: false,
@@ -1374,7 +1377,12 @@ export class UserService {
     if (notEmptyString(userID, 16) && preference instanceof Object) {
       const sd = await this.savePreferences(userID, [preference]);
       if (sd.valid) {
-        data.user = sd.user;
+        if (feedbackItems.length > 2) {
+          const surveys = await this.matchSurveyData(userID, sd.user, feedbackItems);
+          data.user = {...sd.user, surveys };
+        } else {
+          data.user = sd.user;
+        }
         data.valid = true;
       }
     }
@@ -1564,6 +1572,88 @@ export class UserService {
       }
     }
     return prefs.filter(op => !removeOldGenderOpt || op.key !== 'gender');
+  }
+
+  async matchSurveyData(userID = '', userObj = null, feedbackItems: any[] = []) {
+    const { answers } = await this.getSurveyDomainScoresAndAnswers(userID, 'jungian', true);
+    const hasAnswers = answers instanceof Array && answers.length > 8;
+    let defaultLetters = '';
+    let hasJungianData = hasAnswers;
+    if (!hasAnswers) {
+      const strLetters = extractDefaultJungianPersonalityTypeLetters(userObj);
+      if (strLetters.length === 4) {
+        defaultLetters = strLetters;
+        hasJungianData = true;
+      }
+    }
+    if (hasJungianData) {
+      
+      const matchedLang = matchLangFromPreferences(userObj.preferences);
+      const analysis = hasAnswers ? summariseJungianAnswers(answers) : extractFromBasicJungianSummary(userObj);
+      let merged = { title: '', text: '', categories: [], letters: '' };
+      console.log({feedbackItems})
+      if (feedbackItems.length > 2) {
+        merged = this.mergeSurveyFeedback(analysis, matchedLang, feedbackItems);
+      }
+      const letters = hasAnswers ? merged.letters : defaultLetters;
+      return {
+        jungian: {
+          title: merged.title,
+          text: merged.text,
+          letters,
+          analysis,
+          categories: merged.categories,
+          answers,
+        }
+      }
+    } else {
+      return {};
+    }
+  }
+
+  mergeSurveyFeedback(analysis: any = null, matchedLang = 'en', feedbackItems: any[] = []) {
+    const ucLetters = Object.keys(analysis)
+        .map(lt => lt.toUpperCase());
+    const spectra = ['IE', 'SN', 'FT', 'JP'];
+    const letters = spectra.map(pair => {
+      const letter = ucLetters.find(lt => lt === pair.substring(0,1) || lt === pair.substring(1,2));
+      return typeof letter === 'string'? letter : '';
+    }).join('').toLowerCase();
+      const snKeys = [
+        ['_', 'name', letters].join('_'),
+        ['_', 'type', letters].join('_'),
+      ];
+      let title = '';
+      let text = '';
+      snKeys.forEach(sk => {
+        if (sk.includes('_name_')) {
+          title = extractSnippet(feedbackItems, sk, matchedLang);
+        } else {
+          text = extractSnippet(feedbackItems, sk, matchedLang);
+        }
+      });
+      const categoryEntries = Object.entries(analysis).map(
+        ([key, value]) => {
+          let polarity = spectra.find(pair => pair.includes(key.toUpperCase()));
+          const segment = value <= 20 ? 'ave' : 'high';
+          let text = '';
+          if (notEmptyString(polarity)) {
+            const snKey = ['_', 'sub', polarity, key, segment]
+            .join('_')
+            .toLowerCase();
+            text = extractSnippet(feedbackItems, snKey, matchedLang);
+          } else {
+            polarity = '__';
+          }
+          return [polarity, text];
+        },
+      ).filter(entry => entry[0] !== '__');
+    return { 
+      title,
+      text,
+      letters,
+      categories: Object.fromEntries(categoryEntries),
+    };
   }
 
   async saveProfile(userID: string, profile: ProfileDTO) {
