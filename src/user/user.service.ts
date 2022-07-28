@@ -1587,11 +1587,9 @@ export class UserService {
       }
     }
     if (hasJungianData) {
-      
       const matchedLang = matchLangFromPreferences(userObj.preferences);
       const analysis = hasAnswers ? summariseJungianAnswers(answers) : extractFromBasicJungianSummary(userObj);
       let merged = { title: '', text: '', categories: [], letters: '' };
-      console.log({feedbackItems})
       if (feedbackItems.length > 2) {
         merged = this.mergeSurveyFeedback(analysis, matchedLang, feedbackItems);
       }
