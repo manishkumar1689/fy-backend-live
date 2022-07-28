@@ -635,7 +635,7 @@ export const extractSurveyScoresByType = (user: any = null, type = 'jungian'): K
     }
   }
   if (type === 'jungian') {
-    const defaultLetters = extractDefaultJungianPersonalityTypeLetters(user);
+    const defaultLetters = extractDefaultJungianPersonalityTypeLetters(user).toUpperCase();
     if (defaultLetters.length === 4) {
       const pairs = ['IE', 'SN', 'FT', 'JP'];
       return pairs.map(key => {
