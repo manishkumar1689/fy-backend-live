@@ -652,5 +652,7 @@ export const extractSurveyScoresByType = (user: any = null, type = 'jungian'): K
 }
 
 export const extractFromBasicJungianSummary = (user = null) => {
-  return toSimplePolarityValues(extractSurveyScoresByType(user, 'jungian'));
+  const scores = extractSurveyScoresByType(user, 'jungian');
+  console.log({scores});
+  return toSimplePolarityValues(scores);
 }

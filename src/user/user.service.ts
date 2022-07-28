@@ -1577,7 +1577,6 @@ export class UserService {
   async matchSurveyData(userID = '', userObj = null, feedbackItems: any[] = []) {
     const { answers } = await this.getSurveyDomainScoresAndAnswers(userID, 'jungian', true);
     const hasAnswers = answers instanceof Array && answers.length > 8;
-    console.log({hasAnswers});
     let defaultLetters = '';
     let hasJungianData = hasAnswers;
     if (!hasAnswers) {
