@@ -18,7 +18,6 @@ import {
   facetedJungianFormulae,
 } from '../settings/faceted-big5';
 import { KeyNumValue } from '../../lib/interfaces';
-import e = require('express');
 
 /*
   Adding/subtracting this number converts from a -2 to 2 range to 1 to 5
@@ -619,6 +618,31 @@ export const extractDefaultJungianPersonalityTypeLetters = (userObj = null) => {
   return defaultLetters;
 }
 
+export const assignJungianKeyValues = (defaultLetters = ''): KeyNumValue[] => {
+  const letters = defaultLetters.toUpperCase();
+  const pairs = ['IE', 'SN', 'FT', 'JP'];
+  return pairs.map(key => {
+    const [l1, l2] = key.split('');
+    const value = letters.includes(l1) ? -50 : letters.includes(l2) ? 50 : 0;
+    return {
+      key,
+      value
+    }
+  })
+}
+
+export const assignJungianDomainValues = (defaultLetters = ''): SimpleResult[] => {
+  const kvs = assignJungianKeyValues(defaultLetters);
+  return kvs.map(item => {
+    const {key, value} = item;
+    return { 
+      domain: key,
+      subdomain: 0,
+      value
+    }
+  });
+}
+
 export const extractSurveyScoresByType = (user: any = null, type = 'jungian'): KeyNumValue[] => {
   if (user instanceof Object && Object.keys(user).includes('surveys') && user.surveys instanceof Array) {
     const scoreSet = user.surveys.find(row => row.type === type);
@@ -637,22 +661,12 @@ export const extractSurveyScoresByType = (user: any = null, type = 'jungian'): K
   if (type === 'jungian') {
     const defaultLetters = extractDefaultJungianPersonalityTypeLetters(user).toUpperCase();
     if (defaultLetters.length === 4) {
-      const pairs = ['IE', 'SN', 'FT', 'JP'];
-      return pairs.map(key => {
-        const [l1, l2] = key.split('');
-        const value = defaultLetters.includes(l1) ? -50 : defaultLetters.includes(l2) ? 50 : 0;
-        return {
-          key,
-          value
-        }
-      })
+      return assignJungianKeyValues(defaultLetters)
     }
   }
   return [];
 }
 
 export const extractFromBasicJungianSummary = (user = null) => {
-  const scores = extractSurveyScoresByType(user, 'jungian');
-  console.log({scores});
-  return toSimplePolarityValues(scores);
+  return toSimplePolarityValues(extractSurveyScoresByType(user, 'jungian'));
 }

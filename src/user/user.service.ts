@@ -46,6 +46,7 @@ import { PreferenceDTO } from './dto/preference.dto';
 import { matchFileTypeAndMime } from '../lib/files';
 import { PublicUser } from './interfaces/public-user.interface';
 import {
+  assignJungianDomainValues,
   extractDefaultJungianPersonalityTypeLetters,
   extractFromBasicJungianSummary,
   jungianAnswersToResults,
@@ -57,6 +58,7 @@ import { AnswerDTO } from './dto/answer.dto';
 import { AnswerSet } from './interfaces/answer-set.interface';
 import { KeyNumValue } from '../lib/interfaces';
 import { assignGenderOpt, extractSnippet, matchLangFromPreferences, removeIds } from '../lib/mappers';
+import { SurveyResults } from './interfaces/survey-results.interface';
 
 const userEditPaths = [
   'fullName',
@@ -1473,6 +1475,20 @@ export class UserService {
         editMap.set('profiles', profiles);
       }
       const edited = Object.fromEntries(editMap.entries());
+      if (prefItems.length === 1 && prefItems[0].type === 'jungian_type') {
+        const surveyData = user.surveys instanceof Array ? user.surveys : [];
+        const ci = surveyData.findIndex(s => s.type === 'jungian');
+        const newItem = { 
+          type: 'jungian',
+          values: assignJungianDomainValues(prefItems[0].value)
+        } as SurveyResults;
+        if (ci < 0) {
+          surveyData.push(newItem);
+        } else {
+          surveyData[ci] = newItem;
+        }
+        edited.surveys = surveyData;
+      }
       const savedUser = await this.userModel.findByIdAndUpdate(userID, edited, {
         new: true,
       });

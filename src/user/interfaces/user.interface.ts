@@ -5,6 +5,7 @@ import { Placename } from './placename.interface';
 import { Geo } from './geo.interface';
 import { Preference } from './preference.interface';
 import { Contact } from './contact.interface';
+import { SurveyResults } from './survey-results.interface';
 
 export interface User extends Document {
   readonly fullName: string;
@@ -23,6 +24,7 @@ export interface User extends Document {
   readonly placenames?: Placename[];
   readonly gender: string;
   readonly preferences: Preference[];
+  readonly surveys: SurveyResults[];
   readonly profiles: Profile[];
   readonly preview: string;
   readonly dob: Date;
