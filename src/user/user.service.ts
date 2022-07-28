@@ -1475,7 +1475,7 @@ export class UserService {
         editMap.set('profiles', profiles);
       }
       const edited = Object.fromEntries(editMap.entries());
-      if (prefItems.length === 1 && prefItems[0].type === 'jungian_type') {
+      if (prefItems.length === 1 && prefItems[0].key === 'jungian_type') {
         const surveyData = user.surveys instanceof Array ? user.surveys : [];
         const ci = surveyData.findIndex(s => s.type === 'jungian');
         const newItem = { 
