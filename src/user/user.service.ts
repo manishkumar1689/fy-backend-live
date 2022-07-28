@@ -2518,6 +2518,11 @@ export class UserService {
     return answerSet;
   }
 
+  async deleteAnswersByUserAndType(userID: string, type = 'jungian'): Promise<boolean> {
+    const deleted = await this.answerSetModel.deleteOne({ user: userID, type });
+    return deleted instanceof Object;
+  }
+
   async saveSurveyAnswersKeyVals(
     userID = '',
     type = 'jungian',

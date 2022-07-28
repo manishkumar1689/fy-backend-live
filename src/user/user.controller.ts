@@ -2127,6 +2127,7 @@ export class UserController {
               'jungian',
               true,
             );
+            await this.userService.deleteAnswersByUserAndType(userID, 'jungian');
             const data = await this.userService.savePreference(userID, prefDTO, feedbackItems);
             if (data.valid && data.user instanceof Object) {
               result.valid = true;
