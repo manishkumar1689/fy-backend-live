@@ -1424,19 +1424,20 @@ export class AstrologicController {
   ) {
     const keys = query instanceof Object ? Object.keys(query) : [];
     const loc = keys.includes('loc')? query.loc : '0,0';
-    const geo = locStringToGeo(query.loc);
+    //const geo = locStringToGeo(loc);
     const userID = keys.includes('user') && isValidObjectId(query.user) ? query.user : '';
     const roddenValue = keys.includes('rodden') && isNumeric(query.rodden) ? smartCastInt(query.rodden) : 200;
     const refDt = keys.includes('dt') && validISODateString(query.dt) ? query.dt : currentISODate();
-    const geoInfo = await this.fetchGeoInfo(geo, refDt);
+    //const geoInfo = await this.fetchGeoInfo(geo, refDt);
     const gender = keys.includes('gender') ? query.gender : '';
     const name = keys.includes('gender') ? query.name : 'N/A';
     const showUserChart = keys.includes('uc') ? smartCastInt(query.uc, 0) > 0 : false;
     const showP2 = keys.includes('p2') ? smartCastInt(query.p2, 0) > 0 : false;
-    const dtUtc = applyTzOffsetToDateString(refDt, geoInfo.offset);
+    //const dtUtc = applyTzOffsetToDateString(refDt, geoInfo.offset);
+    // refDT in local time will be converted to UTC
     const data = await this.fetchCompactChart(
       loc,
-      dtUtc,
+      refDt,
       'top',
       'true_citra',
       false,
@@ -1444,6 +1445,7 @@ export class AstrologicController {
     );
     data.isDefaultBirthChart = false;
     
+    console.log(refDt, data.datetime, julToISODate(data.jd));
     data.subject = {
       name,
       gender,
