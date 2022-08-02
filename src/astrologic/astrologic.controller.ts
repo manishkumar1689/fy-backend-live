@@ -1444,8 +1444,6 @@ export class AstrologicController {
       false,
     );
     data.isDefaultBirthChart = false;
-    
-    console.log(refDt, data.datetime, julToISODate(data.jd));
     data.subject = {
       name,
       gender,
@@ -1457,7 +1455,8 @@ export class AstrologicController {
       data.jd,
     ) : [];
     const c2 = new Chart(data);
-    const otherChart = simplifyAstroChart(c2, true, true);
+    c2.setAyanamshaItemByKey('true_citra')
+    const otherChart = simplifyAstroChart(data, true, true);
     addExtraPanchangaNumValuesFromClass(data, c2, 'true_citra');
     let userChart = null;
     let c1 = new Chart();
@@ -1465,16 +1464,12 @@ export class AstrologicController {
       const chartRecord = await this.astrologicService.getUserBirthChart(userID);
       if (chartRecord instanceof Model) {
         const chartData = chartRecord.toObject();
-        userChart = simplifyAstroChart(chartData, true, true);
         c1 = new Chart(chartData);
+        userChart = simplifyAstroChart(chartData, true, true);
         addExtraPanchangaNumValuesFromClass(chartData, c1, 'true_citra');
       }
     }
-    const hasUserChart = userChart instanceof Object;/* 
-    const percent = hasUserChart
-      ? Math.round(Math.random() * 80 + Math.random() * 10 + 10)
-      : 0;
-    const text = hasUserChart ? randomCompatibilityText() : ''; */
+    const hasUserChart = userChart instanceof Object;
     if (hasUserChart) {
       const kutaDict = await this.dictionaryService.getKutaDict();
       const customSettings = await this.settingService.customCompatibilitySettings(kutaDict);

@@ -652,6 +652,7 @@ export class UserController {
       const chartObj = await this.astrologicService.getUserBirthChart(userId);
       if (chartObj instanceof Model) {
         refChart = new Chart(chartObj.toObject());
+        refChart.setAyanamshaItemByKey('true_citra');
         hasRefChart = refChart.grahas.length > 6;
       }
     }
