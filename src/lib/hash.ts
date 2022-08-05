@@ -8,7 +8,7 @@ export const encryptPassword = password => {
 
 export const toBase64 = str => Buffer.from(str).toString('base64');
 
-export const fromBase64 = str => Buffer.from(str, 'base64').toString('ascii');
+export const fromBase64 = str => Buffer.from(str, 'base64').toString('utf8');
 
 export const generateHash = () =>
   (new Date().getTime() + Math.round(Math.random() * 100) / 100).toString();
