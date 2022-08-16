@@ -57,7 +57,12 @@ import { defaultPushNotifications } from '../lib/notifications';
 import { AnswerDTO } from './dto/answer.dto';
 import { AnswerSet } from './interfaces/answer-set.interface';
 import { KeyNumValue } from '../lib/interfaces';
-import { assignGenderOpt, extractSnippet, matchLangFromPreferences, removeIds } from '../lib/mappers';
+import {
+  assignGenderOpt,
+  extractSnippet,
+  matchLangFromPreferences,
+  removeIds,
+} from '../lib/mappers';
 import { SurveyResults } from './interfaces/survey-results.interface';
 
 const userEditPaths = [
@@ -127,7 +132,17 @@ export class UserService {
             profiles: [],
             dob: null,
           };
-    const { _id, nickName, dob, gender, geo, roles, profiles, preferences, surveys } = obj;
+    const {
+      _id,
+      nickName,
+      dob,
+      gender,
+      geo,
+      roles,
+      profiles,
+      preferences,
+      surveys,
+    } = obj;
     let profileImg = '';
     if (profiles instanceof Array && profiles.length > 0) {
       const { mediaItems } = profiles[0];
@@ -158,7 +173,7 @@ export class UserService {
       [0, 0],
       2,
     );
-    const otherGender = gender === 'm'? 'f' : 'm';
+    const otherGender = gender === 'm' ? 'f' : 'm';
     const genders = extractArrayFromKeyedItems(
       preferences,
       'genders',
@@ -195,7 +210,10 @@ export class UserService {
       geo instanceof Object
         ? { lat: geo.lat, lng: geo.lng }
         : { lat: 0, lng: 0 };
-    const surveyItems = surveys instanceof Array && surveys.length > 0 ? surveys.map(removeIds) : [];
+    const surveyItems =
+      surveys instanceof Array && surveys.length > 0
+        ? surveys.map(removeIds)
+        : [];
     return {
       _id,
       nickName,
@@ -213,7 +231,7 @@ export class UserService {
       lang,
       genders,
       isPaidMember,
-      surveys: surveyItems
+      surveys: surveyItems,
     };
   }
 
@@ -350,16 +368,20 @@ export class UserService {
             switch (val) {
               case 'admin':
               case 'admins':
-                filter.set('$or', [{roles: 'superadmin'}, {roles: 'admin'}, {roles: 'editor'}]);
+                filter.set('$or', [
+                  { roles: 'superadmin' },
+                  { roles: 'admin' },
+                  { roles: 'editor' },
+                ]);
                 break;
               case 'members':
               case 'member':
                 filter.set('roles', 'active');
                 break;
             }
-          break;
+            break;
           case 'active':
-            filter.set(key, smartCastInt(val,0) > 0 ? true : false);
+            filter.set(key, smartCastInt(val, 0) > 0 ? true : false);
             break;
           case 'fullName':
           case 'nickName':
@@ -371,7 +393,10 @@ export class UserService {
             break;
           case 'usearch':
             const rgx = new RegExp('\\b' + val, 'i');
-            const rgxEm = new RegExp('\\b' + val.replace('.', '\\.')+ '.?@', 'i');
+            const rgxEm = new RegExp(
+              '\\b' + val.replace('.', '\\.') + '.?@',
+              'i',
+            );
             filter.set('$or', [
               { identifier: rgxEm },
               { nickName: rgx },
@@ -428,12 +453,19 @@ export class UserService {
             filter.set('$or', [{ nickName: rgx }, { fullName: rgx }]);
             break;
           case 'gender':
-            const genderOpts = val instanceof Array ? val : typeof val === 'string' ? [val.trim().toLowerCase().substring(0, 1),] : [];
+            const genderOpts =
+              val instanceof Array
+                ? val
+                : typeof val === 'string'
+                ? [
+                    val
+                      .trim()
+                      .toLowerCase()
+                      .substring(0, 1),
+                  ]
+                : [];
             if (genderOpts.length > 0) {
-              filter.set(
-                'gender',
-                { $in: genderOpts }
-              );
+              filter.set('gender', { $in: genderOpts });
             }
             break;
           case 'age':
@@ -1371,7 +1403,11 @@ export class UserService {
     return false;
   }
 
-  async savePreference(userID: string, preference: PreferenceDTO, feedbackItems: any[] = []) {
+  async savePreference(
+    userID: string,
+    preference: PreferenceDTO,
+    feedbackItems: any[] = [],
+  ) {
     const data = {
       user: null,
       valid: false,
@@ -1380,8 +1416,12 @@ export class UserService {
       const sd = await this.savePreferences(userID, [preference]);
       if (sd.valid) {
         if (feedbackItems.length > 2) {
-          const surveys = await this.matchSurveyData(userID, sd.user, feedbackItems);
-          data.user = {...sd.user, surveys };
+          const surveys = await this.matchSurveyData(
+            userID,
+            sd.user,
+            feedbackItems,
+          );
+          data.user = { ...sd.user, surveys };
         } else {
           data.user = sd.user;
         }
@@ -1478,9 +1518,9 @@ export class UserService {
       if (prefItems.length === 1 && prefItems[0].key === 'jungian_type') {
         const surveyData = user.surveys instanceof Array ? user.surveys : [];
         const ci = surveyData.findIndex(s => s.type === 'jungian');
-        const newItem = { 
+        const newItem = {
           type: 'jungian',
-          values: assignJungianDomainValues(prefItems[0].value)
+          values: assignJungianDomainValues(prefItems[0].value),
         } as SurveyResults;
         if (ci < 0) {
           surveyData.push(newItem);
@@ -1520,11 +1560,15 @@ export class UserService {
       user: null,
       valid: false,
     };
-    if (notEmptyString(userID, 16) && idRefs instanceof Array && idRefs.length > 0) {
+    if (
+      notEmptyString(userID, 16) &&
+      idRefs instanceof Array &&
+      idRefs.length > 0
+    ) {
       const preference = {
         key: 'recent_chart_ids',
         type: 'array_string',
-        value: idRefs, 
+        value: idRefs,
       } as PreferenceDTO;
       const sd = await this.savePreferences(userID, [preference]);
       if (sd.valid) {
@@ -1557,17 +1601,20 @@ export class UserService {
       pr => pr instanceof Object && pr.type !== 'user',
     );
 
-    const gendersOptIndex = filteredPreferences.findIndex(op => op.type !== 'user' && ['gender', 'genders'].includes(op.key));
+    const gendersOptIndex = filteredPreferences.findIndex(
+      op => op.type !== 'user' && ['gender', 'genders'].includes(op.key),
+    );
     let removeOldGenderOpt = false;
     if (gendersOptIndex >= 0) {
       const gOpt = prefItems[gendersOptIndex];
-      
-      const gendersVal = gOpt.value instanceof Array ? gOpt.value : assignGenderOpt(gOpt.value)
-      filteredPreferences[gendersOptIndex] = { 
+
+      const gendersVal =
+        gOpt.value instanceof Array ? gOpt.value : assignGenderOpt(gOpt.value);
+      filteredPreferences[gendersOptIndex] = {
         key: 'genders',
         value: gendersVal,
-        type: 'array_string'
-      }
+        type: 'array_string',
+      };
       removeOldGenderOpt = preferences.some(op => op.key === 'gender');
     }
     for (const prefItem of filteredPreferences) {
@@ -1590,8 +1637,16 @@ export class UserService {
     return prefs.filter(op => !removeOldGenderOpt || op.key !== 'gender');
   }
 
-  async matchSurveyData(userID = '', userObj = null, feedbackItems: any[] = []) {
-    const { answers } = await this.getSurveyDomainScoresAndAnswers(userID, 'jungian', true);
+  async matchSurveyData(
+    userID = '',
+    userObj = null,
+    feedbackItems: any[] = [],
+  ) {
+    const { answers } = await this.getSurveyDomainScoresAndAnswers(
+      userID,
+      'jungian',
+      true,
+    );
     const hasAnswers = answers instanceof Array && answers.length > 8;
     let defaultLetters = '';
     let hasJungianData = hasAnswers;
@@ -1604,7 +1659,9 @@ export class UserService {
     }
     if (hasJungianData) {
       const matchedLang = matchLangFromPreferences(userObj.preferences);
-      const analysis = hasAnswers ? summariseJungianAnswers(answers) : extractFromBasicJungianSummary(userObj);
+      const analysis = hasAnswers
+        ? summariseJungianAnswers(answers)
+        : extractFromBasicJungianSummary(userObj);
       let merged = { title: '', text: '', categories: [], letters: '' };
       if (feedbackItems.length > 2) {
         merged = this.mergeSurveyFeedback(analysis, matchedLang, feedbackItems);
@@ -1618,51 +1675,59 @@ export class UserService {
           analysis,
           categories: merged.categories,
           answers,
-        }
-      }
+        },
+      };
     } else {
       return {};
     }
   }
 
-  mergeSurveyFeedback(analysis: any = null, matchedLang = 'en', feedbackItems: any[] = []) {
-    const ucLetters = Object.keys(analysis)
-        .map(lt => lt.toUpperCase());
+  mergeSurveyFeedback(
+    analysis: any = null,
+    matchedLang = 'en',
+    feedbackItems: any[] = [],
+  ) {
+    const ucLetters = Object.keys(analysis).map(lt => lt.toUpperCase());
     const spectra = ['IE', 'SN', 'FT', 'JP'];
-    const letters = spectra.map(pair => {
-      const letter = ucLetters.find(lt => lt === pair.substring(0,1) || lt === pair.substring(1,2));
-      return typeof letter === 'string'? letter : '';
-    }).join('').toLowerCase();
-      const snKeys = [
-        ['_', 'name', letters].join('_'),
-        ['_', 'type', letters].join('_'),
-      ];
-      let title = '';
-      let text = '';
-      snKeys.forEach(sk => {
-        if (sk.includes('_name_')) {
-          title = extractSnippet(feedbackItems, sk, matchedLang);
-        } else {
-          text = extractSnippet(feedbackItems, sk, matchedLang);
-        }
-      });
-      const categoryEntries = Object.entries(analysis).map(
-        ([key, value]) => {
-          let polarity = spectra.find(pair => pair.includes(key.toUpperCase()));
-          const segment = value <= 20 ? 'ave' : 'high';
-          let text = '';
-          if (notEmptyString(polarity)) {
-            const snKey = ['_', 'sub', polarity, key, segment]
+    const letters = spectra
+      .map(pair => {
+        const letter = ucLetters.find(
+          lt => lt === pair.substring(0, 1) || lt === pair.substring(1, 2),
+        );
+        return typeof letter === 'string' ? letter : '';
+      })
+      .join('')
+      .toLowerCase();
+    const snKeys = [
+      ['_', 'name', letters].join('_'),
+      ['_', 'type', letters].join('_'),
+    ];
+    let title = '';
+    let text = '';
+    snKeys.forEach(sk => {
+      if (sk.includes('_name_')) {
+        title = extractSnippet(feedbackItems, sk, matchedLang);
+      } else {
+        text = extractSnippet(feedbackItems, sk, matchedLang);
+      }
+    });
+    const categoryEntries = Object.entries(analysis)
+      .map(([key, value]) => {
+        let polarity = spectra.find(pair => pair.includes(key.toUpperCase()));
+        const segment = value <= 20 ? 'ave' : 'high';
+        let text = '';
+        if (notEmptyString(polarity)) {
+          const snKey = ['_', 'sub', polarity, key, segment]
             .join('_')
             .toLowerCase();
-            text = extractSnippet(feedbackItems, snKey, matchedLang);
-          } else {
-            polarity = '__';
-          }
-          return [polarity, text];
-        },
-      ).filter(entry => entry[0] !== '__');
-    return { 
+          text = extractSnippet(feedbackItems, snKey, matchedLang);
+        } else {
+          polarity = '__';
+        }
+        return [polarity, text];
+      })
+      .filter(entry => entry[0] !== '__');
+    return {
       title,
       text,
       letters,
@@ -2164,7 +2229,9 @@ export class UserService {
     // simplify options
     const combos = [['f', 'm'], ['m', 'f'], ['f'], ['m']];
     const maxComboNum = singleGenderAttractionOnly ? 1 : 3;
-    const optList = combos.filter(combo => combo.includes(val) && combo.length <= maxComboNum);
+    const optList = combos.filter(
+      combo => combo.includes(val) && combo.length <= maxComboNum,
+    );
     return {
       $elemMatch: {
         //key: { $in: ['gender', 'genders'] },
@@ -2174,7 +2241,7 @@ export class UserService {
     };
   }
 
- /*  translateTargetGenders(val = '') {
+  /*  translateTargetGenders(val = '') {
     return {
       $elemMatch: {
         key: { $in: ['gender', 'genders'] },
@@ -2532,7 +2599,10 @@ export class UserService {
     return answerSet;
   }
 
-  async deleteAnswersByUserAndType(userID: string, type = 'jungian'): Promise<boolean> {
+  async deleteAnswersByUserAndType(
+    userID: string,
+    type = 'jungian',
+  ): Promise<boolean> {
     const deleted = await this.answerSetModel.deleteOne({ user: userID, type });
     return deleted instanceof Object;
   }
@@ -2599,28 +2669,45 @@ export class UserService {
     return await this.answerSetModel.findOne({ user: userID, type });
   }
 
-  async getSurveyAnswers(userID = '', type = '', base = 1, scale = 5, asPerc = false) {
+  async getSurveyAnswers(
+    userID = '',
+    type = '',
+    base = 1,
+    scale = 5,
+    asPerc = false,
+  ) {
     const data = await this.getAnswerSet(userID, type);
-    const offset = base < 0? 0 : base === 0 ? scale / 2 - 0.5 : scale / 2 + 0.5;
+    const offset =
+      base < 0 ? 0 : base === 0 ? scale / 2 - 0.5 : scale / 2 + 0.5;
     let answers: any[] = [];
-    const multiplier = asPerc ? base < 0 ? 100 / (scale / 2 - 0.5) : 100 / (scale - 1) : 1;
+    const multiplier = asPerc
+      ? base < 0
+        ? 100 / (scale / 2 - 0.5)
+        : 100 / (scale - 1)
+      : 1;
     if (data instanceof Model) {
       const obj = data.toObject();
       if (obj.answers instanceof Array) {
         answers = obj.answers.map(row => {
           const value = (row.value + offset) * multiplier;
-          return {...row, value }
+          return { ...row, value };
         });
       }
     }
     return answers;
   }
 
-  async getSurveyDomainScoresAndAnswers(userID = '', type = '', filterAnswers = false): Promise<{items: KeyNumValue[], answers: any[]}> {
+  async getSurveyDomainScoresAndAnswers(
+    userID = '',
+    type = '',
+    filterAnswers = false,
+  ): Promise<{ items: KeyNumValue[]; answers: any[] }> {
     const answers = await this.getSurveyAnswers(userID, type, -1, 5, true);
     const mp: Map<string, any> = new Map();
     answers.forEach(row => {
-      const item = mp.has(row.domain)? mp.get(row.domain) : { num: 0, total: 0 };
+      const item = mp.has(row.domain)
+        ? mp.get(row.domain)
+        : { num: 0, total: 0 };
       item.total += row.value;
       item.num += 1;
       mp.set(row.domain, item);
@@ -2629,16 +2716,18 @@ export class UserService {
       const value = item.total / item.num;
       return { key, value };
     });
-    const simpleAnswers = filterAnswers ? answers.map(ans => {
-      const { key, value, domain, subdomain } = ans;
-      const score = Math.round(value / (100 / 2)) + 3;
-      return {
-        key,
-        score,
-        domain,
-        facet: subdomain
-      }
-    }) : answers;
+    const simpleAnswers = filterAnswers
+      ? answers.map(ans => {
+          const { key, value, domain, subdomain } = ans;
+          const score = Math.round(value / (100 / 2)) + 3;
+          return {
+            key,
+            score,
+            domain,
+            facet: subdomain,
+          };
+        })
+      : answers;
     return { items, answers: simpleAnswers };
   }
 

@@ -1454,7 +1454,7 @@ export class AstrologicController {
     data.progressItems = showP2 ? await buildSingleProgressSetKeyValues(
       data.jd,
     ) : [];
-    const c2 = new Chart(data);
+  const c2 = new Chart(data);
     c2.setAyanamshaItemByKey('true_citra')
     const otherChart = simplifyAstroChart(data, true, true);
     addExtraPanchangaNumValuesFromClass(data, c2, 'true_citra');
