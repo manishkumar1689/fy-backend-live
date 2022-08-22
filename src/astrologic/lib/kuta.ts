@@ -949,11 +949,7 @@ export class Kuta {
     dataSets: Array<KutaGrahaItem>,
   ) {
     const { nakshatraMatches, matchScores, calc } = settings;
-    if (
-      nakshatraMatches instanceof Array &&
-      matchScores instanceof Object &&
-      calc instanceof Array
-    ) {
+    if (nakshatraMatches instanceof Array && matchScores instanceof Object) {
       const [s1, s2] = dataSets;
       let score = 0;
       if (s1.nakshatraIndex < nakshatraMatches.length) {
@@ -974,7 +970,11 @@ export class Kuta {
           score = scoreSet[yoniIndex1][yoniIndex2];
           const matchesGender1 = s1.gender === yoniOne.gender;
           const matchesGender2 = s2.gender === yoniTwo.gender;
-          if (s1.gender !== s2.gender) {
+          if (
+            calc instanceof Array &&
+            calc.length > 0 &&
+            s1.gender !== s2.gender
+          ) {
             const femaleMatches =
               s1.gender === 'f' ? matchesGender1 : matchesGender2;
             const maleMatches =
