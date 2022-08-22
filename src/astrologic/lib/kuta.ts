@@ -202,9 +202,9 @@ export class KutaValueSet {
 }
 
 export interface KutaVSet {
-  key?:	string;
+  key?: string;
   title: string;
-  c1Value:	string;
+  c1Value: string;
   c2Value: string;
   score: number;
   max: number;
@@ -329,10 +329,12 @@ export class KutaGrahaItem {
   }
 
   get nakshatraNum(): number {
-    return this.nakshatra.num;
+    //return this.nakshatra.num;
+    return this.nakshatraIndex + 1;
   }
   get nakshatraIndex(): number {
-    return this.nakshatra.num - 1;
+    //return this.nakshatra.num - 1;
+    return Math.floor(this.lng / (360 / 27));
   }
 
   get sign(): number {
@@ -573,7 +575,10 @@ export class Kuta {
     return grahas;
   } */
 
-  calcAllSingleKutasFull(grahaKeys: string[] = [], allCombos = true): KutaValueSetItems[] {
+  calcAllSingleKutasFull(
+    grahaKeys: string[] = [],
+    allCombos = true,
+  ): KutaValueSetItems[] {
     const items = [];
     const refKeys = grahaKeys.length > 1 ? grahaKeys : this.allKeys;
     refKeys.forEach(k1 => {
@@ -615,8 +620,17 @@ export class Kuta {
         });
   }
 
-  calcAllSingleFullKutas( grahaKeys: string[] = [], kutaType = 'all', allCombos = true): KutaValueSetItems[] {
-    return this.calcAllSingleKutas(true,grahaKeys,kutaType,allCombos) as KutaValueSetItems[];
+  calcAllSingleFullKutas(
+    grahaKeys: string[] = [],
+    kutaType = 'all',
+    allCombos = true,
+  ): KutaValueSetItems[] {
+    return this.calcAllSingleKutas(
+      true,
+      grahaKeys,
+      kutaType,
+      allCombos,
+    ) as KutaValueSetItems[];
   }
 
   calcSingleKutasAsObj(gr1: Graha, gr2: Graha) {
