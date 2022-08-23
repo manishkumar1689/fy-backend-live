@@ -769,7 +769,7 @@ export class Kuta {
               this._calcGrahamaitri(settings, result, dataSets, femaleFirst);
               break;
             case 'tara':
-              this._calcTara(settings, result, dataSets);
+              this._calcTara(settings, result, dataSets, femaleFirst);
               break;
             case 'nadi':
               this._calcNadi(settings, result, dataSets);
@@ -881,6 +881,7 @@ export class Kuta {
     settings: any,
     result: KutaValueSet,
     dataSets: Array<KutaGrahaItem>,
+    femaleFirst = true,
   ) {
     const [s1, s2] = dataSets;
     const taraValOne = calcInclusiveNakshatras(
@@ -894,6 +895,10 @@ export class Kuta {
     const numTaras = 9;
     const taraMod1 = taraValOne % numTaras;
     const taraMod2 = taraValTwo % numTaras;
+    /*
+    const taraMod1 = ((taraValOne - 1) % numTaras) + 1;
+    const taraMod2 = ((taraValTwo - 1) % numTaras) + 1;
+    */
     const taraNum1 = taraMod1 === 0 ? numTaras : taraMod1;
     const taraNum2 = taraMod2 === 0 ? numTaras : taraMod2;
     const taraIndex1 = taraNum1 - 1;
@@ -903,7 +908,9 @@ export class Kuta {
     if (scores instanceof Array && scores.length > 8) {
       result.c1Value = ['tara', taraNum1, taraValOne].join('/');
       result.c2Value = ['tara', taraNum2, taraValTwo].join('/');
-      result.score = scores[taraIndex1] + scores[taraIndex2];
+      //result.score = scores[taraIndex1] + scores[taraIndex2];
+      const taraRefIndex = femaleFirst ? taraIndex1 : taraIndex2;
+      result.score = scores[taraRefIndex];
     }
   }
 
