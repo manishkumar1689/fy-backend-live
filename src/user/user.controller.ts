@@ -76,10 +76,14 @@ import {
   uploadMediaFile,
 } from '../lib/files';
 import { PreferenceDTO } from './dto/preference.dto';
-import { addExtraPanchangaNumValues, simplifyChart } from '../astrologic/lib/member-charts';
+import {
+  addExtraPanchangaNumValues,
+  simplifyChart,
+} from '../astrologic/lib/member-charts';
 import { MediaItemDTO } from './dto/media-item.dto';
 import {
   filterLikeabilityContext,
+  mapReciprocalLikeability,
   UserFlagSet,
 } from '../lib/notifications';
 import { isValidObjectId, Model } from 'mongoose';
@@ -109,23 +113,28 @@ import { PublicUserDTO } from './dto/public-user.dto';
 import { User } from './interfaces/user.interface';
 import { mergeProgressSets } from '../astrologic/lib/settings/progression';
 import { IdSetDTO } from './dto/id-set.dto';
-import { basicSetToFullChart, Chart, extractPanchangaData } from '../astrologic/lib/models/chart';
+import {
+  basicSetToFullChart,
+  Chart,
+  extractPanchangaData,
+} from '../astrologic/lib/models/chart';
 import { PaymentDTO } from './dto/payment.dto';
 import { toWords } from '../astrologic/lib/helpers';
 import permissionValues from './settings/permissions';
 import {
-  buildCurrentTrendsData, mergeCurrentTrendsWithSnippets,
+  buildCurrentTrendsData,
+  mergeCurrentTrendsWithSnippets,
 } from '../astrologic/lib/calc-orbs';
 import { LogoutDTO } from './dto/logout.dto';
 import { ResetDTO } from './dto/reset.dto';
 import { EmailParamsDTO } from './dto/email-params.dto';
-import {
-  filterByLang,
-  matchValidLang,
-} from '../lib/mappers';
+import { filterByLang, matchValidLang } from '../lib/mappers';
 import { Kuta } from '../astrologic/lib/kuta';
 import { julToDateParts } from '../astrologic/lib/julian-date';
-import { calcLuckyTimes, PPRule } from '../astrologic/lib/settings/pancha-pakshi';
+import {
+  calcLuckyTimes,
+  PPRule,
+} from '../astrologic/lib/settings/pancha-pakshi';
 import { locStringToGeo } from '../astrologic/lib/converters';
 import { calcKotaChakraScoreData } from '../astrologic/lib/settings/kota-values';
 import { GeoLoc } from '../astrologic/lib/models/geo-loc';
@@ -297,9 +306,11 @@ export class UserController {
         ? headers['x-real-ip'].toString()
         : '0.0.0.0';
       valid = true;
-      userAgent = headerKeys.includes('user-agent') ? headers['user-agent'] : '';
+      userAgent = headerKeys.includes('user-agent')
+        ? headers['user-agent']
+        : '';
     }
-    return res.json({valid, ip, userAgent})
+    return res.json({ valid, ip, userAgent });
   }
 
   @Put('logout/:userID')
@@ -573,7 +584,8 @@ export class UserController {
     const searchMode = context === 'search';
     const filteredForUser = hasUser && searchMode;
     const paramKeys = Object.keys(params);
-    const filterPartnerAgeRangePrefs = queryKeys.includes('ar') && smartCastInt(query.ar, 0) > 0; 
+    const filterPartnerAgeRangePrefs =
+      queryKeys.includes('ar') && smartCastInt(query.ar, 0) > 0;
     // filter ids by members who have liked or superliked the referenced user
     // legacy block for liked, liked1, liked2, mutual etc parameters. Now assigned via context
     const likeabilityKeys = [
@@ -597,7 +609,8 @@ export class UserController {
           paramKeys.includes('mutual') && smartCastInt(params.mutual, 0) > 0;
         const unrated =
           !mutual &&
-          paramKeys.includes('unrated') && smartCastInt(params.unrated, 0) > 0;
+          paramKeys.includes('unrated') &&
+          smartCastInt(params.unrated, 0) > 0;
         const mutualMode = mutual ? 1 : unrated ? -1 : 0;
         const flags = await this.feedbackService.fetchByLikeability(
           query.user,
@@ -606,7 +619,8 @@ export class UserController {
           gte,
           mutualMode,
         );
-        const skipMutuality = (!mutual && !unrated) || ['liked','liked2'].includes(context);
+        const skipMutuality =
+          (!mutual && !unrated) || ['liked', 'liked2'].includes(context);
         filterIds =
           flags instanceof Array
             ? flags
@@ -638,7 +652,7 @@ export class UserController {
           break;
       }
     }
-    
+
     let notFlags = [];
     let trueFlags = [];
     // Filter search swipe listing
@@ -672,13 +686,14 @@ export class UserController {
         if (userInfo.genders.length > 0 && !hasGendersOverride) {
           query.gender = userInfo.genders;
         } else if (hasGendersOverride) {
-          const targetGenders = query.gender.split(',').filter(letter => letter.length > 0);
+          const targetGenders = query.gender
+            .split(',')
+            .filter(letter => letter.length > 0);
           query.gender = targetGenders;
         }
         if (userInfo.gender) {
           query.genders = userInfo.gender;
         }
-
       }
       if (queryKeys.includes('near') === false && hasUser) {
         let maxDistKm = userInfo.maxDistance;
@@ -738,9 +753,13 @@ export class UserController {
       trueFlags,
       preFetchFlags,
       searchMode,
-      repeatInterval
+      repeatInterval,
     );
-    if (includedIds instanceof Array && trueFlags.length > 0 && includedIds.length > 0) {
+    if (
+      includedIds instanceof Array &&
+      trueFlags.length > 0 &&
+      includedIds.length > 0
+    ) {
       filterIds = includedIds;
       hasFilterIds = true;
     }
@@ -756,7 +775,7 @@ export class UserController {
       excludedIds,
       filteredForUser,
     );
-   /*  const users = this.userService.filterByPreferences(
+    /*  const users = this.userService.filterByPreferences(
       data,
       query,
       prefOptions,
@@ -773,14 +792,27 @@ export class UserController {
         : userFlags;
     const jungianRef = extractSurveyScoresByType(userInfo);
     const kutaDict = await this.dictionaryService.getKutaDict();
-    const customSettings = await this.settingService.customCompatibilitySettings(kutaDict);
+    const customSettings = await this.settingService.customCompatibilitySettings(
+      kutaDict,
+    );
     for (const user of users) {
       if (hasRefChart) {
-        const extraData = await this.astrologicService.expandUserWithChartData(user, flags, refChart, customSettings, fullChart, ayanamshaKey, simpleMode);
+        const extraData = await this.astrologicService.expandUserWithChartData(
+          user,
+          refChart,
+          customSettings,
+          fullChart,
+          ayanamshaKey,
+          simpleMode,
+        );
+        const likeability = mapReciprocalLikeability(
+          flags,
+          user._id.toString(),
+        );
         const jungian = extractSurveyScoresByType(user);
         const personality = compareJungianPolarities(jungianRef, jungian);
         if (extraData.hasChart) {
-          items.push({...extraData, personality });
+          items.push({ ...extraData, likeability, personality });
         }
       }
     }
@@ -886,16 +918,18 @@ export class UserController {
     const entryToPerm = entry => entryToRow(entry, false);
     const entryToLimit = entry => entryToRow(entry, true);
     const limits = Object.entries(permObj)
-    .filter(entry => typeof entry[1] === 'number')
-    .map(entryToLimit);
+      .filter(entry => typeof entry[1] === 'number')
+      .map(entryToLimit);
 
     const repeatInterval = await this.settingService.swipeMemberRepeatInterval();
     limits.push({
       key: 'members__repeat_interval',
       name: 'Swipe member repeat interval (minutes)',
-      value: repeatInterval
+      value: repeatInterval,
     });
-    const items = Object.entries(permObj).filter(entry => typeof entry[1] !== 'number').map(entryToPerm);
+    const items = Object.entries(permObj)
+      .filter(entry => typeof entry[1] !== 'number')
+      .map(entryToPerm);
     return res.status(HttpStatus.OK).json({
       items,
       limits,
@@ -1100,7 +1134,7 @@ export class UserController {
     const surveyKey = notEmptyString(key, 4) ? key : 'preference_options';
     const cacheKey = ['preferences_listing', surveyKey].join('_');
     const stored = cached ? await this.redisGet(cacheKey) : null;
-    
+
     const validStored = stored instanceof Object && stored.valid;
     const hasLang =
       notEmptyString(lang, 2) && ['all', '--'].includes(lang) === false;
@@ -1313,14 +1347,16 @@ export class UserController {
         userData.set('flags', flags);
         const chart = await this.astrologicService.getUserBirthChart(userID);
         if (chart instanceof Object) {
-          const chartObj = isMemberLogin ? simplifyChart(chart, 'true_citra', 'basic') : chart;
+          const chartObj = isMemberLogin
+            ? simplifyChart(chart, 'true_citra', 'basic')
+            : chart;
           if (isMemberLogin) {
             addExtraPanchangaNumValues(chartObj, 'true_citra');
           }
           userData.set('chart', chartObj);
         }
         if (matchedObj.preferences instanceof Array) {
-         /*  const { answers } = await this.userService.getSurveyDomainScoresAndAnswers(userID, 'jungian', true);
+          /*  const { answers } = await this.userService.getSurveyDomainScoresAndAnswers(userID, 'jungian', true);
           const hasAnswers = answers instanceof Array && answers.length > 8;
           let defaultLetters = '';
           let hasJungianData = hasAnswers;
@@ -1353,7 +1389,11 @@ export class UserController {
             'jungian',
             true,
           );
-          const surveyData = await this.userService.matchSurveyData(userID, matchedObj, feedbackItems);
+          const surveyData = await this.userService.matchSurveyData(
+            userID,
+            matchedObj,
+            feedbackItems,
+          );
           if (Object.keys(surveyData).length > 0) {
             userData.set('surveys', surveyData);
           }
@@ -1532,22 +1572,42 @@ export class UserController {
     if (paramKeys.includes('mode')) {
       showMode = params.mode;
     }
-    const hasGeo = paramKeys.includes('loc')? validLocationParameter(params.loc) : false;
+    const hasGeo = paramKeys.includes('loc')
+      ? validLocationParameter(params.loc)
+      : false;
     const geo = hasGeo ? locStringToGeo(params.loc) : null;
-    const showLuckyTimes = hasGeo? paramKeys.includes('lucky')? smartCastInt(params.lucky, 0) > 0 : false : false;
-    const showBirthChart = paramKeys.includes('bc')? smartCastInt(params.bc, 0) > 0 : false;
-    const showPanchanga = paramKeys.includes('pc')? smartCastInt(params.pc, 0) > 0 : false;
+    const showLuckyTimes = hasGeo
+      ? paramKeys.includes('lucky')
+        ? smartCastInt(params.lucky, 0) > 0
+        : false
+      : false;
+    const showBirthChart = paramKeys.includes('bc')
+      ? smartCastInt(params.bc, 0) > 0
+      : false;
+    const showPanchanga = paramKeys.includes('pc')
+      ? smartCastInt(params.pc, 0) > 0
+      : false;
     const dateMode = paramKeys.includes('date') ? params.date : 'simple';
-    const langRef = paramKeys.includes('lang') && notEmptyString(params.lang,1)? params.lang : 'en';
+    const langRef =
+      paramKeys.includes('lang') && notEmptyString(params.lang, 1)
+        ? params.lang
+        : 'en';
     const lang = matchValidLang(langRef, 'en');
     let rsMap: Map<string, any> = new Map();
     rsMap.set('jd', jd);
     rsMap.set('unix', julToDateParts(jd).unixTimeInt);
     rsMap.set('dtUtc', dtUtc);
 
-    const ayanamsaKey = paramKeys.includes('aya') && notEmptyString(params.aya, 5) && params.aya !== 'tropical' ? params.aya : 'true_citra';
-    const tropicalMode = paramKeys.includes('tropical') ? smartCastInt(params.tropical,0) > 0 : false;
-    
+    const ayanamsaKey =
+      paramKeys.includes('aya') &&
+      notEmptyString(params.aya, 5) &&
+      params.aya !== 'tropical'
+        ? params.aya
+        : 'true_citra';
+    const tropicalMode = paramKeys.includes('tropical')
+      ? smartCastInt(params.tropical, 0) > 0
+      : false;
+
     if (isValidObjectId(cid)) {
       const chartData = await this.astrologicService.getChart(cid);
 
@@ -1555,14 +1615,25 @@ export class UserController {
         const cDataObj = chartData.toObject();
         const chart = new Chart(cDataObj);
         chart.setAyanamshaItemByKey(ayanamsaKey);
-        const ctData = await buildCurrentTrendsData(jd, chart, showMode, ayanamsaKey, tropicalMode, true, dateMode);
+        const ctData = await buildCurrentTrendsData(
+          jd,
+          chart,
+          showMode,
+          ayanamsaKey,
+          tropicalMode,
+          true,
+          dateMode,
+        );
         const matches = ctData.get('matches');
         if (showBirthChart) {
           const varaNum = chart.vara.num;
           cDataObj.numValues.push({ key: 'vara', value: varaNum });
           const moonNak = chart.moon.nakshatra27;
           cDataObj.numValues.push({ key: 'moonNak', value: moonNak });
-          rsMap.set('birthChart', simplifyChart(cDataObj, ayanamsaKey, 'simple'));
+          rsMap.set(
+            'birthChart',
+            simplifyChart(cDataObj, ayanamsaKey, 'simple'),
+          );
         }
         if (showPanchanga) {
           const pd = extractPanchangaData(chart);
@@ -1577,9 +1648,11 @@ export class UserController {
             keys,
             'current_trends',
           );
-          const fullMatches = matches.map(m => mergeCurrentTrendsWithSnippets(m, snippets, lang) );
+          const fullMatches = matches.map(m =>
+            mergeCurrentTrendsWithSnippets(m, snippets, lang),
+          );
           if (fullMatches.length > 0) {
-            fullMatches.sort((a, b) => a.days - b.days )
+            fullMatches.sort((a, b) => a.days - b.days);
             ctData.set('aspectMatches', fullMatches);
           }
         }
@@ -1593,7 +1666,14 @@ export class UserController {
           //const luckyData = await this.fetchLuckyTimes(true, chart, jd, geo, rules, customCutoff, dateMode);
           //ctData.set('luckyTimes', luckyData);
           //ctData.set('luckyTimesPrev', luckyDataPrev);
-          const luckyData = await this.fetchLuckyTimes24h(chart, jd, geo, rules, customCutoff, dateMode);
+          const luckyData = await this.fetchLuckyTimes24h(
+            chart,
+            jd,
+            geo,
+            rules,
+            customCutoff,
+            dateMode,
+          );
           ctData.set('luckyTimes', luckyData);
           /* const tzData = await this.geoService.fetchTzData(geo, julToDateParts(jd).isoDate, true);
           
@@ -1605,50 +1685,125 @@ export class UserController {
         }
         const kcScoreSet = await this.settingService.getKotaChakraScoreSet();
         const geoLoc = geo instanceof Object ? geo : chart.geo;
-        const transitChart = await this.astrologicService.getCurrentChartObj(dtUtc, geoLoc);
+        const transitChart = await this.astrologicService.getCurrentChartObj(
+          dtUtc,
+          geoLoc,
+        );
         transitChart.setAyanamshaItemByKey('true_citra');
-        const kc = calcKotaChakraScoreData(chart, transitChart,kcScoreSet, true);
-        rsMap.set('transitLngs', transitChart.bodies.map(gr => {
-          const {key, longitude } = gr;
-          return {key, longitude };
-        }))
+        const kc = calcKotaChakraScoreData(
+          chart,
+          transitChart,
+          kcScoreSet,
+          true,
+        );
+        rsMap.set(
+          'transitLngs',
+          transitChart.bodies.map(gr => {
+            const { key, longitude } = gr;
+            return { key, longitude };
+          }),
+        );
         rsMap.set('kotaCakra', kc.total);
         //rsMap.set('transitGrahas', transitChart);
         rsMap = new Map([...rsMap, ...ctData]);
       }
     }
-    const allowedKeys = ['jd', 'dtUtc', 'unix', 'ayanamshas','lngMode', 'aspectMatches', 'kotaCakra', 'transitLngs', 'birthChart', 'panchanga'];
-    if (['charts','all'].includes(showMode)) {
-      allowedKeys.push('current', 'progress','birth');
+    const allowedKeys = [
+      'jd',
+      'dtUtc',
+      'unix',
+      'ayanamshas',
+      'lngMode',
+      'aspectMatches',
+      'kotaCakra',
+      'transitLngs',
+      'birthChart',
+      'panchanga',
+    ];
+    if (['charts', 'all'].includes(showMode)) {
+      allowedKeys.push('current', 'progress', 'birth');
     }
     if (['all'].includes(showMode)) {
-      allowedKeys.push('ranges', 'currentToBirth', 'currentToProgressed', 'progressedToBirth', 'progressedToProgressed');
+      allowedKeys.push(
+        'ranges',
+        'currentToBirth',
+        'currentToProgressed',
+        'progressedToBirth',
+        'progressedToProgressed',
+      );
     }
     if (showLuckyTimes) {
-      allowedKeys.push('luckyTimes','luckyTimesPrev', 'tzData');
+      allowedKeys.push('luckyTimes', 'luckyTimesPrev', 'tzData');
     }
-    return res.json(Object.fromEntries([...rsMap.entries()].filter(entry => allowedKeys.includes(entry[0]))));
+    return res.json(
+      Object.fromEntries(
+        [...rsMap.entries()].filter(entry => allowedKeys.includes(entry[0])),
+      ),
+    );
   }
 
-
-  async fetchLuckyTimes24h(chart: Chart, jd = 0, geo: GeoLoc, rules: PPRule[], customCutoff = 0, dateMode = 'simple') {
-    const ltPrev = await this.fetchLuckyTimes(false, chart, jd, geo, rules, customCutoff, dateMode);
-    const ltCurr = await this.fetchLuckyTimes(true, chart, jd, geo, rules, customCutoff, dateMode);
-    const tzData = await this.geoService.fetchTzData(geo, julToDateParts(jd).isoDate, true);      
+  async fetchLuckyTimes24h(
+    chart: Chart,
+    jd = 0,
+    geo: GeoLoc,
+    rules: PPRule[],
+    customCutoff = 0,
+    dateMode = 'simple',
+  ) {
+    const ltPrev = await this.fetchLuckyTimes(
+      false,
+      chart,
+      jd,
+      geo,
+      rules,
+      customCutoff,
+      dateMode,
+    );
+    const ltCurr = await this.fetchLuckyTimes(
+      true,
+      chart,
+      jd,
+      geo,
+      rules,
+      customCutoff,
+      dateMode,
+    );
+    const tzData = await this.geoService.fetchTzData(
+      geo,
+      julToDateParts(jd).isoDate,
+      true,
+    );
     const nowDt = new Date(julToDateParts(jd).unixMillisecs);
-    nowDt.setHours(0,0,0);
-    const serverTsOffset = (nowDt.getTimezoneOffset() * 60);
+    nowDt.setHours(0, 0, 0);
+    const serverTsOffset = nowDt.getTimezoneOffset() * 60;
     const midNightTs = Math.round(nowDt.getTime() / 1000);
-    const midnightTs = Math.round((midNightTs - tzData.tzOffset - serverTsOffset) / 60) * 60;
+    const midnightTs =
+      Math.round((midNightTs - tzData.tzOffset - serverTsOffset) / 60) * 60;
     const minuteDiff = (midnightTs - ltCurr.minuteStart) / 60;
-    const data = { minutes: [], start: 0, end: 0, times: [], sunrise: 0, sunset: 0, tzData };
-    if (ltPrev.minutes instanceof Array && ltCurr.minutes instanceof Array && ltCurr.minutes.length > 360 && ltPrev.minutes.length >= minuteDiff) {
+    const data = {
+      minutes: [],
+      start: 0,
+      end: 0,
+      times: [],
+      sunrise: 0,
+      sunset: 0,
+      tzData,
+    };
+    if (
+      ltPrev.minutes instanceof Array &&
+      ltCurr.minutes instanceof Array &&
+      ltCurr.minutes.length > 360 &&
+      ltPrev.minutes.length >= minuteDiff
+    ) {
       const remainder = 1440 + minuteDiff;
       const numOffset = 1440 - ltPrev.minutes.length;
-      const prevOffset = minuteDiff + numOffset; 
-      data.minutes = [...ltPrev.minutes.slice(prevOffset, numOffset), ...ltCurr.minutes.slice(0, remainder)];
+      const prevOffset = minuteDiff + numOffset;
+      data.minutes = [
+        ...ltPrev.minutes.slice(prevOffset, numOffset),
+        ...ltCurr.minutes.slice(0, remainder),
+      ];
       data.start = midnightTs;
-      data.end = data.start + (24 * 60 * 60);
+      data.end = data.start + 24 * 60 * 60;
       data.sunrise = ltCurr.start;
       data.sunset = ltCurr.sunset;
       if (ltPrev.times instanceof Array) {
@@ -1656,38 +1811,77 @@ export class UserController {
           if (row.peak >= data.start && row.peak <= data.end) {
             data.times.push(row);
           }
-        })
+        });
       }
       if (ltCurr.times instanceof Array) {
         ltCurr.times.forEach(row => {
           if (row.peak >= data.start && row.peak <= data.end) {
             data.times.push(row);
           }
-        })
+        });
       }
     }
     return data;
   }
 
-  async fetchLuckyTimes(current = true, chart: Chart, jd = 0, geo: GeoLoc, rules: PPRule[], customCutoff = 0, dateMode = 'simple') {
+  async fetchLuckyTimes(
+    current = true,
+    chart: Chart,
+    jd = 0,
+    geo: GeoLoc,
+    rules: PPRule[],
+    customCutoff = 0,
+    dateMode = 'simple',
+  ) {
     const { noonJd } = matchLocaleJulianDayData(jd, geo);
-    const refNoonJd = current? noonJd : noonJd - 1;
-    const birthKey = [chart.jd.toFixed(3), chart.geo.lat.toFixed(2),chart.geo.lng.toFixed(2)].join('-');
-    const ltKey  =  ['lucky-times',chart._id, birthKey, refNoonJd.toFixed(3), geo.lat.toFixed(2), geo.lng.toFixed(2)].join('-');
-    
+    const refNoonJd = current ? noonJd : noonJd - 1;
+    const birthKey = [
+      chart.jd.toFixed(3),
+      chart.geo.lat.toFixed(2),
+      chart.geo.lng.toFixed(2),
+    ].join('-');
+    const ltKey = [
+      'lucky-times',
+      chart._id,
+      birthKey,
+      refNoonJd.toFixed(3),
+      geo.lat.toFixed(2),
+      geo.lng.toFixed(2),
+    ].join('-');
+
     //const refJd = current? jd : jd - 1;
     const stored = await this.redisGet(ltKey);
-    const hasStored = stored instanceof Object && Object.keys(stored).includes('minutes') && stored.minutes instanceof Array && stored.minutes.length > 720;
+    const hasStored =
+      stored instanceof Object &&
+      Object.keys(stored).includes('minutes') &&
+      stored.minutes instanceof Array &&
+      stored.minutes.length > 720;
     if (hasStored) {
       return stored;
     } else {
-      const data = await calcLuckyTimes(chart, refNoonJd, geo, rules, customCutoff, dateMode, false);
+      const data = await calcLuckyTimes(
+        chart,
+        refNoonJd,
+        geo,
+        rules,
+        customCutoff,
+        dateMode,
+        false,
+      );
       if (data instanceof Map) {
         const dataObj = Object.fromEntries(data.entries());
         this.redisSet(ltKey, dataObj);
-        return dataObj
+        return dataObj;
       } else {
-        return { start: 9, sunset: 0, end: 0,max: 0, cutOff: customCutoff,minutes: [], times: [] };
+        return {
+          start: 9,
+          sunset: 0,
+          end: 0,
+          max: 0,
+          cutOff: customCutoff,
+          minutes: [],
+          times: [],
+        };
       }
     }
   }
@@ -2087,12 +2281,15 @@ export class UserController {
         : analyseAnswers(type, result.answers)
       : {};
     if (isJungian) {
-
       const feedbackItems = await this.getFacetedFeedbackItems(
         'jungian',
         cached,
       );
-      const merged = this.userService.mergeSurveyFeedback(result.analysis, matchedLang, feedbackItems);
+      const merged = this.userService.mergeSurveyFeedback(
+        result.analysis,
+        matchedLang,
+        feedbackItems,
+      );
       result.title = merged.title;
       result.text = merged.text;
       result.letters = merged.letters;
@@ -2106,42 +2303,51 @@ export class UserController {
     #mobile
     #admin
   */
-    @Put('jungian-type/save/:userID')
-    async saveJungianPersonalityCode(
-      @Res() res,
-      @Param('userID') userID,
-      @Body() preferenceDTO: PreferenceDTO,
-    ) {
-      const { value } = preferenceDTO;
-      const result: any = { valid: false, user: null, msg: "invalid" };
-      if (notEmptyString(value,3)) {
-        const correctedValue = value.toUpperCase().replace(/[^A-Z]/, '').trim();
-        const rgxStr = ['IE', 'SN', 'FT', 'JP'].map(pair => ['[', ...pair , ']'].join('')).join('');
-        const rgx = new RegExp('^' + rgxStr + '$');
-        if (rgx.test(correctedValue)) {
-          const prefDTO = {
-              key: 'jungian_type',
-              value: correctedValue,
-              type: 'code'
-            } as PreferenceDTO;
-            const feedbackItems = await this.getFacetedFeedbackItems(
-              'jungian',
-              true,
-            );
-            await this.userService.deleteAnswersByUserAndType(userID, 'jungian');
-            const data = await this.userService.savePreference(userID, prefDTO, feedbackItems);
-            if (data.valid && data.user instanceof Object) {
-              result.valid = true;
-              result.user = data.user;
-            }
-        } else {
-          result.msg = "bad format";
+  @Put('jungian-type/save/:userID')
+  async saveJungianPersonalityCode(
+    @Res() res,
+    @Param('userID') userID,
+    @Body() preferenceDTO: PreferenceDTO,
+  ) {
+    const { value } = preferenceDTO;
+    const result: any = { valid: false, user: null, msg: 'invalid' };
+    if (notEmptyString(value, 3)) {
+      const correctedValue = value
+        .toUpperCase()
+        .replace(/[^A-Z]/, '')
+        .trim();
+      const rgxStr = ['IE', 'SN', 'FT', 'JP']
+        .map(pair => ['[', ...pair, ']'].join(''))
+        .join('');
+      const rgx = new RegExp('^' + rgxStr + '$');
+      if (rgx.test(correctedValue)) {
+        const prefDTO = {
+          key: 'jungian_type',
+          value: correctedValue,
+          type: 'code',
+        } as PreferenceDTO;
+        const feedbackItems = await this.getFacetedFeedbackItems(
+          'jungian',
+          true,
+        );
+        await this.userService.deleteAnswersByUserAndType(userID, 'jungian');
+        const data = await this.userService.savePreference(
+          userID,
+          prefDTO,
+          feedbackItems,
+        );
+        if (data.valid && data.user instanceof Object) {
+          result.valid = true;
+          result.user = data.user;
         }
       } else {
-        result.msg = "too short";
+        result.msg = 'bad format';
       }
-      return res.json(result);
+    } else {
+      result.msg = 'too short';
     }
+    return res.json(result);
+  }
 
   async getFacetedFeedbackItems(
     type = 'faceted',

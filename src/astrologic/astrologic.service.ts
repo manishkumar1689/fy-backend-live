@@ -71,10 +71,7 @@ import {
 import { Chart as ChartClass } from './lib/models/chart';
 import { Kuta, KutaValueSetItems } from './lib/kuta';
 import { AspectSet, buildDegreeRange, buildLngRange } from './lib/calc-orbs';
-import {
-  sanitize,
-  smartCastInt,
-} from '../lib/converters';
+import { sanitize, smartCastInt } from '../lib/converters';
 import { KeyValue } from './interfaces/key-value';
 import { TagDTO } from './dto/tag.dto';
 import {
@@ -86,17 +83,33 @@ import {
 import { calcTropicalAscendantDt } from './lib/calc-ascendant';
 import { GeoLoc } from './lib/models/geo-loc';
 import { LngLat } from './lib/interfaces';
-import { addExtraPanchangaNumValuesFromClass, simplifyChart } from './lib/member-charts';
+import {
+  addExtraPanchangaNumValuesFromClass,
+  simplifyChart,
+} from './lib/member-charts';
 import { getAshtakavargaBodyGrid } from './lib/settings/ashtakavarga-values';
 import { GeoPos } from './interfaces/geo-pos';
 import { ProgressItemDTO } from './dto/progress-item.dto';
-import { buildSingleProgressSetKeyValues, calcProgressAspectDataFromProgressItems, calcProgressAspectsFromJds, calcProgressSummary, calcProgressSummaryMembers, progressItemsToDataSet } from './lib/settings/progression';
+import {
+  buildSingleProgressSetKeyValues,
+  calcProgressAspectDataFromProgressItems,
+  calcProgressAspectsFromJds,
+  calcProgressSummary,
+  calcProgressSummaryMembers,
+  progressItemsToDataSet,
+} from './lib/settings/progression';
 import { currentJulianDay } from './lib/julian-date';
 import { filterCorePreference } from '../lib/mappers';
 import { mapLikeabilityRelations, UserFlagSet } from '../lib/notifications';
 import { User } from '../user/interfaces/user.interface';
 import { KeyNumValue } from '../lib/interfaces';
-import { calcKsetraBala, calcNavamshaBala, calcUccaBalaValues, calcUdayaBalaValues, calcVakraBala } from './lib/calc-sbc';
+import {
+  calcKsetraBala,
+  calcNavamshaBala,
+  calcUccaBalaValues,
+  calcUdayaBalaValues,
+  calcVakraBala,
+} from './lib/calc-sbc';
 import { calcKotaChakraScoreData } from './lib/settings/kota-values';
 import { addSnippetKeyToSynastryAspectMatches } from './lib/synastry-aspect-mapper';
 const { ObjectId } = Types;
@@ -416,7 +429,6 @@ export class AstrologicService {
     const items = await this.pairedChartModel.aggregate(steps);
     return items.length > 0 ? items[0] : null;
   }
-
 
   async progressAspectsFromJds(jd1 = 0, jd2 = 0) {
     const items = await calcProgressAspectsFromJds(jd1, jd2);
@@ -1035,8 +1047,8 @@ export class AstrologicService {
       .find({
         $or: [
           { progressItems: { $exists: false } },
-          { progressItems: { $size: 0 } }
-        ]
+          { progressItems: { $size: 0 } },
+        ],
       })
       .select('_id')
       .limit(limit);
@@ -1067,7 +1079,7 @@ export class AstrologicService {
         numProgressItems = pItems.length;
         const newProgressSet = await buildSingleProgressSetKeyValues(
           chartObj.jd,
-          2
+          2,
         );
         let lastItemJd = 0;
         if (pItems.length > 6) {
@@ -1106,7 +1118,12 @@ export class AstrologicService {
     return chart;
   }
 
-  async getCurrentChartObj(dtUtc = '', geo: GeoPos, tzOffset = -1, ayanamsaKey = 'true_citra'): Promise<ChartClass> {
+  async getCurrentChartObj(
+    dtUtc = '',
+    geo: GeoPos,
+    tzOffset = -1,
+    ayanamsaKey = 'true_citra',
+  ): Promise<ChartClass> {
     const approxLat = Math.round(geo.lat / 15) * 15;
     const approxLng = Math.round(geo.lng / 15) * 15;
     const geoOffset = tzOffset !== -1 ? tzOffset : approxLng * 240; // solar timezone offset to nearest hour in secs
@@ -1132,7 +1149,6 @@ export class AstrologicService {
   }
 
   async getChartIDByUserRef(refKey: string, type = 'id'): Promise<string> {
-    
     let useAggregation = false;
     const filter: Map<string, any> = new Map();
     filter.set('isDefaultBirthChart', true);
@@ -1148,7 +1164,7 @@ export class AstrologicService {
 
     filter.set('isDefaultBirthChart', true);
     const criteria = Object.fromEntries(filter);
-    
+
     let rows: any[] = [];
     if (useAggregation) {
       const lookupSteps = buildChartLookupPath('u');
@@ -1161,7 +1177,7 @@ export class AstrologicService {
           $project: {
             _id: '$_id',
           },
-        }
+        },
       ];
       rows = await this.chartModel.aggregate(steps);
     } else {
@@ -1401,7 +1417,7 @@ export class AstrologicService {
     chartID: string,
     sort = 'modifiedAt',
     limit = 0,
-    chartID2 = ''
+    chartID2 = '',
   ) {
     const max = limit > 0 && limit < 1000 ? limit : 1000;
     let sortDir = -1;
@@ -1600,8 +1616,6 @@ export class AstrologicService {
     return Object.fromEntries(types);
   }
 
-  
-
   mapKutaColValues(kutas: KutaValueSetItems[], dictMap: Map<string, string>) {
     const simplifyKey = (key: string) => {
       let parts = key.split('/');
@@ -1609,26 +1623,32 @@ export class AstrologicService {
         parts = parts.slice(0, 2);
       }
       return parts.join('/');
-    }
+    };
     return kutas.map(row => {
       const values = row.values.map(item => {
         const dk1 = simplifyKey(item.c1Value);
-        const titleKey = [item.key,0].join('/');
+        const titleKey = [item.key, 0].join('/');
         if (dictMap.has(titleKey)) {
           item.title = dictMap.get(titleKey);
         }
         if (dictMap.has(dk1)) {
-          item.c1Value = dictMap.get(dk1);
+          item.c1Value = dictMap
+            .get(dk1)
+            .split('/')
+            .pop();
         }
         const dk2 = simplifyKey(item.c2Value);
         if (dictMap.has(dk2)) {
-          item.c2Value = dictMap.get(dk2);
+          item.c2Value = dictMap
+            .get(dk2)
+            .split('/')
+            .pop();
         }
         const { key, title, c1Value, c2Value, score, max } = item;
         return { key, title, c1Value, c2Value, score, max };
       });
-      const score = values.map(v => v.score).reduce((a,b) => a + b, 0);
-      const max = values.map(v => v.max).reduce((a,b) => a + b, 0);
+      const score = values.map(v => v.score).reduce((a, b) => a + b, 0);
+      const max = values.map(v => v.max).reduce((a, b) => a + b, 0);
       const title = 'Kūṭa';
       return { title, ...row, values, score, max };
     });
@@ -1778,39 +1798,56 @@ export class AstrologicService {
       .exec();
   }
 
-  async expandUserWithChartData(user: User, flags: UserFlagSet, refChart: ChartClass, customSettings: any = {}, fullChart = false, ayanamshaKey = 'true_citra', simpleMode = 'basic') {
+  async expandUserWithChartData(
+    user: User,
+    refChart: ChartClass,
+    customSettings: any = {},
+    fullChart = false,
+    ayanamshaKey = 'true_citra',
+    simpleMode = 'basic',
+  ) {
     const chartObj = await this.getUserBirthChart(user._id);
     const hasChart = chartObj instanceof Object;
     const chartSource = hasChart ? chartObj.toObject() : {};
     const chart = new ChartClass(chartSource);
     chart.setAyanamshaItemByKey('true_citra');
-    const chartData = hasChart ? fullChart ? chart : simplifyChart(chartSource, ayanamshaKey, simpleMode) : {};
-    const refUserId = user._id.toString();
+    const chartData = hasChart
+      ? fullChart
+        ? chart
+        : simplifyChart(chartSource, ayanamshaKey, simpleMode)
+      : {};
     // kutaSet: any = null, kcScoreSet: KotaCakraScoreSet, orbMap = null
     const { kutaSet, kcScoreSet, orbMap, p2Scores, dictMap } = customSettings;
     const preferences =
       user.preferences instanceof Array && user.preferences.length > 0
         ? user.preferences.filter(filterCorePreference)
         : [];
-    const filteredLikes = {
-          from: mapLikeabilityRelations(flags.likeability.from, refUserId),
-          to: mapLikeabilityRelations(flags.likeability.to, refUserId),
-        };
-    const kutaRows: KutaValueSetItems[] = hasChart? this._calcKutas(
-      refChart,
-      chart,
-      kutaSet,
-      'ashta',
-    ) : [];
+    const kutaRows: KutaValueSetItems[] = hasChart
+      ? this._calcKutas(refChart, chart, kutaSet, 'ashta')
+      : [];
     addExtraPanchangaNumValuesFromClass(chartData, chart, 'true_citra');
-    const pd = calcProgressAspectDataFromProgressItems(chart.matchProgressItems(), refChart.matchProgressItems());
-    const p2Summary = pd.num > 0 ? calcProgressSummaryMembers(pd.items, true, p2Scores) : {};
+    const pd = calcProgressAspectDataFromProgressItems(
+      chart.matchProgressItems(),
+      refChart.matchProgressItems(),
+    );
+    const p2Summary =
+      pd.num > 0 ? calcProgressSummaryMembers(pd.items, true, p2Scores) : {};
     const kcS1 = calcKotaChakraScoreData(refChart, chart, kcScoreSet, true);
     const kcS2 = calcKotaChakraScoreData(chart, refChart, kcScoreSet, true);
-    const baseAspectKeys = ['as','su','mo','me','ve','ma'];
-    const ascAspectKeys = [...baseAspectKeys, 'ju','sa', 'ur', 'pl'];
-    const aspectMatches = calcAspectMatches(refChart, chart, baseAspectKeys, ascAspectKeys, orbMap);
-    const aspects = addSnippetKeyToSynastryAspectMatches(aspectMatches, refChart.shortName, chart.shortName);
+    const baseAspectKeys = ['as', 'su', 'mo', 'me', 've', 'ma'];
+    const ascAspectKeys = [...baseAspectKeys, 'ju', 'sa', 'ur', 'pl'];
+    const aspectMatches = calcAspectMatches(
+      refChart,
+      chart,
+      baseAspectKeys,
+      ascAspectKeys,
+      orbMap,
+    );
+    const aspects = addSnippetKeyToSynastryAspectMatches(
+      aspectMatches,
+      refChart.shortName,
+      chart.shortName,
+    );
     const shortName = toFirstName(user.nickName);
     return {
       ...user,
@@ -1821,15 +1858,18 @@ export class AstrologicService {
       kutas: this.mapKutaColValues(kutaRows, dictMap),
       aspects,
       p2: p2Summary,
-      kc: { 
+      kc: {
         a: kcS1.total,
         b: kcS2.total,
       },
-      likeability: filteredLikes,
     };
   }
 
-  compareCharts(refChart: ChartClass, chart: ChartClass, customSettings: any = {}) {
+  compareCharts(
+    refChart: ChartClass,
+    chart: ChartClass,
+    customSettings: any = {},
+  ) {
     // kutaSet: any = null, kcScoreSet: KotaCakraScoreSet, orbMap = null
     const { kutaSet, kcScoreSet, orbMap, p2Scores, dictMap } = customSettings;
     const kutaRows: KutaValueSetItems[] = this._calcKutas(
@@ -1838,20 +1878,34 @@ export class AstrologicService {
       kutaSet,
       'ashta',
     );
-    const pd = calcProgressAspectDataFromProgressItems(chart.matchProgressItems(), refChart.matchProgressItems());
-    
-    const p2Summary = pd.num > 0 ? calcProgressSummaryMembers(pd.items, true, p2Scores) : {};
+    const pd = calcProgressAspectDataFromProgressItems(
+      chart.matchProgressItems(),
+      refChart.matchProgressItems(),
+    );
+
+    const p2Summary =
+      pd.num > 0 ? calcProgressSummaryMembers(pd.items, true, p2Scores) : {};
     const kcS1 = calcKotaChakraScoreData(refChart, chart, kcScoreSet, true);
     const kcS2 = calcKotaChakraScoreData(chart, refChart, kcScoreSet, true);
-    const baseAspectKeys = ['as','su','mo','me','ve','ma'];
-    const ascAspectKeys = [...baseAspectKeys, 'ju','sa', 'ur', 'pl'];
-    const aspectMatches = calcAspectMatches(refChart, chart, baseAspectKeys, ascAspectKeys, orbMap);
-    const aspects = addSnippetKeyToSynastryAspectMatches(aspectMatches, refChart.shortName, chart.shortName);
+    const baseAspectKeys = ['as', 'su', 'mo', 'me', 've', 'ma'];
+    const ascAspectKeys = [...baseAspectKeys, 'ju', 'sa', 'ur', 'pl'];
+    const aspectMatches = calcAspectMatches(
+      refChart,
+      chart,
+      baseAspectKeys,
+      ascAspectKeys,
+      orbMap,
+    );
+    const aspects = addSnippetKeyToSynastryAspectMatches(
+      aspectMatches,
+      refChart.shortName,
+      chart.shortName,
+    );
     return {
       kutas: this.mapKutaColValues(kutaRows, dictMap),
       aspects,
       p2: p2Summary,
-      kc: { 
+      kc: {
         a: kcS1.total,
         b: kcS2.total,
       },
@@ -1867,9 +1921,9 @@ export class AstrologicService {
     c1.setAyanamshaItemByKey('true_citra');
     c2.setAyanamshaItemByKey('true_citra');
     const d1 = c1.datetime.toISOString();
-    const d2 = c2.datetime.toISOString()
-    if (d1.startsWith("1992-09") && d2.startsWith("1995-11")) {
-      console.log(d1,c1.sun.longitude, d2,c2.sun.longitude)
+    const d2 = c2.datetime.toISOString();
+    if (d1.startsWith('1992-09') && d2.startsWith('1995-11')) {
+      console.log(d1, c1.sun.longitude, d2, c2.sun.longitude);
     }
     const kutaBuilder = new Kuta(c1, c2);
     kutaBuilder.loadCompatibility(kutaSet);
@@ -2230,7 +2284,7 @@ export class AstrologicService {
       { _id: ObjectId(chartID) },
       { parent: ObjectId(chartID) },
     ]);
-    criteria.set('jd', { $gte: refJd } );
+    criteria.set('jd', { $gte: refJd });
     const items = await this.list(criteria, 0, 500, true, true);
     return items.sort((a, b) => a.jd - b.jd);
   }
@@ -2377,7 +2431,13 @@ export class AstrologicService {
     key = '',
     speed = 0,
     jd: number,
-  ): Promise<{progress: number; start: number; end: number, peak: number, retro: boolean }> {
+  ): Promise<{
+    progress: number;
+    start: number;
+    end: number;
+    peak: number;
+    retro: boolean;
+  }> {
     let progress = 0;
     let peak = 0;
     let end = 0;
@@ -2385,10 +2445,11 @@ export class AstrologicService {
     const direct = speed > 0;
     const retro = !direct;
     const stations = await this._fetchRelatedStations(key, jd, true, direct);
-    const stationKeys = stations.length > 0 ? stations.map(st => st.station) : [];
-    const startKey = retro? 'retro-start' : 'retro-end';
-    const endKey = retro? 'retro-end' : 'retro-start';
-    const peakKey = retro? 'retro-peak' : 'peak';
+    const stationKeys =
+      stations.length > 0 ? stations.map(st => st.station) : [];
+    const startKey = retro ? 'retro-start' : 'retro-end';
+    const endKey = retro ? 'retro-end' : 'retro-start';
+    const peakKey = retro ? 'retro-peak' : 'peak';
     if (stationKeys.includes(peakKey)) {
       const stSt = stations.find(st => st.station === startKey);
       const pkSt = stations.find(st => st.station === peakKey);
@@ -2401,11 +2462,17 @@ export class AstrologicService {
       }
     }
     if (stationKeys.length > 0 && stationKeys.length < 3) {
-      const nextStations = await this._fetchRelatedStations(key, jd, false, direct, stationKeys);
+      const nextStations = await this._fetchRelatedStations(
+        key,
+        jd,
+        false,
+        direct,
+        stationKeys,
+      );
       if (nextStations.length > 0) {
         nextStations.forEach(st => {
           stations.push(st);
-        })
+        });
       }
     }
     if (stations.length > 2) {
@@ -2417,7 +2484,7 @@ export class AstrologicService {
       peak = peakStation instanceof Object ? peakStation.speed : 0;
       progress = Math.abs(speed) / Math.abs(peak);
     }
-    return {progress, start, end, peak, retro};
+    return { progress, start, end, peak, retro };
   }
 
   async matchRetroValues(chart: ChartClass): Promise<KeyNumValue[]> {
@@ -2428,10 +2495,14 @@ export class AstrologicService {
       if (gr instanceof Object) {
         let progVal = -1;
         if (gr.lngSpeed <= 0) {
-          const { progress } = await this.speedProgress(key, gr.lngSpeed, chart.jd);
+          const { progress } = await this.speedProgress(
+            key,
+            gr.lngSpeed,
+            chart.jd,
+          );
           progVal = progress;
         }
-        values.push({key, value: progVal});
+        values.push({ key, value: progVal });
       }
     }
     return values;
@@ -2439,25 +2510,29 @@ export class AstrologicService {
 
   async calcExtraScoresForChart(cData = null, vakraScale = 60) {
     let numValues = [];
-    if (cData instanceof Object && Object.keys(cData).includes("numValues") && cData.numValues instanceof Array) {
+    if (
+      cData instanceof Object &&
+      Object.keys(cData).includes('numValues') &&
+      cData.numValues instanceof Array
+    ) {
       numValues = cData.numValues;
-      
+
       const chart = cData instanceof ChartClass ? cData : new ChartClass(cData);
-      const scores  = await this.matchRetroValues(chart);
+      const scores = await this.matchRetroValues(chart);
       const vkValues = calcVakraBala(scores, vakraScale);
       vkValues.forEach(row => {
         numValues.push({
           key: ['vakrabala', row.key].join('_'),
-          value: row.value
-        })
+          value: row.value,
+        });
       });
       const ubValues = calcUccaBalaValues(chart);
       if (ubValues.length > 0) {
         ubValues.forEach(row => {
           numValues.push({
             key: ['uccabala', row.key].join('_'),
-            value: row.value
-          })
+            value: row.value,
+          });
         });
       }
       const udValues = calcUdayaBalaValues(chart);
@@ -2465,8 +2540,8 @@ export class AstrologicService {
         udValues.forEach(row => {
           numValues.push({
             key: ['udayabala', row.key].join('_'),
-            value: row.value
-          })
+            value: row.value,
+          });
         });
       }
 
@@ -2475,8 +2550,8 @@ export class AstrologicService {
         kbValues.forEach(row => {
           numValues.push({
             key: ['ksetrabala', row.key].join('_'),
-            value: row.value
-          })
+            value: row.value,
+          });
         });
       }
       const nvValues = calcNavamshaBala(chart);
@@ -2484,8 +2559,8 @@ export class AstrologicService {
         nvValues.forEach(row => {
           numValues.push({
             key: ['navamshabala', row.key].join('_'),
-            value: row.value
-          })
+            value: row.value,
+          });
         });
       }
     }
@@ -2497,7 +2572,7 @@ export class AstrologicService {
     jd: number,
     prev = false,
     direct = false,
-    excludeKeys: string[] = []
+    excludeKeys: string[] = [],
   ): Promise<BodySpeed[]> {
     const relCondition = prev ? { $lte: jd } : { $gte: jd };
     const sortDir = prev ? -1 : 1;
@@ -2507,11 +2582,11 @@ export class AstrologicService {
     } else {
       targetKeys.push('retro-peak');
     }
-    const stationKeys =  targetKeys.filter(k => excludeKeys.indexOf(k) < 0);
+    const stationKeys = targetKeys.filter(k => excludeKeys.indexOf(k) < 0);
     const station = { $in: stationKeys };
-    const num = matchPlanetNum(key)
+    const num = matchPlanetNum(key);
     const criteria: any = { num, jd: relCondition, station };
-   
+
     return await this.bodySpeedModel
       .find(criteria)
       .sort({ jd: sortDir })
@@ -2770,7 +2845,9 @@ export class AstrologicService {
     startJd = 0,
     endJd = 0,
   ): Promise<SignTimelineSet[]> {
-    const key = ['bav_timeline', startJd.toFixed(2), endJd.toFixed(2)].join('_');
+    const key = ['bav_timeline', startJd.toFixed(2), endJd.toFixed(2)].join(
+      '_',
+    );
     const storedResults = await this.redisGet(key);
     const hasStored =
       storedResults instanceof Array && storedResults.length > 5;
@@ -2909,7 +2986,7 @@ export class AstrologicService {
     const kakshyaMap: Map<number, any> = new Map();
     const numKeys = kakshyaKeys.length;
 
-    times.forEach((row) => {
+    times.forEach(row => {
       const index96 = Math.floor(row.lng / (360 / 96));
       const num = index96 + 1;
       const kakshyaIndex = index96 % 8;
@@ -2947,5 +3024,4 @@ export class AstrologicService {
     });
     return { rows, datetime: chartData.datetime, geo: chartData.geo };
   }
-
 }

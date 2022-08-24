@@ -30,7 +30,7 @@ export interface UserFlagSet {
   likeability: {
     to: IFlag[];
     from: IFlag[];
-  }
+  };
 }
 
 export interface FlagVal {
@@ -101,6 +101,17 @@ export const mapLikeabilityRelations = (rows: any[] = [], userID = '') => {
     .map(row => mapLikeabilityRelation(row));
 
   return items.length > 0 ? items[0] : { value: '' };
+};
+
+export const mapReciprocalLikeability = (
+  flags: UserFlagSet,
+  refUserId = '',
+) => {
+  const filteredLikes = {
+    from: mapLikeabilityRelations(flags.likeability.from, refUserId),
+    to: mapLikeabilityRelations(flags.likeability.to, refUserId),
+  };
+  return filteredLikes;
 };
 
 const castValueToString = (val: any, type: string): string => {
