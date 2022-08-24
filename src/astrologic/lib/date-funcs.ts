@@ -4,7 +4,6 @@ import { isNumeric, isInteger, validISODateString } from '../../lib/validators';
 import { Moment } from 'moment';
 import { zeroPad } from '../../lib/converters';
 import { GeoLoc } from './models/geo-loc';
-import { julToDateParts } from './julian-date';
 
 export const defaultDateParts = { year: 0, month: 0, day: 0, hour: 0 };
 
@@ -186,19 +185,29 @@ export const matchJdAndDatetime = (
 
 export const matchLocaleJulianDayData = (dtRef = null, geo: GeoLoc) => {
   const { jd, dtUtc } = matchJdAndDatetime(dtRef);
-    const hoursOffset = geo.lng / 15;
-    const utcFrac = jd % 1;
-    const jdOffset = hoursOffset / 24;
-    const jdNoonFrac = (1 - jdOffset) % 1;
-    const utcHours = (utcFrac * 24 + 12) % 24;
-    const geoHours = ((utcFrac + jdOffset) * 24 + 12) % 24;
-    const isAm = geoHours < 12;
-    const jdInt = parseInt(jd, 10);
-    //const baseJd = isAm ? jdInt : jdInt - 1;
-    //const noonJd = baseJd + jdNoonFrac;
-    const noonJd = jdInt + jdNoonFrac;
-    return { jd, dtUtc, geo, hoursOffset, jdNoonFrac, geoHours, utcHours, isAm, noonJd };
-}
+  const hoursOffset = geo.lng / 15;
+  const utcFrac = jd % 1;
+  const jdOffset = hoursOffset / 24;
+  const jdNoonFrac = (1 - jdOffset) % 1;
+  const utcHours = (utcFrac * 24 + 12) % 24;
+  const geoHours = ((utcFrac + jdOffset) * 24 + 12) % 24;
+  const isAm = geoHours < 12;
+  const jdInt = parseInt(jd, 10);
+  //const baseJd = isAm ? jdInt : jdInt - 1;
+  //const noonJd = baseJd + jdNoonFrac;
+  const noonJd = jdInt + jdNoonFrac;
+  return {
+    jd,
+    dtUtc,
+    geo,
+    hoursOffset,
+    jdNoonFrac,
+    geoHours,
+    utcHours,
+    isAm,
+    noonJd,
+  };
+};
 
 export const matchEndJdAndDatetime = (strRef = '', startJd = 0) => {
   const { jd, dtUtc } = matchJdAndDatetime(strRef, startJd);
@@ -439,12 +448,22 @@ export const dtStringToNearest15Minutes = (dtStr = '') => {
   } else {
     return dtStr;
   }
-}
+};
 
 /*
   mainly for debugging
 */
 export const unixTsToISODateString = (ts = 0, milliSecs = false) => {
-  const multiple = milliSecs? 1 : 1000;
-  return new Date(ts * multiple).toISOString().split('.').shift();
-}
+  const multiple = milliSecs ? 1 : 1000;
+  return new Date(ts * multiple)
+    .toISOString()
+    .split('.')
+    .shift();
+};
+
+/*
+  mainly for debugging
+*/
+export const isoStringToMilliSecs = (strDate = ''): number => {
+  return validISODateString(strDate) ? new Date(strDate).getTime() : 0;
+};

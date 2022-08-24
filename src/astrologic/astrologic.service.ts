@@ -1920,11 +1920,6 @@ export class AstrologicService {
   ) {
     c1.setAyanamshaItemByKey('true_citra');
     c2.setAyanamshaItemByKey('true_citra');
-    const d1 = c1.datetime.toISOString();
-    const d2 = c2.datetime.toISOString();
-    if (d1.startsWith('1992-09') && d2.startsWith('1995-11')) {
-      console.log(d1, c1.sun.longitude, d2, c2.sun.longitude);
-    }
     const kutaBuilder = new Kuta(c1, c2);
     kutaBuilder.loadCompatibility(kutaSet);
     const grahaKeys = ['su', 'mo', 've', 'as'];
