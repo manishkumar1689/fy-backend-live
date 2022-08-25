@@ -1,5 +1,5 @@
 import * as admin from 'firebase-admin';
-import { isoStringToMilliSecs } from 'src/astrologic/lib/date-funcs';
+import { isoDateToMilliSecs } from 'src/astrologic/lib/date-funcs';
 import { googleFCMKeyPath, googleFCMBase, googleFCMDomain } from '../.config';
 import { isNumeric } from './validators';
 
@@ -97,13 +97,12 @@ export const mapLikeabilityRelation = (item = null): FlagVal => {
 };
 
 const sortByModifiedAtDesc = (a: IFlag, b: IFlag): number =>
-  isoStringToMilliSecs(b.modifiedAt) - isoStringToMilliSecs(a.modifiedAt);
+  isoDateToMilliSecs(b.modifiedAt) - isoDateToMilliSecs(a.modifiedAt);
 
 export const mapLikeabilityRelations = (rows: any[] = [], userID = '') => {
   const items = rows
     .filter(row => filterLike(row, userID))
     .map(row => mapLikeabilityRelation(row));
-  items.sort(sortByModifiedAtDesc);
   return items.length > 0 ? items[0] : { value: '' };
 };
 

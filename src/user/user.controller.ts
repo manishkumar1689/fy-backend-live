@@ -90,6 +90,7 @@ import { isValidObjectId, Model } from 'mongoose';
 import { ActiveStatusDTO } from './dto/active-status.dto';
 import {
   dateAgoString,
+  isoDateToMilliSecs,
   matchJdAndDatetime,
   matchLocaleJulianDayData,
 } from '../astrologic/lib/date-funcs';
@@ -554,6 +555,7 @@ export class UserController {
     const items = await this.fetchMembers(start, limit, query);
     return res.json(items);
   }
+
   async fetchMembers(
     start = 0,
     limit = 100,
@@ -580,6 +582,7 @@ export class UserController {
     const hasContext = hasUser && notEmptyString(context, 2);
     // assign parameters by context
     const params = hasContext ? filterLikeabilityContext(context) : query;
+    const isLikeContext = hasContext && context !== 'search';
     let repeatInterval = -1;
     const searchMode = context === 'search';
     const filteredForUser = hasUser && searchMode;
@@ -816,7 +819,21 @@ export class UserController {
         }
       }
     }
-    items.sort((a, b) => (b.hasChart ? 1 : -1));
+
+    if (isLikeContext) {
+      items.sort((a, b) => {
+        if (a.likeability.to.modifiedAt && b.likeability.to.modifiedAt) {
+          return (
+            isoDateToMilliSecs(b.likeability.to.modifiedAt) -
+            isoDateToMilliSecs(a.likeability.to.modifiedAt)
+          );
+        } else {
+          return -100000;
+        }
+      });
+    } else {
+      items.sort((a, b) => (b.hasChart ? 1 : -1));
+    }
     return items;
   }
 

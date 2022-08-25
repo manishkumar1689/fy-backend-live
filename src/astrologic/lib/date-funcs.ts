@@ -462,8 +462,12 @@ export const unixTsToISODateString = (ts = 0, milliSecs = false) => {
 };
 
 /*
-  mainly for debugging
+  for output for DB queries
 */
-export const isoStringToMilliSecs = (strDate = ''): number => {
-  return validISODateString(strDate) ? new Date(strDate).getTime() : 0;
+export const isoDateToMilliSecs = (dateRef = null): number => {
+  return dateRef instanceof Date
+    ? dateRef.getTime()
+    : typeof dateRef === 'string' && validISODateString(dateRef)
+    ? new Date(dateRef).getTime()
+    : 0;
 };
