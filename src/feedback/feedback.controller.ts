@@ -158,6 +158,7 @@ export class FeedbackController {
     createFlagDTO: CreateFlagDTO,
     customTitle = '',
     customBody = '',
+    notificationKey = '',
   ) {
     const targetDeviceToken = await this.userService.getUserDeviceToken(
       createFlagDTO.targetUser,
@@ -192,6 +193,7 @@ export class FeedbackController {
           value,
           user,
           targetUser,
+          notificationKey,
         });
       }
     }
@@ -312,7 +314,7 @@ export class FeedbackController {
             recipSwipe.value,
             lang,
           );
-          fcm = await this.sendNotification(flagData, title, body);
+          fcm = await this.sendNotification(flagData, title, body, pnKey);
         }
       }
       data.valid = valid;
@@ -357,7 +359,12 @@ export class FeedbackController {
     let fcm: any = null;
     const fromUser = await this.userService.getBasicById(fromId);
     const otherUser = await this.userService.getBasicById(toId);
-    if (otherUser instanceof Object && notEmptyString(otherUser.nickName) && otherUser.active && fromUser instanceof Object) {
+    if (
+      otherUser instanceof Object &&
+      notEmptyString(otherUser.nickName) &&
+      otherUser.active &&
+      fromUser instanceof Object
+    ) {
       switch (mode) {
         case 'request':
           result = await this.feedbackService.sendFriendRequest(fromId, toId);
@@ -372,7 +379,9 @@ export class FeedbackController {
       const key = ['friend', mode].join('_');
       const requestMode = mode === 'request';
       const title = requestMode ? 'Friend request' : 'Friend request accepted';
-      const body = requestMode ? `${fromUser.nickName} would like to connect with you.` : `${fromUser.nickName} has accepted your friend request`;
+      const body = requestMode
+        ? `${fromUser.nickName} would like to connect with you.`
+        : `${fromUser.nickName} has accepted your friend request`;
       const type = 'int';
       const value = requestMode ? 1 : 2;
       if (notEmptyString(otherUser.deviceToken)) {
@@ -386,42 +395,48 @@ export class FeedbackController {
       }
     }
     const status = valid ? HttpStatus.OK : HttpStatus.NOT_ACCEPTABLE;
-    return res.status(status).json({ valid, result, mode, fromId, toId, fcm })
+    return res.status(status).json({ valid, result, mode, fromId, toId, fcm });
   }
 
   @Get('friends/:userId')
-  async getFriendIds(
-    @Res() res,
-    @Param('userId') userId,
-  ) {
+  async getFriendIds(@Res() res, @Param('userId') userId) {
     const validUser = isValidObjectId(userId);
     let valid = false;
     let friends: any[] = [];
     let sent: any[] = [];
     let received: any[] = [];
-    const result = validUser ? await this.feedbackService.getFriends(userId) : null;
+    const result = validUser
+      ? await this.feedbackService.getFriends(userId)
+      : null;
     if (result instanceof Object) {
       valid = result.friendIds instanceof Array;
-      friends = valid && result.friendIds.length > 0 ? await this.userService.getBasicByIds(result.friendIds, userId) : [];
+      friends =
+        valid && result.friendIds.length > 0
+          ? await this.userService.getBasicByIds(result.friendIds, userId)
+          : [];
       const validSent = result.sentIds instanceof Array;
-      sent = validSent && result.sentIds.length > 0 ? await this.userService.getBasicByIds(result.sentIds, userId) : [];
+      sent =
+        validSent && result.sentIds.length > 0
+          ? await this.userService.getBasicByIds(result.sentIds, userId)
+          : [];
       const validReceived = result.receivedIds instanceof Array;
-      received = validReceived && result.receivedIds.length > 0 ? await this.userService.getBasicByIds(result.receivedIds, userId) : [];
+      received =
+        validReceived && result.receivedIds.length > 0
+          ? await this.userService.getBasicByIds(result.receivedIds, userId)
+          : [];
     }
     const status = valid ? HttpStatus.OK : HttpStatus.NOT_ACCEPTABLE;
-    return res.status(status).json({ valid, friends, received, sent })
+    return res.status(status).json({ valid, friends, received, sent });
   }
 
   @Delete('unfriend/:fromId/:toId')
-  async removeFriend(
-    @Res() res,
-    @Param('fromId') fromId,
-    @Param('toId') toId,
-  ) {
+  async removeFriend(@Res() res, @Param('fromId') fromId, @Param('toId') toId) {
     const result = await this.feedbackService.unfriend(fromId, toId);
     const valid = result > 0;
     const status = valid ? HttpStatus.OK : HttpStatus.NOT_ACCEPTABLE;
-    return res.status(status).json({ valid, result, mode: 'unfriend', fromId, toId })
+    return res
+      .status(status)
+      .json({ valid, result, mode: 'unfriend', fromId, toId });
   }
 
   @Delete('delete-flag/:key/:user/:user2/:mutual?')

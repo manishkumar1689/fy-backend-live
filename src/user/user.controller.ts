@@ -579,6 +579,11 @@ export class UserController {
     let refChart = null;
     let hasRefChart = false;
     const context = queryKeys.includes('context') ? query.context : '';
+    // only applies to liked, superliked and matched listings
+    const startOffset =
+      queryKeys.includes('start') && isNumeric(query.start)
+        ? smartCastInt(query.start)
+        : 0;
     const hasContext = hasUser && notEmptyString(context, 2);
     // assign parameters by context
     const params = hasContext ? filterLikeabilityContext(context) : query;
@@ -636,6 +641,10 @@ export class UserController {
                 .map(fl => fl.user)
             : [];
         hasFilterIds = true;
+
+        if (startOffset > 0) {
+          filterIds.splice(0, startOffset);
+        }
       }
     }
     // end of like parameter matching
