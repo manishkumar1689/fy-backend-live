@@ -6,7 +6,7 @@ import { extractDocId, extractSimplified } from '../lib/entities';
 import { notEmptyString, validISODateString } from '../lib/validators';
 import { CreateFlagDTO } from './dto/create-flag.dto';
 import { Feedback } from './interfaces/feedback.interface';
-import { Flag, SimpleFlag} from './interfaces/flag.interface';
+import { Flag, SimpleFlag } from './interfaces/flag.interface';
 import {
   filterLikeabilityFlags,
   mapFlagItems,
@@ -162,18 +162,22 @@ export class FeedbackService {
       modifiedAt: { $gte: dt },
     };
     const criteriaObj1 = { ...criteriaObj, targetUser: userId };
-    const rows = await this.flagModel.find(criteriaObj1).select({
-      _id: 0,
-      __v: 0,
-      type: 0,
-      isRating: 0,
-      options: 0,
-      active: 0,
-      targetUser: 0,
-    });
+    const rows = await this.flagModel
+      .find(criteriaObj1)
+      .select({
+        _id: 0,
+        __v: 0,
+        type: 0,
+        isRating: 0,
+        options: 0,
+        active: 0,
+        targetUser: 0,
+      })
+      .sort({ modifiedAt: -1 });
     const filterMutual = mutualMode !== 0;
     if (filterMutual) {
-      const mutualValueFilter = mutualMode > 0 ? valueFilter : { $nin: [0, -1, -2] };
+      const mutualValueFilter =
+        mutualMode > 0 ? valueFilter : { $nin: [0, -1, -2] };
       const criteriaObj2 = {
         targetUser: { $in: rows.map(r => r.user) },
         user: userId,
@@ -195,12 +199,20 @@ export class FeedbackService {
         user: userId,
         value: { $lte: -3 },
       };
-      const rejectedRows = await this.flagModel.find(criteriaObj3).select('targetUser');
-      const rejectedIds = rejectedRows.length > 0 ? rejectedRows.map(r => r.targetUser.toString()) : [];
-      return rows.filter(r => rejectedIds.includes(r.user.toString()) === false).map(r => {
-        const isMutual = mutualIds.includes(r.user.toString());
-        return { ...r.toObject(), isMutual };
-      }).filter(r => r.isMutual === mutualMode > 0);
+      const rejectedRows = await this.flagModel
+        .find(criteriaObj3)
+        .select('targetUser');
+      const rejectedIds =
+        rejectedRows.length > 0
+          ? rejectedRows.map(r => r.targetUser.toString())
+          : [];
+      return rows
+        .filter(r => rejectedIds.includes(r.user.toString()) === false)
+        .map(r => {
+          const isMutual = mutualIds.includes(r.user.toString());
+          return { ...r.toObject(), isMutual };
+        })
+        .filter(r => r.isMutual === mutualMode > 0);
     } else {
       return rows;
     }
@@ -221,7 +233,7 @@ export class FeedbackService {
     trueFlags = [],
     preFetchFlags = false,
     searchMode = false,
-    repeatInterval = 0
+    repeatInterval = 0,
   ) {
     const userFlags = preFetchFlags
       ? await this.getAllUserInteractions(userId, 1, [])
@@ -252,7 +264,7 @@ export class FeedbackService {
 
     const excludeLikedMinVal = filterLiked2 ? 2 : filterLiked1 ? 1 : 3;
     if (notFlagItems.length < 1 && !searchMode) {
-     // notFlagItems.push({ key: 'passed3', value: -2, op: 'lt' } );
+      // notFlagItems.push({ key: 'passed3', value: -2, op: 'lt' } );
     }
     const excludedRecent = repeatInterval > 0;
     const excludeAllStartTs = excludedRecent
@@ -272,7 +284,7 @@ export class FeedbackService {
             .filter(flag => filterLikeabilityFlags(flag, trueFlagItems))
             .map(flag => flag.user)
         : [];
-    
+
     const extraExcludedIds = filterByLiked
       ? toFlags.filter(fl => fl.value >= excludeLikedMinVal).map(fl => fl.user)
       : [];
@@ -290,7 +302,7 @@ export class FeedbackService {
         if (row.value <= -3 && extraExcludedIds.includes(row.user) === false) {
           extraExcludedIds.push(row.user);
         }
-      })
+      });
     }
     if (extraExcludedIds.length > 0) {
       extraExcludedIds.forEach(id => {
@@ -478,14 +490,27 @@ export class FeedbackService {
     return Object.fromEntries(filter.entries());
   }
 
-  async getFriends(userId = ''): Promise<{ friendIds: string[], sentIds: string[], receivedIds: string[] }> {
-    const criteria: any = { key: 'friend', $or: [ { user: userId }, { targetUser: userId } ] };
+  async getFriends(
+    userId = '',
+  ): Promise<{
+    friendIds: string[];
+    sentIds: string[];
+    receivedIds: string[];
+  }> {
+    const criteria: any = {
+      key: 'friend',
+      $or: [{ user: userId }, { targetUser: userId }],
+    };
     const rows = await this.flagModel.find(criteria);
     const friendIds: string[] = [];
     const sentIds: string[] = [];
     const receivedIds: string[] = [];
-    const fromIds = rows.map(row => row.user.toString()).filter(uid => uid !== userId);
-    const toIds = rows.map(row => row.targetUser.toString()).filter(uid => uid !== userId);
+    const fromIds = rows
+      .map(row => row.user.toString())
+      .filter(uid => uid !== userId);
+    const toIds = rows
+      .map(row => row.targetUser.toString())
+      .filter(uid => uid !== userId);
     if (rows.length > 0) {
       rows.forEach(row => {
         const fromId = row.user.toString();
@@ -507,19 +532,30 @@ export class FeedbackService {
             receivedIds.push(fromId);
           }
         }
-      });  
+      });
     }
     return { friendIds, sentIds, receivedIds };
   }
 
-  async handleFriendRequest(fromId: string, toId: string, value = 1): Promise<number> {
-    const criteria = {key: 'friend', user: fromId, targetUser: toId};
+  async handleFriendRequest(
+    fromId: string,
+    toId: string,
+    value = 1,
+  ): Promise<number> {
+    const criteria = { key: 'friend', user: fromId, targetUser: toId };
     const current = await this.flagModel.findOne(criteria);
     if (current instanceof Object) {
       return parseInt(current.value, 10);
     } else {
       const nowDt = new Date();
-      const fieldData = { ...criteria, value, type: 'int', isRating: true, createdAt: nowDt, modifiedAt: nowDt };
+      const fieldData = {
+        ...criteria,
+        value,
+        type: 'int',
+        isRating: true,
+        createdAt: nowDt,
+        modifiedAt: nowDt,
+      };
       const newFlag = new this.flagModel(fieldData);
       newFlag.save();
       return fieldData.value;
@@ -530,18 +566,21 @@ export class FeedbackService {
     return await this.handleFriendRequest(fromId, toId, 1);
   }
 
-  async acceptFriendRequest(acceptingUserId: string, referrerId: string): Promise<number> {
+  async acceptFriendRequest(
+    acceptingUserId: string,
+    referrerId: string,
+  ): Promise<number> {
     return await this.handleFriendRequest(acceptingUserId, referrerId, 2);
   }
 
   async unfriend(fromId: string, toId: string): Promise<number> {
-    const criteria = {key: 'friend', user: fromId, targetUser: toId};
+    const criteria = { key: 'friend', user: fromId, targetUser: toId };
     const deleted = await this.flagModel.deleteOne(criteria);
     if (deleted instanceof Object) {
       return deleted.deletedCount;
     } else {
       return 0;
-    } 
+    }
   }
 
   async saveFlag(flagDto: CreateFlagDTO | SimpleFlag) {
