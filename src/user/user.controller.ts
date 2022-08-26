@@ -31,7 +31,12 @@ import {
   isString,
   validLocationParameter,
 } from '../lib/validators';
-import { smartCastFloat, smartCastInt, toStartRef } from '../lib/converters';
+import {
+  arrayHead,
+  smartCastFloat,
+  smartCastInt,
+  toStartRef,
+} from '../lib/converters';
 import { Request } from 'express';
 import {
   fromBase64,
@@ -643,8 +648,7 @@ export class UserController {
         hasFilterIds = true;
 
         if (startOffset > 0) {
-          // remove extra ids with startOffset
-          filterIds.splice(0, startOffset);
+          arrayHead(filterIds, startOffset);
         }
       }
     }

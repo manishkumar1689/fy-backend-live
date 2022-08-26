@@ -42,19 +42,35 @@ export const filterCorePreference = (pr: any) =>
   pr instanceof Object &&
   ['faceted', 'jungian', 'simple_astro_pair'].includes(pr.type) === false;
 
-export const matchFromPreferenceByKey = (preferences: any[] = [], targetKey = 'lang', defVal: any = null): any => {
-  const pref = preferences.find(pr => pr instanceof Object && Object.keys(pr).includes('key') && pr.key === targetKey);
-  return pref instanceof Object && Object.keys(pref).includes('value')? pref.value : defVal;
-}
+export const matchFromPreferenceByKey = (
+  preferences: any[] = [],
+  targetKey = 'lang',
+  defVal: any = null,
+): any => {
+  const pref = preferences.find(
+    pr =>
+      pr instanceof Object &&
+      Object.keys(pr).includes('key') &&
+      pr.key === targetKey,
+  );
+  return pref instanceof Object && Object.keys(pref).includes('value')
+    ? pref.value
+    : defVal;
+};
 
 export const matchValidLang = (lang: string, defVal = 'en'): string => {
-  return notEmptyString(lang, 1) && /[a-z][a-z][a-z]?(-[A-Z][A-Z])/.test(lang) ? lang : defVal;
-}
+  return notEmptyString(lang, 1) && /[a-z][a-z][a-z]?(-[A-Z][A-Z])/.test(lang)
+    ? lang
+    : defVal;
+};
 
-export const matchLangFromPreferences = (preferences: any[] = [], defVal = 'en'): string => {
+export const matchLangFromPreferences = (
+  preferences: any[] = [],
+  defVal = 'en',
+): string => {
   const lang = matchFromPreferenceByKey(preferences, 'lang', defVal);
   return matchValidLang(lang, defVal);
-}
+};
 
 export const removeIds = (item: any = null) => {
   if (item instanceof Object) {
@@ -62,7 +78,6 @@ export const removeIds = (item: any = null) => {
   }
   return item;
 };
-
 
 export const assignGenderOpt = (genderVal: any = null): string[] => {
   if (typeof genderVal === 'string') {
@@ -80,7 +95,9 @@ export const assignGenderOpt = (genderVal: any = null): string[] => {
       }
     }
   } else if (genderVal instanceof Array) {
-    return genderVal.filter(op => typeof op === 'string').map(op => op.toLowerCase());
+    return genderVal
+      .filter(op => typeof op === 'string')
+      .map(op => op.toLowerCase());
   }
   return [];
-}
+};

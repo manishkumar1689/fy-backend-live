@@ -271,24 +271,34 @@ export const htmlToPlainText = (html = ''): string => {
   }
 };
 
-
-export const extractSnippetTextByLang = (storedSnippet: Snippet, lang = 'en') => {
+export const extractSnippetTextByLang = (
+  storedSnippet: Snippet,
+  lang = 'en',
+) => {
   let text = '';
-    if (storedSnippet.values instanceof Array) {
-      const langRoot = lang.split('-').shift();
-      let langIndex = storedSnippet.values.findIndex(tr => tr.lang === lang);
-      if (langIndex < 0 && langRoot !== lang) {
-        langIndex = storedSnippet.values.findIndex(tr => tr.lang === langRoot);
-      }
-      if (langIndex < 0 && langRoot !== 'en') {
-        langIndex = storedSnippet.values.findIndex(tr => tr.lang === 'en');
-      }
-      if (langIndex >= 0) {
-        const version = storedSnippet.values[langIndex];
-        if (version instanceof Object) {
-          text = version.text;
-        }
+  if (storedSnippet.values instanceof Array) {
+    const langRoot = lang.split('-').shift();
+    let langIndex = storedSnippet.values.findIndex(tr => tr.lang === lang);
+    if (langIndex < 0 && langRoot !== lang) {
+      langIndex = storedSnippet.values.findIndex(tr => tr.lang === langRoot);
+    }
+    if (langIndex < 0 && langRoot !== 'en') {
+      langIndex = storedSnippet.values.findIndex(tr => tr.lang === 'en');
+    }
+    if (langIndex >= 0) {
+      const version = storedSnippet.values[langIndex];
+      if (version instanceof Object) {
+        text = version.text;
       }
     }
-    return text;
-}
+  }
+  return text;
+};
+
+export const arrayHead = (items: any[], startOffset = 0): any[] => {
+  const numItems = items.length;
+  const startIndex = startOffset < numItems ? startOffset - numItems : 0;
+  const numDeleted = startOffset < numItems ? numItems - startOffset : numItems;
+  items.splice(startIndex, numDeleted);
+  return items;
+};
