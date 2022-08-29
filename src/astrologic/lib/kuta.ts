@@ -585,6 +585,8 @@ export class Kuta {
       const innerRefKeys = allCombos ? refKeys : [k1];
       const gender1 = this.c1.gender;
       const gender2 = this.c2.gender;
+      this.gender1 = gender1;
+      this.gender2 = gender2;
       innerRefKeys.forEach(k2 => {
         items.push({
           k1,
