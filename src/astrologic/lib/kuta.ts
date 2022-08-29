@@ -581,22 +581,39 @@ export class Kuta {
   ): KutaValueSetItems[] {
     const items = [];
     const refKeys = grahaKeys.length > 1 ? grahaKeys : this.allKeys;
+    const gender1 = this.c1.gender;
+    const gender2 = this.c2.gender;
+    this.gender1 = gender1;
+    this.gender2 = gender2;
+    const sameSex = gender1 === gender2;
     refKeys.forEach(k1 => {
       const innerRefKeys = allCombos ? refKeys : [k1];
-      const gender1 = this.c1.gender;
-      const gender2 = this.c2.gender;
-      this.gender1 = gender1;
-      this.gender2 = gender2;
       innerRefKeys.forEach(k2 => {
+        const values = this.calcSingleKutas(
+          this.c1.graha(k1),
+          this.c2.graha(k2),
+          gender1,
+          gender2,
+        );
+        if (sameSex) {
+          const values2 = this.calcSingleKutas(
+            this.c2.graha(k2),
+            this.c1.graha(k1),
+            gender2,
+            gender1,
+          );
+          for (const v2 of values2) {
+            const v1 = values.find(vr => vr.variantKey === v2.variantKey);
+            if (v1 instanceof Object) {
+              const avg = (v1.score + v2.score) / 2;
+              v1.score = avg;
+            }
+          }
+        }
         items.push({
           k1,
           k2,
-          values: this.calcSingleKutas(
-            this.c1.graha(k1),
-            this.c2.graha(k2),
-            gender1,
-            gender2,
-          ),
+          values,
         });
       });
     });
@@ -651,7 +668,12 @@ export class Kuta {
     return Object.fromEntries(mp.entries());
   }
 
-  calcSingleKutas(gr1: Graha, gr2: Graha, gender1 = 'f', gender2 = 'm') {
+  calcSingleKutas(
+    gr1: Graha,
+    gr2: Graha,
+    gender1 = 'f',
+    gender2 = 'm',
+  ): KutaValueSet[] {
     this.valueSets = new Map<string, KutaValueSet>();
     if (gr1 instanceof Graha && gr2 instanceof Graha) {
       const { s1, s2, valid } = this.buildSubjects(gr1, gr2, gender1, gender2);
