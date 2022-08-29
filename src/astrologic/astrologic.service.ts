@@ -94,13 +94,11 @@ import {
   buildSingleProgressSetKeyValues,
   calcProgressAspectDataFromProgressItems,
   calcProgressAspectsFromJds,
-  calcProgressSummary,
   calcProgressSummaryMembers,
   progressItemsToDataSet,
 } from './lib/settings/progression';
 import { currentJulianDay } from './lib/julian-date';
 import { filterCorePreference } from '../lib/mappers';
-import { mapLikeabilityRelations, UserFlagSet } from '../lib/notifications';
 import { User } from '../user/interfaces/user.interface';
 import { KeyNumValue } from '../lib/interfaces';
 import {

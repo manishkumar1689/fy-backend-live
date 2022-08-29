@@ -583,11 +583,18 @@ export class Kuta {
     const refKeys = grahaKeys.length > 1 ? grahaKeys : this.allKeys;
     refKeys.forEach(k1 => {
       const innerRefKeys = allCombos ? refKeys : [k1];
+      const gender1 = this.c1.gender;
+      const gender2 = this.c2.gender;
       innerRefKeys.forEach(k2 => {
         items.push({
           k1,
           k2,
-          values: this.calcSingleKutas(this.c1.graha(k1), this.c2.graha(k2)),
+          values: this.calcSingleKutas(
+            this.c1.graha(k1),
+            this.c2.graha(k2),
+            gender1,
+            gender2,
+          ),
         });
       });
     });
@@ -642,10 +649,10 @@ export class Kuta {
     return Object.fromEntries(mp.entries());
   }
 
-  calcSingleKutas(gr1: Graha, gr2: Graha) {
+  calcSingleKutas(gr1: Graha, gr2: Graha, gender1 = 'f', gender2 = 'm') {
     this.valueSets = new Map<string, KutaValueSet>();
     if (gr1 instanceof Graha && gr2 instanceof Graha) {
-      const { s1, s2, valid } = this.buildSubjects(gr1, gr2);
+      const { s1, s2, valid } = this.buildSubjects(gr1, gr2, gender1, gender2);
       if (valid) {
         this.currentKeys.forEach(keyRef => {
           const {
@@ -671,7 +678,12 @@ export class Kuta {
   calcSingleKuta(key = '', gr1: Graha, gr2: Graha) {
     let result: any = null;
     if (gr1 instanceof Graha && gr2 instanceof Graha && notEmptyString(key)) {
-      const { s1, s2, valid } = this.buildSubjects(gr1, gr2);
+      const { s1, s2, valid } = this.buildSubjects(
+        gr1,
+        gr2,
+        this.c1.gender,
+        this.c2.gender,
+      );
       if (valid) {
         result = this.calcItem(key, [s1, s2]);
       }
@@ -679,12 +691,12 @@ export class Kuta {
     return result;
   }
 
-  buildSubjects(gr1: Graha, gr2: Graha) {
+  buildSubjects(gr1: Graha, gr2: Graha, gender1 = 'f', gender2 = 'm') {
     let s1 = null;
     let s2 = null;
     if (gr1 instanceof Graha && gr2 instanceof Graha) {
-      s1 = new KutaGrahaItem(gr1, this.gender1, false);
-      s2 = new KutaGrahaItem(gr2, this.gender2, true);
+      s1 = new KutaGrahaItem(gr1, gender1, false);
+      s2 = new KutaGrahaItem(gr2, gender2, true);
     }
     return {
       s1,
