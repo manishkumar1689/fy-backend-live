@@ -297,7 +297,7 @@ export const extractSnippetTextByLang = (
 
 export const arrayHead = (items: any[], startOffset = 0): any[] => {
   const numItems = items.length;
-  const startIndex = startOffset < numItems ? startOffset - numItems : 0;
+  const startIndex = startOffset < numItems ? 0 - startOffset : 0;
   const numDeleted = startOffset < numItems ? numItems - startOffset : numItems;
   items.splice(startIndex, numDeleted);
   return items;
