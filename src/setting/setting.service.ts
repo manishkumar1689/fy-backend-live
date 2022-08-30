@@ -163,7 +163,7 @@ export class SettingService {
   // get a kuta variants
   async getKutaSettings(resetCache = false): Promise<Map<string, any>> {
     const key = 'kuta_variants';
-    const stored = resetCache ? [] : await this.redisGet(key);
+    const stored = resetCache ? null : await this.redisGet(key);
     const hasStored =
       stored instanceof Object && Object.keys(stored).length > 0;
     if (hasStored) {
