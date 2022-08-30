@@ -815,7 +815,7 @@ export class Kuta {
               this._calcYoni(settings, result, dataSets);
               break;
             case 'gana':
-              this._calcGana(settings, result, dataSets);
+              this._calcGana(settings, result, dataSets, femaleFirst);
               break;
             case 'mahendra':
               this._calcMahendra(settings, result, dataSets, femaleFirst);
