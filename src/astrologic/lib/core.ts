@@ -2071,16 +2071,21 @@ export const calcMutualAspectMatches = (
     aspectDegs,
     ascAspectDegs,
   );
-  for (const row of matches2) {
+  const isSamePair = (r1: SynastryAspectMatch, r2: SynastryAspectMatch) => {
+    /* return (
+      (r1.k1 === r2.k1 && r1.k2 === r2.k2) ||
+      (r1.k1 === r2.k2 && r1.k2 === r2.k1)
+    ); */
+    return r1.k1 === r2.k2 && r1.k2 === r2.k1;
+  };
+  for (const r2 of matches2) {
     const hasRow = matches.some(
-      r1 =>
-        ((r1.k1 === row.k1 && r1.k2 === row.k2) ||
-          (r1.k1 === row.k2 && r1.k2 === row.k1)) &&
-        r1.deg === row.deg &&
-        r1.distance === row.distance,
+      r1 => isSamePair(r1, r2) && r1.distance === r2.distance,
     );
+
     if (!hasRow) {
-      matches.push(row);
+      matches.push(r2);
+      console.log(hasRow, r2);
     }
   }
   matches.sort((a, b) => a.distance - b.distance);
