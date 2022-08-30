@@ -1,12 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model } from 'mongoose';
 import * as Redis from 'ioredis';
 import { Lexeme } from './interfaces/lexeme.interface';
 import { CreateLexemeDTO } from './dto/create-lexeme.dto';
 import { TranslationDTO } from './dto/translation.dto';
 import { CategoryKeys } from './interfaces/category-keys';
-import { extractFromRedisClient, extractFromRedisMap, hashMapToObject, storeInRedis } from '../lib/entities';
+import {
+  extractFromRedisClient,
+  extractFromRedisMap,
+  hashMapToObject,
+  storeInRedis,
+} from '../lib/entities';
 import { RedisService } from 'nestjs-redis';
 
 @Injectable()
@@ -186,10 +191,14 @@ export class DictionaryService {
     return hashMapToObject(mp);
   }
 
-
   async getKutaDictMap(): Promise<Map<string, string>> {
     const mp: Map<string, string> = new Map();
-    const lexemes = await this.getByCategories(['kuta', 'rashi', 'nakshatra', 'dignity']);
+    const lexemes = await this.getByCategories([
+      'kuta',
+      'rashi',
+      'nakshatra',
+      'dignity',
+    ]);
     const matchKey = (longKey: string) => {
       const [start, end] = longKey.split('__');
       if (start === 'kuta') {
@@ -199,20 +208,20 @@ export class DictionaryService {
       } else {
         return [start, end].join('/');
       }
-    }
+    };
     lexemes.forEach(lex => {
       const mKey = matchKey(lex.key);
       mp.set(mKey, lex.name);
     });
     return mp;
   }
-  
-  async getKutaDict(): Promise<Map<string, string>> {
+
+  async getKutaDict(resetCache = false): Promise<Map<string, string>> {
     const key = 'kuta_dict';
-    const stored = await this.redisGet(key)
+    const stored = await this.redisGet(key);
     let mp: Map<string, string> = new Map();
     let hasStored = false;
-    if (stored instanceof Object) {
+    if (!resetCache && stored instanceof Object) {
       const entries = Object.entries(stored);
       if (entries.length > 10) {
         mp = new Map(entries) as Map<string, string>;
@@ -228,5 +237,4 @@ export class DictionaryService {
     }
     return mp;
   }
-
 }

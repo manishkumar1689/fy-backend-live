@@ -596,6 +596,7 @@ export class Kuta {
           gender2,
         );
         if (sameSex) {
+          // average for same fex pairs
           const values2 = this.calcSingleKutas(
             this.c2.graha(k2),
             this.c1.graha(k1),
@@ -1053,6 +1054,7 @@ export class Kuta {
     settings: any,
     result: KutaValueSet,
     dataSets: Array<KutaGrahaItem>,
+    femaleFirst = true,
   ) {
     const { nakshatraMatches, matchScores, max, calc } = settings;
 
@@ -1062,29 +1064,29 @@ export class Kuta {
       calc instanceof Array
     ) {
       const [s1, s2] = dataSets;
+      const female = femaleFirst ? s1 : s2;
+      const male = femaleFirst ? s2 : s1;
       let score = 0;
-      if (s1.nakshatraIndex < nakshatraMatches.length) {
-        const ganaOne = nakshatraMatches[s1.nakshatraIndex];
-        const ganaTwo = nakshatraMatches[s2.nakshatraIndex];
-        const ganaIndex1 = ganaOne - 1;
-        const ganaIndex2 = ganaTwo - 1;
+      if (female.nakshatraIndex < nakshatraMatches.length) {
+        const ganaF = nakshatraMatches[female.nakshatraIndex];
+        const ganaM = nakshatraMatches[male.nakshatraIndex];
+        const ganaIndexF = ganaF - 1;
+        const ganaIndexM = ganaM - 1;
         const protocolKey = this.itemOptions.get('gana');
         const scoreKeys = Object.keys(matchScores);
         if (protocolKey && scoreKeys.includes(protocolKey)) {
           const scoreSet = matchScores[protocolKey];
           if (
-            ganaIndex1 < 3 &&
-            ganaIndex2 < 3 &&
-            ganaIndex1 >= 0 &&
-            ganaIndex2 >= 0 &&
+            ganaIndexF < 3 &&
+            ganaIndexM < 3 &&
+            ganaIndexF >= 0 &&
+            ganaIndexM >= 0 &&
             scoreSet.length > 2
           ) {
-            score = scoreSet[ganaIndex1][ganaIndex2];
+            score = scoreSet[ganaIndexF][ganaIndexM];
             if (s1.gender !== s2.gender) {
-              const femaleGana = s1.gender === 'f' ? ganaOne : ganaTwo;
-              const maleGana = s1.gender === 'm' ? ganaOne : ganaTwo;
               const calcItem = calc.find(
-                ci => ci.f === femaleGana && ci.m === maleGana,
+                ci => ci.f === ganaF && ci.m === ganaM,
               );
               if (calcItem) {
                 if (calcItem.action === 'add') {
@@ -1092,8 +1094,10 @@ export class Kuta {
                 }
               }
             }
-            result.c1Value = ['gana', ganaOne].join('/');
-            result.c2Value = ['gana', ganaTwo].join('/');
+            const gana1 = femaleFirst ? ganaF : ganaM;
+            const gana2 = femaleFirst ? ganaM : ganaF;
+            result.c1Value = ['gana', gana1].join('/');
+            result.c2Value = ['gana', gana2].join('/');
           }
         }
         if (max instanceof Object) {

@@ -20,7 +20,7 @@ import {
 } from '../lib/entities';
 import { defaultPairedTagOptionSets } from '../astrologic/lib/settings/vocab-values';
 import { RuleSetDTO } from './dto/rule-set.dto';
-import { IdBoolDTO }from './dto/id-bool.dto';
+import { IdBoolDTO } from './dto/id-bool.dto';
 import { PredictiveRuleSet } from './interfaces/predictive-rule-set.interface';
 import { PredictiveRuleSetDTO } from './dto/predictive-rule-set.dto';
 import getDefaultPreferences, {
@@ -31,9 +31,7 @@ import multipleKeyScales from '../user/settings/multiscales';
 import { PreferenceOption } from '../user/interfaces/preference-option.interface';
 import { RedisService } from 'nestjs-redis';
 import * as Redis from 'ioredis';
-import {
-  ProtocolSettings,
-} from '../astrologic/lib/models/protocol-models';
+import { ProtocolSettings } from '../astrologic/lib/models/protocol-models';
 import { smartCastFloat, smartCastInt } from '../lib/converters';
 import permissionValues, {
   limitPermissions,
@@ -49,10 +47,7 @@ import { FacetedItemDTO } from './dto/faceted-item.dto';
 import eventTypeValues from '../astrologic/lib/settings/event-type-values';
 import { mapLikeability } from '../lib/notifications';
 import { filterCorePreference } from '../lib/mappers';
-import {
-  mapPPRule,
-  PPRule,
-} from '../astrologic/lib/settings/pancha-pakshi';
+import { mapPPRule, PPRule } from '../astrologic/lib/settings/pancha-pakshi';
 import { KotaCakraScoreSet } from '../astrologic/lib/settings/kota-values';
 import { DeviceVersion } from './lib/interfaces';
 import { defaultDeviceVersions } from './settings/device-versions';
@@ -166,15 +161,24 @@ export class SettingService {
   }
 
   // get a kuta variants
-  async getKutaSettings(): Promise<Map<string, any>> {
-    const data = await this.getByKey('kuta_variants');
-    const itemObj =
-      data instanceof Object &&
-      Object.keys(data).includes('value') &&
-      data.value instanceof Object
-        ? data.value
-        : {};
-    return new Map(Object.entries(itemObj));
+  async getKutaSettings(resetCache = false): Promise<Map<string, any>> {
+    const key = 'kuta_variants';
+    const stored = resetCache ? [] : await this.redisGet(key);
+    const hasStored =
+      stored instanceof Object && Object.keys(stored).length > 0;
+    if (hasStored) {
+      return new Map(Object.entries(stored));
+    } else {
+      const data = await this.getByKey(key);
+      const itemObj =
+        data instanceof Object &&
+        Object.keys(data).includes('value') &&
+        data.value instanceof Object
+          ? data.value
+          : {};
+      this.redisSet(key, itemObj);
+      return new Map(Object.entries(itemObj));
+    }
   }
 
   async getSubjectDataSetsRaw() {
@@ -600,7 +604,7 @@ export class SettingService {
 
   async getPPCutoff() {
     const key = 'pp_cutoff';
-    let value = await this.redisGet(key)
+    let value = await this.redisGet(key);
     if (!isNumeric(value) || value < 1) {
       const result = await this.getByKey(key);
       if (result instanceof Object && isNumeric(result.value)) {
@@ -710,7 +714,11 @@ export class SettingService {
     return updatedSetting;
   }
 
-  async updateSettingByKey(key = '', createSettingDTO: CreateSettingDTO, resetCache = false) {
+  async updateSettingByKey(
+    key = '',
+    createSettingDTO: CreateSettingDTO,
+    resetCache = false,
+  ) {
     let setting = null;
     let message = '';
     const matchedSetting = await this.getByKey(key);
@@ -719,23 +727,29 @@ export class SettingService {
       Object.keys(matchedSetting).includes('key');
     if (exists) {
       let value = createSettingDTO.value;
-      if (createSettingDTO.type === 'preferences' && createSettingDTO.value instanceof Array) {
+      if (
+        createSettingDTO.type === 'preferences' &&
+        createSettingDTO.value instanceof Array
+      ) {
         value = createSettingDTO.value.map(row => {
           const { prompt, versions } = row;
-          const newVersions = versions instanceof Array && versions.length > 0 ? versions.map((v, vi) => {
-            let { text } = v;
-            if (vi === 0 && (v.lang === 'en') && notEmptyString(prompt)) {
-              text = prompt;
-            }
-            return { ...v, text};
-          }) : [];
+          const newVersions =
+            versions instanceof Array && versions.length > 0
+              ? versions.map((v, vi) => {
+                  let { text } = v;
+                  if (vi === 0 && v.lang === 'en' && notEmptyString(prompt)) {
+                    text = prompt;
+                  }
+                  return { ...v, text };
+                })
+              : [];
           return { ...row, versions: newVersions };
-        })
+        });
       }
-      setting = await this.updateSetting(
-        extractDocId(matchedSetting),
-        {...createSettingDTO, value },
-      );
+      setting = await this.updateSetting(extractDocId(matchedSetting), {
+        ...createSettingDTO,
+        value,
+      });
       if (setting) {
         message = 'Setting has been updated successfully';
         this.clearCacheByKey(key);
@@ -836,9 +850,9 @@ export class SettingService {
       const cached = await this.redisGet(cKey);
       if (cached === true || cached === false) {
         value = cached;
-        hasCached = true
+        hasCached = true;
       }
-    } 
+    }
     if (!hasCached) {
       const setting = await this.getByKey(cKey);
       if (setting instanceof Object) {
@@ -873,7 +887,9 @@ export class SettingService {
     return { key: '', name: '', version: '', forceUpdate: false, valid: false };
   }
 
-  async saveDeviceVersions(versions: DeviceVersionDTO[]): Promise<DeviceVersion[]> {
+  async saveDeviceVersions(
+    versions: DeviceVersionDTO[],
+  ): Promise<DeviceVersion[]> {
     const key = 'device_versions';
     if (versions instanceof Array && versions.length > 0) {
       const value = versions.filter(row => row instanceof Object);
@@ -1037,14 +1053,20 @@ export class SettingService {
     return result;
   }
 
-  async savePredictiveRulesActive(items: IdBoolDTO [], clearPPActiveRulesCache = false) {
+  async savePredictiveRulesActive(
+    items: IdBoolDTO[],
+    clearPPActiveRulesCache = false,
+  ) {
     const rows: any[] = [];
     if (items.length > 0) {
       if (clearPPActiveRulesCache) {
         this.clearCacheByKey('pp_active_rules');
       }
       for (const row of items) {
-        const updated = await this.predictiveRuleSetModel.findByIdAndUpdate(row.id, { active: row.value });
+        const updated = await this.predictiveRuleSetModel.findByIdAndUpdate(
+          row.id,
+          { active: row.value },
+        );
         if (updated._id.toString() === row.id) {
           rows.push(row);
         }
@@ -1129,11 +1151,15 @@ export class SettingService {
   async getKotaChakraScoreData(skipCache = false): Promise<any> {
     const key = 'kota_cakra_scores';
     const cKey = [key, 1].join('_');
-    const stored = skipCache? await this.redisGet(cKey) : null;
+    const stored = skipCache ? await this.redisGet(cKey) : null;
     const isValidResult = (value: any = null) => {
       const keys = value instanceof Object ? Object.keys(value) : [];
-      return keys.includes('scores') && value.scores instanceof Array && value.scores.length > 1;
-    }
+      return (
+        keys.includes('scores') &&
+        value.scores instanceof Array &&
+        value.scores.length > 1
+      );
+    };
     let result: any = null;
     let hasScores = false;
     if (stored instanceof Object) {
@@ -1149,9 +1175,9 @@ export class SettingService {
       if (hasScores) {
         result = value;
         this.redisSet(cKey, value);
-      } 
+      }
     }
-    return hasScores? result : {};
+    return hasScores ? result : {};
   }
 
   async getKotaChakraScoreSet(): Promise<KotaCakraScoreSet> {
@@ -1161,11 +1187,11 @@ export class SettingService {
 
   async sbcOffset(skipCache = false): Promise<number> {
     const key = 'sbc_score';
-    const stored = skipCache? null : await this.redisGet(key);
+    const stored = skipCache ? null : await this.redisGet(key);
     let isStored = false;
     let offset = 0;
     if (stored instanceof Object) {
-      if (Object.keys(stored).includes("offset")) {
+      if (Object.keys(stored).includes('offset')) {
         offset = smartCastFloat(stored.offset, 0);
         isStored = true;
       }
@@ -1173,7 +1199,7 @@ export class SettingService {
     if (!isStored) {
       const data = await this.getByKey(key);
       const { value } = data;
-      if (Object.keys(value).includes("offset")) {
+      if (Object.keys(value).includes('offset')) {
         offset = smartCastFloat(value.offset, 0);
         this.redisSet(key, value.offset);
       }
@@ -1181,11 +1207,16 @@ export class SettingService {
     return offset;
   }
 
-  async fetchCachedSetting(key = '', skipCache = false, minSize = 2): Promise<any> {
-    const stored = skipCache? null : await this.redisGet(key);
+  async fetchCachedSetting(
+    key = '',
+    skipCache = false,
+    minSize = 2,
+  ): Promise<any> {
+    const stored = skipCache ? null : await this.redisGet(key);
     let isStored = false;
     let settingValue = null;
-    const isValid = (obj: any = null) => obj instanceof Object && Object.keys(obj).length >= minSize;
+    const isValid = (obj: any = null) =>
+      obj instanceof Object && Object.keys(obj).length >= minSize;
     if (stored instanceof Object) {
       if (isValid(stored)) {
         settingValue = stored;
@@ -1203,7 +1234,7 @@ export class SettingService {
     return settingValue;
   }
 
-  async synastryOrbs(skipCache = false): Promise<{[key: string]: number}> {
+  async synastryOrbs(skipCache = false): Promise<{ [key: string]: number }> {
     const key = 'synastry_orbs';
     return await this.fetchCachedSetting(key, skipCache, 2);
   }
@@ -1218,10 +1249,15 @@ export class SettingService {
     const kcScoreSet = await this.getKotaChakraScoreSet();
     const orbMap = await this.synastryOrbs();
     const p2Scores = await this.p2Scores();
-    const dictMap: Map<string, string> = kutaDictMap instanceof Map ? kutaDictMap : new Map();
+    const dictMap: Map<string, string> =
+      kutaDictMap instanceof Map ? kutaDictMap : new Map();
     return {
-      kutaSet, kcScoreSet, orbMap, p2Scores, dictMap
-    }
+      kutaSet,
+      kcScoreSet,
+      orbMap,
+      p2Scores,
+      dictMap,
+    };
   }
 
   async resetCustomSettingsCache(): Promise<boolean> {
