@@ -75,7 +75,7 @@ import { sampleBaseObjects } from './custom-transits';
 import { GeoLoc } from './models/geo-loc';
 import { calcTransposedGrahaTransitions } from './point-transitions';
 import { KeyLng, SynastryAspectMatch } from './interfaces';
-import { keyValuesToSimpleObject  } from '../../lib/converters';
+import { keyValuesToSimpleObject } from '../../lib/converters';
 import { matchSynastryOrbRange } from './calc-orbs';
 
 swisseph.swe_set_ephe_path(ephemerisPath);
@@ -701,7 +701,7 @@ export const buildExtendedTransitions = async (
   jd = 0,
   modeRef = 'basic',
   adjustMode = '',
-  birthChart: Chart = new Chart()
+  birthChart: Chart = new Chart(),
 ) => {
   const adjustRiseBy12 = adjustMode !== 'spot';
   const coreData = await calcAllTransitionsFromJd(jd, geo, 0, adjustRiseBy12);
@@ -750,7 +750,13 @@ export const buildCurrentAndBirthExtendedTransitions = async (
   jd = 0,
   offset = -0.5,
 ) => {
-  const result = await buildExtendedTransitions(geo, jd + offset, 'extended', '', chart);
+  const result = await buildExtendedTransitions(
+    geo,
+    jd + offset,
+    'extended',
+    '',
+    chart,
+  );
   const { transitions } = result;
   const gps = chart.bodies.map(({ lng, lat, lngSpeed, key }) => {
     return { lng, lat, lngSpeed, key };
@@ -792,25 +798,27 @@ export const buildCurrentAndBirthExtendedTransitions = async (
       const setRow = transitions.find(item => item.type === 'set');
       const mcRow = transitions.find(item => item.type === 'mc');
       const icRow = transitions.find(item => item.type === 'ic');
-      const rise = riseRow instanceof Object? riseRow : {...emptyTimeSet};
-      const set = setRow instanceof Object? setRow : {...emptyTimeSet};
-      const mc = mcRow instanceof Object? mcRow : {...emptyTimeSet};
-      const ic = icRow instanceof Object? icRow : {...emptyTimeSet};
+      const rise = riseRow instanceof Object ? riseRow : { ...emptyTimeSet };
+      const set = setRow instanceof Object ? setRow : { ...emptyTimeSet };
+      const mc = mcRow instanceof Object ? mcRow : { ...emptyTimeSet };
+      const ic = icRow instanceof Object ? icRow : { ...emptyTimeSet };
       return { key, rise, set, mc, ic };
     });
   if (offset === -0.5) {
-    const extra = await buildCurrentAndBirthExtendedTransitions(chart,
+    const extra = await buildCurrentAndBirthExtendedTransitions(
+      chart,
       geo,
       jd,
-      0.495);
+      0.495,
+    );
     extra.transitions.forEach(tr => {
       const key = tr.key + '2';
-      transitions.push({...tr, key});
-    })
+      transitions.push({ ...tr, key });
+    });
     extra.birthTransitions.forEach(tr => {
       const key = tr.key + '2';
-      birthTransitions.push({...tr, key});
-    })
+      birthTransitions.push({ ...tr, key });
+    });
   }
   return { transitions, birthTransitions };
 };
@@ -968,7 +976,7 @@ export const calcLngJd = async (jd: number, key: string): Promise<number> => {
 export const calcLngsJd = async (
   jd: number,
   keys: string[] = [],
-  ayanamshaValue = 0
+  ayanamshaValue = 0,
 ): Promise<KeyLng[]> => {
   const gKeys =
     keys.length < 2 ? ['su', 'mo', 'ma', 'me', 'ju', 've', 'sa'] : keys;
@@ -1944,9 +1952,24 @@ export const calcVargas = async (datetime, geo, system = 'W') => {
   return { jd: houseData.jd, datetime, geo, vargas };
 };
 
-export const defaultAspectGrahaKeys = ['su', 'mo', 'ma', 'me', 'ju', 've', 'sa', 'as', 'ds'];
+export const defaultAspectGrahaKeys = [
+  'su',
+  'mo',
+  'ma',
+  'me',
+  'ju',
+  've',
+  'sa',
+  'as',
+  'ds',
+];
 
-export const calcAllAspects = (c1: Chart, c2: Chart, grahaKeys1: string[] = [], grahaKeys2: string[] = []) => {
+export const calcAllAspects = (
+  c1: Chart,
+  c2: Chart,
+  grahaKeys1: string[] = [],
+  grahaKeys2: string[] = [],
+) => {
   const aspects = [];
   const keys1 = grahaKeys1.length > 0 ? grahaKeys1 : defaultAspectGrahaKeys;
   const keys2 = grahaKeys2.length > 0 ? grahaKeys2 : defaultAspectGrahaKeys;
@@ -1965,37 +1988,82 @@ export const calcAllAspects = (c1: Chart, c2: Chart, grahaKeys1: string[] = [], 
   return aspects;
 };
 
-export const calcAspectMatches = (c1: Chart, c2: Chart, grahaKeys1: string[] = [], grahaKeys2: string[] = [], orbMap = null, aspectDegs:number[] = [0, 90, 120, 180], ascAspectDegs = [0, 30, 60, 90, 120, 150, 180]): SynastryAspectMatch[] => {
+export const calcAspectMatches = (
+  c1: Chart,
+  c2: Chart,
+  grahaKeys1: string[] = [],
+  grahaKeys2: string[] = [],
+  orbMap = null,
+  aspectDegs: number[] = [0, 90, 120, 180],
+  ascAspectDegs = [0, 30, 60, 90, 120, 150, 180],
+): SynastryAspectMatch[] => {
   const aspects = calcAllAspects(c1, c2, grahaKeys1, grahaKeys2);
-  return aspects.map(asp => {
-    const aDegs = asp.k1 === 'as' && asp.k2 === 'as' ? ascAspectDegs : aspectDegs;
-    return aDegs.map(deg => {
-      // const row = matchAspectRowByDeg(deg);
-      const orbRow = matchSynastryOrbRange(asp.k1, asp.k2, deg, orbMap);
-      const ranges = orbRow.ranges.map(range => {
-        const [first, second] = range;
-        const midDeg = first < second? (first + second)  / 2 : ((first - 360) + second) / 2;
-        return {
-          valid: inRange360(asp.value, range),
-          distance: calcDist360(midDeg, asp.value),
-          range
-        }
-      }).filter(r => r.valid);
-      return {
-        ranges,
-        orb: orbRow.orb,
-        deg,
-        ...asp
-      }
-    }).filter(r => r.ranges.length > 0).map(r => {
-      const { distance } = r.ranges[0];
-      const { deg, k1, k2, orb, value } = r;
-      return {
-        deg, k1, k2, orb, value, distance
-      }
-    });
-  }).reduce((a, b) => a.concat(b), []);
-}
+  return aspects
+    .map(asp => {
+      const aDegs =
+        asp.k1 === 'as' && asp.k2 === 'as' ? ascAspectDegs : aspectDegs;
+      return aDegs
+        .map(deg => {
+          // const row = matchAspectRowByDeg(deg);
+          const orbRow = matchSynastryOrbRange(asp.k1, asp.k2, deg, orbMap);
+          const ranges = orbRow.ranges
+            .map(range => {
+              const [first, second] = range;
+              const midDeg =
+                first < second
+                  ? (first + second) / 2
+                  : (first - 360 + second) / 2;
+              return {
+                valid: inRange360(asp.value, range),
+                distance: calcDist360(midDeg, asp.value),
+                range,
+              };
+            })
+            .filter(r => r.valid);
+          return {
+            ranges,
+            orb: orbRow.orb,
+            deg,
+            ...asp,
+          };
+        })
+        .filter(r => r.ranges.length > 0)
+        .map(r => {
+          const { distance } = r.ranges[0];
+          const { deg, k1, k2, orb, value } = r;
+          return {
+            deg,
+            k1,
+            k2,
+            orb,
+            value,
+            distance,
+          };
+        });
+    })
+    .reduce((a, b) => a.concat(b), []);
+};
+
+export const calcMutualAspectMatches = (
+  c1: Chart,
+  c2: Chart,
+  grahaKeys1: string[] = [],
+  grahaKeys2: string[] = [],
+  orbMap = null,
+  aspectDegs: number[] = [0, 90, 120, 180],
+  ascAspectDegs = [0, 30, 60, 90, 120, 150, 180],
+): SynastryAspectMatch[] => {
+  const matches = calcAspectMatches(
+    c1,
+    c2,
+    grahaKeys1,
+    grahaKeys2,
+    aspectDegs,
+    ascAspectDegs,
+  );
+  console.log(matches);
+  return matches;
+};
 
 const matchCaughadia = ({ jd, weekDay, dayStart, dayLength, isDaytime }) => {
   const caughadiaDayRow = caughadiaData.days.find(row => row.day === weekDay);
