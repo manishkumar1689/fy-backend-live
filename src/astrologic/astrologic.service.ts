@@ -67,6 +67,7 @@ import {
   calcAyanamsha,
   calcCompactChartData,
   calcCoreGrahaPositions,
+  calcMutualAspectMatches,
 } from './lib/core';
 import { Chart as ChartClass } from './lib/models/chart';
 import { Kuta, KutaValueSetItems } from './lib/kuta';
@@ -1834,7 +1835,7 @@ export class AstrologicService {
     const kcS2 = calcKotaChakraScoreData(chart, refChart, kcScoreSet, true);
     const baseAspectKeys = ['as', 'su', 'mo', 'me', 've', 'ma'];
     const ascAspectKeys = [...baseAspectKeys, 'ju', 'sa', 'ur', 'pl'];
-    const aspectMatches = calcAspectMatches(
+    const aspectMatches = calcMutualAspectMatches(
       refChart,
       chart,
       baseAspectKeys,

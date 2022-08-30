@@ -2058,10 +2058,32 @@ export const calcMutualAspectMatches = (
     c2,
     grahaKeys1,
     grahaKeys2,
+    orbMap,
     aspectDegs,
     ascAspectDegs,
   );
-  console.log(matches);
+  const matches2 = calcAspectMatches(
+    c2,
+    c1,
+    grahaKeys2,
+    grahaKeys1,
+    orbMap,
+    aspectDegs,
+    ascAspectDegs,
+  );
+  for (const row of matches2) {
+    const hasRow = matches.some(
+      r1 =>
+        ((r1.k1 === row.k1 && r1.k2 === row.k2) ||
+          (r1.k1 === row.k2 && r1.k2 === row.k1)) &&
+        r1.deg === row.deg &&
+        r1.distance === row.distance,
+    );
+    if (!hasRow) {
+      matches.push(row);
+    }
+  }
+  matches.sort((a, b) => a.distance - b.distance);
   return matches;
 };
 
