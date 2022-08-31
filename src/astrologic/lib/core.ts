@@ -1969,6 +1969,7 @@ export const calcAllAspects = (
   c2: Chart,
   grahaKeys1: string[] = [],
   grahaKeys2: string[] = [],
+  mutual = false,
 ) => {
   const aspects = [];
   const keys1 = grahaKeys1.length > 0 ? grahaKeys1 : defaultAspectGrahaKeys;
@@ -1983,6 +1984,16 @@ export const calcAllAspects = (
         k2,
         value: angle,
       });
+      if (mutual && grahaKeys1.includes(k2) === false) {
+        const gr1B = c1.graha(k2);
+        const gr2B = c2.graha(k1);
+        const angleB = relativeAngle(gr1B.longitude, gr2B.longitude);
+        aspects.push({
+          k1,
+          k2,
+          value: angleB,
+        });
+      }
     });
   });
   return aspects;
@@ -1996,8 +2007,9 @@ export const calcAspectMatches = (
   orbMap = null,
   aspectDegs: number[] = [0, 90, 120, 180],
   ascAspectDegs = [0, 30, 60, 90, 120, 150, 180],
+  mutual = false,
 ): SynastryAspectMatch[] => {
-  const aspects = calcAllAspects(c1, c2, grahaKeys1, grahaKeys2);
+  const aspects = calcAllAspects(c1, c2, grahaKeys1, grahaKeys2, mutual);
   return aspects
     .map(asp => {
       const aDegs =
@@ -2061,33 +2073,9 @@ export const calcMutualAspectMatches = (
     orbMap,
     aspectDegs,
     ascAspectDegs,
+    true,
   );
-  const matches2 = calcAspectMatches(
-    c2,
-    c1,
-    grahaKeys2,
-    grahaKeys1,
-    orbMap,
-    aspectDegs,
-    ascAspectDegs,
-  );
-  const isSamePair = (r1: SynastryAspectMatch, r2: SynastryAspectMatch) => {
-    /* return (
-      (r1.k1 === r2.k1 && r1.k2 === r2.k2) ||
-      (r1.k1 === r2.k2 && r1.k2 === r2.k1)
-    ); */
-    return r1.k1 === r2.k2 && r1.k2 === r2.k1;
-  };
-  for (const r2 of matches2) {
-    const hasRow = matches.some(
-      r1 => isSamePair(r1, r2) && r1.distance === r2.distance,
-    );
 
-    if (!hasRow) {
-      matches.push(r2);
-      console.log(hasRow, r2);
-    }
-  }
   matches.sort((a, b) => a.distance - b.distance);
   return matches;
 };
