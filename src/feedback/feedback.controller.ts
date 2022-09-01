@@ -159,12 +159,14 @@ export class FeedbackController {
     customTitle = '',
     customBody = '',
     notificationKey = '',
+    nickName = '',
+    profileImg = '',
   ) {
+    const { key, type, value, user, targetUser } = createFlagDTO;
     const targetDeviceToken = await this.userService.getUserDeviceToken(
-      createFlagDTO.targetUser,
+      targetUser,
     );
     let fcm: any = { valid: false, reason: 'missing device token' };
-    const { key, type, value, user, targetUser } = createFlagDTO;
 
     if (notEmptyString(targetDeviceToken, 5)) {
       const plainText = type === 'text' && notEmptyString(value);
@@ -187,14 +189,23 @@ export class FeedbackController {
             ? value
             : 'Someone has interacted with you.'
           : value.text;
-        fcm = await pushMessage(targetDeviceToken, title, body, {
+        const payload: any = {
           key,
           type,
           value,
           user,
           targetUser,
-          notificationKey,
-        });
+        };
+        if (notEmptyString(notificationKey)) {
+          payload.notificationKey = notificationKey;
+        }
+        if (notEmptyString(nickName)) {
+          payload.nickName = nickName;
+        }
+        if (notEmptyString(profileImg, 5)) {
+          payload.profileImg = profileImg;
+        }
+        fcm = await pushMessage(targetDeviceToken, title, body, payload);
       }
     }
     return fcm;
@@ -303,7 +314,10 @@ export class FeedbackController {
             : 'been_liked';
         const maySend = pushNotifications.includes(pnKey);
         if (maySend) {
-          const nickName = await this.userService.getNickName(flagData.user);
+          const {
+            nickName,
+            profileImg,
+          } = await this.userService.getNickNameAndPic(flagData.user);
 
           const {
             title,
@@ -314,7 +328,14 @@ export class FeedbackController {
             recipSwipe.value,
             lang,
           );
-          fcm = await this.sendNotification(flagData, title, body, pnKey);
+          fcm = await this.sendNotification(
+            flagData,
+            title,
+            body,
+            pnKey,
+            nickName,
+            profileImg,
+          );
         }
       }
       data.valid = valid;

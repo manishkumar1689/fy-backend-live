@@ -35,6 +35,7 @@ import {
   extractBooleanFromKeyedItems,
   extractFloatFromKeyedItems,
   extractKeyedItemValue,
+  extractProfileImage,
   extractStringFromKeyedItems,
   smartCastBool,
   smartCastFloat,
@@ -143,13 +144,7 @@ export class UserService {
       preferences,
       surveys,
     } = obj;
-    let profileImg = '';
-    if (profiles instanceof Array && profiles.length > 0) {
-      const { mediaItems } = profiles[0];
-      if (mediaItems instanceof Array && mediaItems.length > 0) {
-        profileImg = mediaItems[0].filename;
-      }
-    }
+    const profileImg = extractProfileImage(profiles);
     const showOnlineStatus = extractBooleanFromKeyedItems(
       preferences,
       'show_online_status',
@@ -276,6 +271,19 @@ export class UserService {
   async getNickName(uid: string): Promise<string> {
     const userRec = await this.getBasicById(uid, ['nickName']);
     return userRec instanceof Object ? userRec.nickName : '';
+  }
+
+  async getNickNameAndPic(
+    uid: string,
+  ): Promise<{ nickName: string; profileImg: string }> {
+    const userRec = await this.getBasicById(uid, ['nickName', 'profiles']);
+    const mapNameAndPic = (obj: any = null) => {
+      const { nickName, profiles } = obj;
+      return { nickName, profileImg: extractProfileImage(profiles) };
+    };
+    return userRec instanceof Object
+      ? mapNameAndPic(userRec)
+      : { nickName: '', profileImg: '' };
   }
 
   /* async updatePrefValue(userID = '', key = '', value = null, type = 'string') {

@@ -233,6 +233,17 @@ export const extractBooleanFromKeyedItems = (
   return matched && typeof item.value === 'boolean' ? item.value : defaultValue;
 };
 
+export const extractProfileImage = (profiles: any[]): string => {
+  let profileImg = '';
+  if (profiles instanceof Array && profiles.length > 0) {
+    const { mediaItems } = profiles[0];
+    if (mediaItems instanceof Array && mediaItems.length > 0) {
+      profileImg = mediaItems[0].filename;
+    }
+  }
+  return profileImg;
+};
+
 export const extractStringFromKeyedItems = (
   items: any[] = [],
   key = '',
