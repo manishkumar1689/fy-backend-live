@@ -1,5 +1,5 @@
 import * as admin from 'firebase-admin';
-import { isoDateToMilliSecs } from 'src/astrologic/lib/date-funcs';
+import { isoDateToMilliSecs } from '../astrologic/lib/date-funcs';
 import { googleFCMKeyPath, googleFCMBase, googleFCMDomain } from '../.config';
 import { isNumeric } from './validators';
 
