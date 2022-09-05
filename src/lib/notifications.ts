@@ -38,6 +38,7 @@ export interface FlagVal {
   key?: string;
   value: any;
   type?: string;
+  viewed?: number;
   modifiedAt?: string;
 }
 
@@ -96,23 +97,30 @@ export const mapLikeabilityRelation = (item = null): FlagVal => {
   }
 };
 
-const sortByModifiedAtDesc = (a: IFlag, b: IFlag): number =>
-  isoDateToMilliSecs(b.modifiedAt) - isoDateToMilliSecs(a.modifiedAt);
-
-export const mapLikeabilityRelations = (rows: any[] = [], userID = '') => {
+export const mapLikeabilityRelations = (
+  rows: any[] = [],
+  userID = '',
+  viewFlags: FlagVal[] = [],
+) => {
   const items = rows
     .filter(row => filterLike(row, userID))
     .map(row => mapLikeabilityRelation(row));
-  return items.length > 0 ? items[0] : { value: '' };
+  const hasResult = items.length > 0;
+  const result = hasResult ? items[0] : { value: '' };
+  const viewed = hasResult && viewFlags.length > 0 ? viewFlags[0].value : 0;
+  return hasResult && viewed > 0 ? { ...result, viewed } : result;
 };
 
 export const mapReciprocalLikeability = (
   flags: UserFlagSet,
   refUserId = '',
 ) => {
+  const viewed = flags.from.filter(
+    flag => flag.key === 'viewed' && flag.user.toString() === refUserId,
+  );
   const filteredLikes = {
     from: mapLikeabilityRelations(flags.likeability.from, refUserId),
-    to: mapLikeabilityRelations(flags.likeability.to, refUserId),
+    to: mapLikeabilityRelations(flags.likeability.to, refUserId, viewed),
   };
   return filteredLikes;
 };

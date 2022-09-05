@@ -94,8 +94,9 @@ export class FeedbackService {
       criteria.set('$or', [{ user: user }, { targetUser: user }]);
     }
     criteria.set('active', true);
-    criteria.set('modifiedAt', { $gte: dt });
+    criteria.set('modifiedAt', { $gte: new Date(dt) });
     const criteriaObj = Object.fromEntries(criteria.entries());
+
     const rows = await this.flagModel
       .find(criteriaObj)
       .select({ _id: 0, __v: 0, isRating: 0, options: 0, active: 0 });

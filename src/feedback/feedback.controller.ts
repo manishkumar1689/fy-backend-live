@@ -369,6 +369,43 @@ export class FeedbackController {
     return res.status(HttpStatus.OK).json({ ...data, recipSwipe, hasPaidRole });
   }
 
+  /*
+   * register viewed status of likeability match with interger value
+   * 1) other user has liked you (acknowleged, not reciprocated yet)
+   * 2) other user has superliked you (acknowleged, not reciprocated yet)
+   * 3) other person has liked you to back (match acknowledged)
+   * 4) other person has superliked to back (match acknowledged)
+   * 5) other person has superliked you (and you have superliked them, reciprocal superlike acknowleged)
+   * one-way like / superlike > OK
+   * match acknowleged 3+
+   */
+  @Post('viewed')
+  async saveRead(@Res() res, @Body() swipeDTO: SwipeDTO) {
+    const value = smartCastInt(swipeDTO.value, 0);
+    const result = { valid: false, status: 0 };
+    if (
+      isValidObjectId(swipeDTO.from) &&
+      isValidObjectId(swipeDTO.to) &&
+      value > 0
+    ) {
+      const createFlagDTO = {
+        key: 'viewed',
+        value,
+        type: 'int',
+        user: swipeDTO.from,
+        targetUser: swipeDTO.to,
+        createdAt: new Date(),
+        modifiedAt: new Date(),
+      } as CreateFlagDTO;
+      const data = await this.feedbackService.saveFlag(createFlagDTO);
+      if (data instanceof Object) {
+        result.status = value;
+        result.valid = true;
+      }
+    }
+    return res.json(result);
+  }
+
   @Get('friend/:mode/:fromId/:toId')
   async handleFriendRequest(
     @Res() res,
