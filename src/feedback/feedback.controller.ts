@@ -383,6 +383,7 @@ export class FeedbackController {
   async saveRead(@Res() res, @Body() swipeDTO: SwipeDTO) {
     const value = smartCastInt(swipeDTO.value, 0);
     const result = { valid: false, status: 0 };
+    let status = HttpStatus.NOT_ACCEPTABLE;
     if (
       isValidObjectId(swipeDTO.from) &&
       isValidObjectId(swipeDTO.to) &&
@@ -401,9 +402,10 @@ export class FeedbackController {
       if (data instanceof Object) {
         result.status = value;
         result.valid = true;
+        status = HttpStatus.OK;
       }
     }
-    return res.json(result);
+    return res.status(status).json(result);
   }
 
   @Get('friend/:mode/:fromId/:toId')
