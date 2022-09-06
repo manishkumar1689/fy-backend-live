@@ -1511,6 +1511,7 @@ export class AstrologicController {
     //const geoInfo = await this.fetchGeoInfo(geo, refDt);
     const gender = keys.includes('gender') ? query.gender : '';
     const name = keys.includes('gender') ? query.name : 'N/A';
+    const saveChart = keys.includes('save') && smartCastInt(query.save, 0) > 0;
     const showUserChart = keys.includes('uc')
       ? smartCastInt(query.uc, 0) > 0
       : false;
@@ -1533,11 +1534,22 @@ export class AstrologicController {
       eventType: 'birth',
       roddenValue,
     };
+
     data.progressItems = showP2
       ? await buildSingleProgressSetKeyValues(data.jd)
       : [];
     const c2 = new Chart(data);
+    let saved = false;
     c2.setAyanamshaItemByKey('true_citra');
+    if (saveChart) {
+      data.user = userID;
+      data.placenames = data.placenames.map(p => {
+        const { name, fullName, type, lat, lng } = p;
+        return { name, fullName, type, geo: { lat, lng } };
+      });
+      this.astrologicService.createChart(data as CreateChartDTO);
+      saved = true;
+    }
     const otherChart = simplifyAstroChart(data, true, true);
     addExtraPanchangaNumValuesFromClass(data, c2, 'true_citra');
     let userChart = null;
@@ -1565,8 +1577,8 @@ export class AstrologicController {
         customSettings,
       );
       const result = showUserChart
-        ? { valid: true, ...compatibility, otherChart, userChart }
-        : { valid: true, ...compatibility, chart: otherChart };
+        ? { valid: true, saved, ...compatibility, otherChart, userChart }
+        : { valid: true, saved, ...compatibility, chart: otherChart };
       return res.json(result);
     } else {
       return res.status(HttpStatus.BAD_REQUEST).json({ valid: false });
@@ -3803,6 +3815,42 @@ export class AstrologicController {
       data.valid = true;
     }
     return res.json(data);
+  }
+
+  /*
+   * Mobile only
+   */
+  @Get('extra-charts/:userID/:start?/:limit?')
+  async fetchCExtraChartsByUser(
+    @Res() res,
+    @Param('userID') userID: string,
+    @Param('start') start = '0',
+    @Param('limit') limit = '100',
+  ) {
+    const data = { valid: false, items: [], message: 'invalid user ID' };
+    const user = await this.userService.getUser(userID);
+    if (user instanceof Object) {
+      if (user.active) {
+        const startVal = smartCastInt(start, 0);
+        const limitVal = smartCastInt(limit, 100);
+        const charts = await this.astrologicService.getChartsByUser(
+          userID,
+          startVal,
+          limitVal,
+          false,
+          { mode: 'other' },
+          false,
+        );
+        if (charts instanceof Array) {
+          data.items = charts.map(c => simplifyChart(c));
+          data.valid = true;
+          data.message = 'OK';
+        } else {
+          data.message = 'Inactive account';
+        }
+      }
+    }
+    return res.status(HttpStatus.OK).json(data);
   }
 
   /*

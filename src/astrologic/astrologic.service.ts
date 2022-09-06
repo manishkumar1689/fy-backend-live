@@ -1935,6 +1935,7 @@ export class AstrologicService {
   ) {
     const condMap = new Map<string, any>();
     let showUserFirst = start < 1;
+    let notDefaultOnly = false;
     if (queryParams instanceof Object) {
       Object.entries(queryParams).map(entry => {
         const [key, val] = entry;
@@ -1946,6 +1947,9 @@ export class AstrologicService {
               break;
             case 'id':
               condMap.set('_id', val);
+              break;
+            case 'mode':
+              notDefaultOnly = val === 'other';
               break;
           }
         }
@@ -1964,6 +1968,8 @@ export class AstrologicService {
 
     if (defaultOnly) {
       condMap.set('isDefaultBirthChart', true);
+    } else if (notDefaultOnly) {
+      condMap.set('isDefaultBirthChart', false);
     }
     const others = await this.chartModel
       .find(Object.fromEntries(condMap))
