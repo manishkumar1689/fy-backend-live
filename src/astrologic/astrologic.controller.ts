@@ -1510,7 +1510,7 @@ export class AstrologicController {
         : currentISODate();
     //const geoInfo = await this.fetchGeoInfo(geo, refDt);
     const gender = keys.includes('gender') ? query.gender : '';
-    const name = keys.includes('gender') ? query.name : 'N/A';
+    const name = keys.includes('name') ? query.name : 'N/A';
     const saveChart = keys.includes('save') && smartCastInt(query.save, 0) > 0;
     const showUserChart = keys.includes('uc')
       ? smartCastInt(query.uc, 0) > 0
@@ -1576,9 +1576,17 @@ export class AstrologicController {
         c2,
         customSettings,
       );
+      const nickName = name;
       const result = showUserChart
-        ? { valid: true, saved, ...compatibility, otherChart, userChart }
-        : { valid: true, saved, ...compatibility, chart: otherChart };
+        ? {
+            valid: true,
+            saved,
+            nickName,
+            ...compatibility,
+            otherChart,
+            userChart,
+          }
+        : { valid: true, saved, nickName, ...compatibility, chart: otherChart };
       return res.json(result);
     } else {
       return res.status(HttpStatus.BAD_REQUEST).json({ valid: false });
