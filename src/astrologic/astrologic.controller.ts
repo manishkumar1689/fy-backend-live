@@ -3863,8 +3863,8 @@ export class AstrologicController {
                 customSettings,
                 false,
               );
-              const shortName = c.subject?.name;
-              data.items.push({ shortName, ...extraData });
+              const nickName = c.subject?.name;
+              data.items.push({ nickName, ...extraData });
             }
           }
           data.valid = true;
