@@ -3833,6 +3833,14 @@ export class AstrologicController {
       if (user.active) {
         const startVal = smartCastInt(start, 0);
         const limitVal = smartCastInt(limit, 100);
+        const chartObj = await this.astrologicService.getUserBirthChart(userID);
+        let refChart = null;
+        let hasRefChart = false;
+        if (chartObj instanceof Model) {
+          refChart = new Chart(chartObj.toObject());
+          refChart.setAyanamshaItemByKey('true_citra');
+          hasRefChart = refChart.grahas.length > 6;
+        }
         const charts = await this.astrologicService.getChartsByUser(
           userID,
           startVal,
@@ -3841,8 +3849,24 @@ export class AstrologicController {
           { mode: 'other' },
           false,
         );
-        if (charts instanceof Array) {
-          data.items = charts.map(c => simplifyChart(c));
+        if (charts instanceof Array && hasRefChart) {
+          const kutaDict = await this.dictionaryService.getKutaDict();
+          const customSettings = await this.settingService.customCompatibilitySettings(
+            kutaDict,
+          );
+          data.items = [];
+          for (const c of charts) {
+            if (c instanceof Object) {
+              const extraData = await this.astrologicService.fetchChartComparisons(
+                c,
+                refChart,
+                customSettings,
+                false,
+              );
+              const shortName = c.subject?.name;
+              data.items.push({ shortName, ...extraData });
+            }
+          }
           data.valid = true;
           data.message = 'OK';
         } else {
@@ -4065,6 +4089,7 @@ export class AstrologicController {
   ) {
     const data: any = { valid: false, message: 'invalid user ID', id: '' };
     const user = await this.userService.getUser(userID);
+    let status = HttpStatus.OK;
     if (user instanceof Object) {
       if (user.active) {
         const chart = await this.astrologicService.getChart(chartID);
@@ -4079,15 +4104,18 @@ export class AstrologicController {
             data.message = 'Chart deleted';
           } else {
             data.message = 'Permission denied';
+            status = HttpStatus.FORBIDDEN;
           }
         } else {
           data.message = 'Chart not found';
+          status = HttpStatus.NOT_FOUND;
         }
       } else {
         data.message = 'Inactive account';
+        status = HttpStatus.NOT_ACCEPTABLE;
       }
     }
-    return res.status(HttpStatus.OK).json(data);
+    return res.status(status).json(data);
   }
 
   @Get('vargas/:loc/:dt/:system?')

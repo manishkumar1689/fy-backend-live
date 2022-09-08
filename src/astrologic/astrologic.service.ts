@@ -1806,10 +1806,36 @@ export class AstrologicService {
     simpleMode = 'basic',
   ) {
     const chartObj = await this.getUserBirthChart(user._id);
+    const preferences =
+      user.preferences instanceof Array && user.preferences.length > 0
+        ? user.preferences.filter(filterCorePreference)
+        : [];
+
+    const shortName = toFirstName(user.nickName);
+    const extraData = await this.fetchChartComparisons(
+      chartObj,
+      refChart,
+      customSettings,
+      fullChart,
+      ayanamshaKey,
+      simpleMode,
+    );
+    const hasChart = extraData.chart instanceof Object;
+    return { shortName, ...user, preferences, hasChart, ...extraData };
+  }
+
+  async fetchChartComparisons(
+    chartObj = null,
+    refChart: ChartClass,
+    customSettings: any = {},
+    fullChart = false,
+    ayanamshaKey = 'true_citra',
+    simpleMode = 'basic',
+  ) {
     const hasChart = chartObj instanceof Object;
     const chartSource = hasChart ? chartObj.toObject() : {};
     const chart = new ChartClass(chartSource);
-    chart.setAyanamshaItemByKey('true_citra');
+    chart.setAyanamshaItemByKey(ayanamshaKey);
     const chartData = hasChart
       ? fullChart
         ? chart
@@ -1817,14 +1843,11 @@ export class AstrologicService {
       : {};
     // kutaSet: any = null, kcScoreSet: KotaCakraScoreSet, orbMap = null
     const { kutaSet, kcScoreSet, orbMap, p2Scores, dictMap } = customSettings;
-    const preferences =
-      user.preferences instanceof Array && user.preferences.length > 0
-        ? user.preferences.filter(filterCorePreference)
-        : [];
+
     const kutaRows: KutaValueSetItems[] = hasChart
       ? this._calcKutas(refChart, chart, kutaSet, 'ashta')
       : [];
-    addExtraPanchangaNumValuesFromClass(chartData, chart, 'true_citra');
+    addExtraPanchangaNumValuesFromClass(chartData, chart, ayanamshaKey);
     const pd = calcProgressAspectDataFromProgressItems(
       chart.matchProgressItems(),
       refChart.matchProgressItems(),
@@ -1847,13 +1870,8 @@ export class AstrologicService {
       refChart.shortName,
       chart.shortName,
     );
-    const shortName = toFirstName(user.nickName);
     return {
-      ...user,
-      shortName,
-      hasChart,
       chart: chartData,
-      preferences,
       kutas: this.mapKutaColValues(kutaRows, dictMap),
       aspects,
       p2: p2Summary,
