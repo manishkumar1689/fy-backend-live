@@ -1547,8 +1547,15 @@ export class AstrologicController {
         const { name, fullName, type, lat, lng } = p;
         return { name, fullName, type, geo: { lat, lng } };
       });
-      this.astrologicService.createChart(data as CreateChartDTO);
-      saved = true;
+      const record = await this.astrologicService.createChart(
+        data as CreateChartDTO,
+      );
+      if (record instanceof Model) {
+        if (record._id) {
+          data._id = record._id;
+          saved = true;
+        }
+      }
     }
     const otherChart = simplifyAstroChart(data, true, true);
     addExtraPanchangaNumValuesFromClass(data, c2, 'true_citra');
