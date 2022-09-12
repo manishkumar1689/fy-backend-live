@@ -24,7 +24,6 @@ import { objectToMap } from '../lib/entities';
 import { isValidObjectId } from 'mongoose';
 import { fromBase64 } from '../lib/hash';
 import { SnippetService } from '../snippet/snippet.service';
-import { CreateFeedbackDTO } from './dto/create-feedback.dto';
 
 @Controller('feedback')
 export class FeedbackController {

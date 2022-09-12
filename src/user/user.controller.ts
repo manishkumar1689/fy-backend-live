@@ -144,7 +144,7 @@ import {
 import { locStringToGeo } from '../astrologic/lib/converters';
 import { calcKotaChakraScoreData } from '../astrologic/lib/settings/kota-values';
 import { GeoLoc } from '../astrologic/lib/models/geo-loc';
-import { CreateFeedbackDTO } from 'src/feedback/dto/create-feedback.dto';
+import { CreateFeedbackDTO } from '../feedback/dto/create-feedback.dto';
 
 @Controller('user')
 export class UserController {
