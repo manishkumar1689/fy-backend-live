@@ -2934,38 +2934,57 @@ export class UserController {
     @Param('key') key: string,
     @Body() payload: CreateFeedbackDTO,
   ) {
-    const result = { valid: false, msgId: '', mail: 'not_sent' };
+    const result = {
+      valid: false,
+      msgId: '',
+      identifier: '',
+      fullName: '',
+      mail: 'not_sent',
+    };
     const keyStr = notEmptyString(key)
       ? key.replace(/-/g, '_').toLowerCase()
       : 'message';
 
     const user = await this.userService.getBasicById(payload.user);
-    const id = await this.feedbackService.saveFeedback({
-      ...payload,
-      key: keyStr,
-    });
-    if (notEmptyString(id, 12)) {
-      result.valid = true;
-      result.msgId = id;
-      const mailPayload = {
-        to: 'support@findingyou.co', // list of receivers
-        toName: 'Support',
-        from: user.identifier, // sender address
-        fromName: user.fullname, //
-        keyStr, //
-        body: payload.text,
-      };
-      const md = await this.messageService.sendMail(mailPayload);
-      if (md instanceof Object && md.result instanceof Object) {
-        const mrKeys = Object.keys(md.result);
-        if (mrKeys.includes('stack')) {
-          result.mail = 'error';
-        } else {
-          result.mail = 'sent';
+    if (user instanceof Object && notEmptyString(user.identifier, 5)) {
+      const id = await this.feedbackService.saveFeedback({
+        ...payload,
+        key: keyStr,
+      });
+      if (notEmptyString(id, 12)) {
+        result.valid = true;
+        result.msgId = id;
+        result.identifier = user.identifier;
+        result.fullName = user.fullName;
+        const mailPayload = {
+          to: 'support@findingyou.co', // list of receivers
+          toName: 'Support',
+          from: user.identifier, // sender address
+          fromName: user.fullname, //
+          subject: keyStr.replace(/_/g, ' '), //
+          body: payload.text,
+        };
+        const md = await this.messageService.sendMail(mailPayload);
+        if (md instanceof Object && md.result instanceof Object) {
+          const mrKeys = Object.keys(md.result);
+          if (mrKeys.includes('stack')) {
+            result.mail = 'error';
+          } else {
+            result.mail = 'sent';
+          }
         }
       }
     }
     return res.json(result);
+  }
+
+  @Post('post-feedback/:key')
+  async postFeedback(
+    @Res() res,
+    @UploadedFile('file') file: string,
+    @Body() body,
+  ) {
+    res.json(body);
   }
 
   async sendMail(emailParams: EmailParamsDTO) {
