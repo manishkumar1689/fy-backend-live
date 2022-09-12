@@ -1,4 +1,5 @@
 import * as mongoose from 'mongoose';
+import { MediaItemSchema } from '../../user/schemas/media-item.schema';
 const { ObjectId } = mongoose.Schema.Types;
 
 export const FeedbackSchema = new mongoose.Schema({
@@ -9,7 +10,7 @@ export const FeedbackSchema = new mongoose.Schema({
   },
   targetUser: {
     type: ObjectId,
-    required: true,
+    required: false,
     ref: 'User',
   },
   key: {
@@ -26,6 +27,15 @@ export const FeedbackSchema = new mongoose.Schema({
     type: String,
     required: true,
     default: '',
+  },
+  deviceDetails: {
+    type: String,
+    required: false,
+    default: '',
+  },
+  mediaItems: {
+    type: [MediaItemSchema],
+    default: [],
   },
   createdAt: { type: Date, default: Date.now },
   modifiedAt: { type: Date, default: Date.now },

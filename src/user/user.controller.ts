@@ -144,6 +144,7 @@ import {
 import { locStringToGeo } from '../astrologic/lib/converters';
 import { calcKotaChakraScoreData } from '../astrologic/lib/settings/kota-values';
 import { GeoLoc } from '../astrologic/lib/models/geo-loc';
+import { CreateFeedbackDTO } from 'src/feedback/dto/create-feedback.dto';
 
 @Controller('user')
 export class UserController {
@@ -2923,6 +2924,47 @@ export class UserController {
   @Post('test-mail')
   async testMail(@Res() res, @Body() inData: EmailParamsDTO) {
     const result = await this.sendMail(inData);
+    return res.json(result);
+  }
+
+  // Rate another user (like = 1, superlike = 2, pass = -1, -2, -3)
+  @Post('feedback/:key')
+  async send(
+    @Res() res,
+    @Param('key') key: string,
+    @Body() payload: CreateFeedbackDTO,
+  ) {
+    const result = { valid: false, msgId: '', mail: 'not_sent' };
+    const keyStr = notEmptyString(key)
+      ? key.replace(/-/g, '_').toLowerCase()
+      : 'message';
+
+    const user = await this.userService.getBasicById(payload.user);
+    const id = await this.feedbackService.saveFeedback({
+      ...payload,
+      key: keyStr,
+    });
+    if (notEmptyString(id, 12)) {
+      result.valid = true;
+      result.msgId = id;
+      const mailPayload = {
+        to: 'support@findingyou.co', // list of receivers
+        toName: 'Support',
+        from: user.identifier, // sender address
+        fromName: user.fullname, //
+        keyStr, //
+        body: payload.text,
+      };
+      const md = await this.messageService.sendMail(mailPayload);
+      if (md instanceof Object && md.result instanceof Object) {
+        const mrKeys = Object.keys(md.result);
+        if (mrKeys.includes('stack')) {
+          result.mail = 'error';
+        } else {
+          result.mail = 'sent';
+        }
+      }
+    }
     return res.json(result);
   }
 

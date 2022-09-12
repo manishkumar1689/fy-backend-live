@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { isValidObjectId, Model } from 'mongoose';
 import { minutesAgoTs, yearsAgoString } from '../astrologic/lib/date-funcs';
 import { extractDocId, extractSimplified } from '../lib/entities';
 import { notEmptyString, validISODateString } from '../lib/validators';
@@ -71,6 +71,42 @@ export class FeedbackService {
           isFrom: row.user.toString() === user,
         };
       });
+  }
+
+  async saveFeedback(data: any = null): Promise<string> {
+    if (data instanceof Object) {
+      const dt = new Date();
+      const { user, targetUser, key, text, deviceDetails, mediaItems } = data;
+      if (
+        isValidObjectId(user) &&
+        notEmptyString(key) &&
+        notEmptyString(text)
+      ) {
+        const edited: any = { user, key, text, createdAt: dt, modifiedAt: dt };
+        if (notEmptyString(targetUser) && isValidObjectId(targetUser)) {
+          edited.targetUser = targetUser;
+        }
+        if (notEmptyString(deviceDetails)) {
+          edited.deviceDetails = deviceDetails;
+        }
+        if (
+          mediaItems instanceof Array &&
+          mediaItems.length > 0 &&
+          mediaItems[0] instanceof Object
+        ) {
+          edited.mediaItems = mediaItems.map(
+            mi => mi instanceof Object && notEmptyString(mi.filename, 7),
+          );
+        }
+        const fb = new this.feedbackModel(edited);
+        const fbRecord = await fb.save();
+        if (fbRecord instanceof Model) {
+          fbRecord.save();
+          return fbRecord._id.toString();
+        }
+      }
+    }
+    return '-';
   }
 
   async getAllUserInteractions(

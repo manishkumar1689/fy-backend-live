@@ -1,11 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { MediaItemDTO } from '../../user/dto/media-item.dto';
 
 export class CreateFeedbackDTO {
   @ApiProperty()
   readonly user: string;
 
   @ApiProperty()
-  readonly targetUser: any;
+  readonly targetUser?: string;
 
   @ApiProperty()
   readonly key: string;
@@ -14,7 +15,13 @@ export class CreateFeedbackDTO {
   readonly active: boolean;
 
   @ApiProperty()
-  readonly text: String;
+  readonly text: string;
+
+  @ApiProperty()
+  readonly deviceDetails?: string;
+
+  @ApiProperty()
+  readonly mediaItems: MediaItemDTO[];
 
   @ApiProperty()
   readonly createdAt: Date;
