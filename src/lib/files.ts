@@ -86,6 +86,7 @@ export const mediaPath = (type = 'media', subDir = '') => {
       relPath = ephemerisPath;
       break;
     case 'media':
+    case 'image':
       relPath = mediaDirectory;
       break;
   }
@@ -172,16 +173,18 @@ export const uploadMediaFile = (
   userID: string,
   originalname: string,
   data: any,
-  imageType = 'media',
+  fileType = 'media',
+  prefix = '',
 ) => {
-  const filename = generateFileName(userID, originalname);
+  const baseName = notEmptyString(prefix) ? [prefix, userID].join('_') : userID;
+  const filename = generateFileName(baseName, originalname);
   const extension = filename
     .split('.')
     .pop()
     .toLowerCase();
   const attrsMap = new Map<string, any>();
-  const fullPath = buildFullPath(filename);
-  writeMediaFile(filename, data, imageType);
+  const fullPath = buildFullPath(filename, fileType);
+  writeMediaFile(filename, data, fileType);
   let exists = false;
   let isBitmap = false;
   switch (extension) {
@@ -203,7 +206,7 @@ export const uploadMediaFile = (
       break;
   }
   const variants = [];
-  if (isBitmap) {
+  if (isBitmap && ['media', 'image'].includes(fileType)) {
     let ms = 0;
     Object.entries(imageSizes).forEach(entry => {
       const [key, imgSize] = entry;

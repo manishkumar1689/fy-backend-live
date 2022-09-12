@@ -94,7 +94,7 @@ export class FeedbackService {
           mediaItems.length > 0 &&
           mediaItems[0] instanceof Object
         ) {
-          edited.mediaItems = mediaItems.map(
+          edited.mediaItems = mediaItems.filter(
             mi => mi instanceof Object && notEmptyString(mi.filename, 7),
           );
         }

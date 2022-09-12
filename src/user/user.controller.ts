@@ -44,7 +44,7 @@ import {
   toBase64,
   tokenTo6Digits,
 } from '../lib/hash';
-import { mailDetails, maxResetMinutes } from '../.config';
+import { mailDetails, maxResetMinutes, webBaseUrl } from '../.config';
 import * as bcrypt from 'bcrypt';
 import {
   extractDocId,
@@ -145,6 +145,7 @@ import { locStringToGeo } from '../astrologic/lib/converters';
 import { calcKotaChakraScoreData } from '../astrologic/lib/settings/kota-values';
 import { GeoLoc } from '../astrologic/lib/models/geo-loc';
 import { CreateFeedbackDTO } from '../feedback/dto/create-feedback.dto';
+import { ApiBody, ApiProperty } from '@nestjs/swagger';
 
 @Controller('user')
 export class UserController {
@@ -2934,35 +2935,85 @@ export class UserController {
     @Param('key') key: string,
     @Body() payload: CreateFeedbackDTO,
   ) {
-    const result = {
+    const result = await this.sendFeedback(payload, key);
+    return res.json(result);
+  }
+
+  async sendFeedback(
+    payload: CreateFeedbackDTO,
+    key = 'message',
+    targetUser = '',
+  ) {
+    const user = await this.userService.getBasicById(payload.user, [
+      'identifier',
+      'fullName',
+    ]);
+    const keyStr = notEmptyString(key)
+      ? key.replace(/-/g, '_').toLowerCase()
+      : 'message';
+
+    const result: any = {
       valid: false,
       msgId: '',
       identifier: '',
       fullName: '',
       mail: 'not_sent',
     };
-    const keyStr = notEmptyString(key)
-      ? key.replace(/-/g, '_').toLowerCase()
-      : 'message';
-
-    const user = await this.userService.getBasicById(payload.user);
+    let isToAdmin = true;
+    let toUserEmail = '';
+    let toName = 'Support';
+    if (notEmptyString(targetUser, 12) && isValidObjectId(targetUser)) {
+      const toUser = await this.userService.getBasicById(payload.user, [
+        'identifier',
+        'fullName',
+      ]);
+      if (toUser instanceof Object) {
+        toName = toUser.fullName;
+        toUserEmail = toUser.identifier;
+      }
+      isToAdmin = false;
+    }
     if (user instanceof Object && notEmptyString(user.identifier, 5)) {
       const id = await this.feedbackService.saveFeedback({
         ...payload,
         key: keyStr,
       });
+      result.text = payload.text;
+      if (payload.deviceDetails) {
+        result.deviceDetails = payload.deviceDetails;
+      }
+      if (
+        payload.mediaItems instanceof Array &&
+        payload.mediaItems.length > 0
+      ) {
+        result.mediaItems = payload.mediaItems;
+      }
       if (notEmptyString(id, 12)) {
+        const fbType = keyStr.replace(/_/g, ' ');
+        const subject = `${fbType}: ${user.fullName}`;
         result.valid = true;
         result.msgId = id;
         result.identifier = user.identifier;
         result.fullName = user.fullName;
+        let bodyText = '';
+        if (isToAdmin) {
+          const path = webBaseUrl + '/manage/users/edit/' + payload.user;
+          bodyText = `<p>User id: <a href="${path}" target="_blank">${payload.user}</a></p>`;
+        }
+
+        if (payload.deviceDetails) {
+          bodyText += '<p>' + `Device: ${payload.deviceDetails}` + '</p>';
+        }
+
+        bodyText += `<br /><hr /><br /><article>` + payload.text + '</article>';
+
         const mailPayload = {
-          to: 'support@findingyou.co', // list of receivers
-          toName: 'Support',
+          to: toUserEmail, // list of receivers
+          toName,
           from: user.identifier, // sender address
-          fromName: user.fullname, //
-          subject: keyStr.replace(/_/g, ' '), //
-          body: payload.text,
+          fromName: user.fullName, //
+          subject, //
+          body: bodyText,
         };
         const md = await this.messageService.sendMail(mailPayload);
         if (md instanceof Object && md.result instanceof Object) {
@@ -2975,16 +3026,73 @@ export class UserController {
         }
       }
     }
-    return res.json(result);
+    return result;
   }
 
   @Post('post-feedback/:key')
+  @UseInterceptors(FileInterceptor('file'))
   async postFeedback(
     @Res() res,
-    @UploadedFile('file') file: string,
-    @Body() body,
+    @Body() payload,
+    @Param('key') key,
+    @UploadedFile('file') file,
   ) {
-    res.json(body);
+    let result: any = { valid: false };
+    const payloadKeys =
+      typeof payload === 'object' && payload !== null
+        ? Object.keys({ ...payload })
+        : [];
+    if (
+      file instanceof Object &&
+      notEmptyString(key) &&
+      payloadKeys.includes('text') &&
+      payloadKeys.includes('user') &&
+      notEmptyString(payload.text) &&
+      notEmptyString(payload.user) &&
+      notEmptyString(key)
+    ) {
+      const { originalname, mimetype, size, buffer } = file;
+      const userID = payload.user;
+      const fn = generateFileName(['feedback', userID].join('_'), originalname);
+      const { fileType, mime } = matchFileTypeAndMime(originalname, mimetype);
+      const title = key.replace(/[_-]/g, ' ');
+      const fileData = {
+        filename: fn,
+        mime,
+        type: fileType,
+        source: 'local',
+        size,
+        title,
+        attributes: {},
+        variants: [],
+      };
+      const { attributes } = uploadMediaFile(
+        userID,
+        originalname,
+        buffer,
+        'files',
+        'feedback',
+      );
+      if (attributes) {
+        fileData.attributes = attributes;
+      }
+      const saveData: any = {
+        user: payload.user,
+        key,
+        text: payload.text,
+      };
+      if (
+        payloadKeys.includes('deviceDetails') &&
+        notEmptyString(payload.deviceDetails)
+      ) {
+        saveData.deviceDetails = payload.deviceDetails;
+      }
+      saveData.mediaItems = [fileData];
+
+      result = await this.sendFeedback(saveData as CreateFeedbackDTO, key);
+      result.valid = true;
+    }
+    res.json(result);
   }
 
   async sendMail(emailParams: EmailParamsDTO) {
