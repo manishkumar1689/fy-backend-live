@@ -73,6 +73,70 @@ export class FeedbackService {
       });
   }
 
+  async listAll(start = 0, limit = 100, criteria: any = null) {
+    const keys = criteria instanceof Object ? Object.keys(criteria) : [];
+    const filter: Map<string, any> = new Map();
+    if (keys.length < 1) {
+      filter.set('createdAt', {
+        $gt: new Date('2020-01-01T00:00:00'),
+      });
+    } else {
+      for (const k of keys) {
+        switch (k) {
+          case 'key':
+            filter.set('key', criteria.key);
+            break;
+          case 'user':
+            filter.set('user', criteria.user);
+            break;
+        }
+      }
+    }
+
+    const steps = [
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'user',
+          foreignField: '_id',
+          as: 'u',
+        },
+      },
+      {
+        $unwind: '$u',
+      },
+      {
+        $match: Object.fromEntries(filter),
+      },
+      {
+        $project: {
+          _id: 1,
+          key: 1,
+          text: 1,
+          active: 1,
+          deviceDetails: 1,
+          mediaItems: 1,
+          createdAt: 1,
+          modifiedAt: 1,
+          user: 1,
+          userId: '$u._id',
+          email: '$u.identifier',
+          fullName: '$u.fullName',
+          nickName: '$u.nickName',
+          roles: '$u.roles',
+          userActive: '$u.active',
+        },
+      },
+      {
+        $skip: start,
+      },
+      {
+        $limit: limit,
+      },
+    ];
+    return await this.feedbackModel.aggregate(steps);
+  }
+
   async saveFeedback(data: any = null): Promise<string> {
     if (data instanceof Object) {
       const dt = new Date();

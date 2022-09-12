@@ -276,7 +276,7 @@ export const uploadSwissEphDataFile = (
   data: any,
   mode = 'add',
 ) => {
-  const attrsMap = new Map<string, any>();
+  //const attrsMap = new Map<string, any>();
   const fullPath = buildFullPath(targetName, 'swisseph', subDir);
   const exists = fs.existsSync(fullPath);
   const mayOverwrite = !exists || mode === 'replace';

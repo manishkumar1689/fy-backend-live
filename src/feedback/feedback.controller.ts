@@ -17,7 +17,7 @@ import { UserService } from '../user/user.service';
 import { SettingService } from '../setting/setting.service';
 import { CreateFlagDTO } from './dto/create-flag.dto';
 import { pushMessage } from '../lib/notifications';
-import { notEmptyString } from '../lib/validators';
+import { isNumeric, notEmptyString } from '../lib/validators';
 import { SwipeDTO } from './dto/swipe.dto';
 import { sanitize, smartCastInt } from '../lib/converters';
 import { objectToMap } from '../lib/entities';
@@ -33,6 +33,22 @@ export class FeedbackController {
     private settingService: SettingService,
     private snippetService: SnippetService,
   ) {}
+
+  @Get('list/:start?/:limit?')
+  async listAll(
+    @Res() res,
+    @Param('start') start,
+    @Param('limit') limit,
+    @Req() request: Request,
+  ) {
+    const { query } = request;
+
+    const startInt = isNumeric(start) ? smartCastInt(start, 0) : 0;
+    const limitInt = isNumeric(limit) ? smartCastInt(limit, 100) : 100;
+
+    const data = await this.feedbackService.listAll(startInt, limitInt, query);
+    return res.json(data);
+  }
 
   @Get('list-by-target/:user?/:key?')
   async getTargetUsersByCriteria(
