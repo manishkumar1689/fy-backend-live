@@ -2,6 +2,7 @@ import * as admin from 'firebase-admin';
 import { isoDateToMilliSecs } from '../astrologic/lib/date-funcs';
 import { googleFCMKeyPath, googleFCMBase, googleFCMDomain } from '../.config';
 import { isNumeric } from './validators';
+import { extractKeyedItemValue } from './converters';
 
 const initApp = () => {
   if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
@@ -259,3 +260,8 @@ export const defaultPushNotifications = [
   'been_superliked',
   'message_received',
 ];
+
+export const extractPushNotifications = (prefs: any[] = []) => {
+  const pnData = extractKeyedItemValue(prefs, 'push_notifications', 'array');
+  return pnData.matched ? pnData.item : defaultPushNotifications;
+};
