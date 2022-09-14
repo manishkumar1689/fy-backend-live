@@ -506,9 +506,14 @@ export class AstrologicController {
           customCutoff,
           dateMode,
         );
+        const simpleModeExcludeKeys = ['minutes', 'rules'];
+        const fullMode = dateMode !== 'simple';
         ppData.forEach((v, k) => {
-          data.set(k, v);
+          if (fullMode || simpleModeExcludeKeys.includes(k) === false) {
+            data.set(k, v);
+          }
         });
+
         if (data.get('valid')) {
           status = HttpStatus.OK;
         }
