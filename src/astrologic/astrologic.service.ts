@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { HttpService, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { isValidObjectId, Model, Types } from 'mongoose';
+import { AxiosResponse } from 'axios';
 import { BodySpeed } from './interfaces/body-speed.interface';
 import { Chart } from './interfaces/chart.interface';
 import { BodySpeedDTO } from './dto/body-speed.dto';
@@ -119,6 +120,7 @@ export class AstrologicService {
     @InjectModel('BodySpeed') private bodySpeedModel: Model<BodySpeed>,
     @InjectModel('Chart') private chartModel: Model<Chart>,
     @InjectModel('PairedChart') private pairedChartModel: Model<PairedChart>,
+    private http: HttpService,
     private readonly redisService: RedisService,
   ) {}
 
@@ -135,6 +137,10 @@ export class AstrologicService {
   async redisSet(key: string, value, expire = -1): Promise<boolean> {
     const client = await this.redisClient();
     return await storeInRedis(client, key, value, expire);
+  }
+
+  getHttp(url: string): Promise<AxiosResponse> {
+    return this.http.get(url).toPromise();
   }
 
   async createChart(data: CreateChartDTO) {

@@ -241,8 +241,8 @@ export class UserController {
     let msg = 'N/A';
     let userData: any = {};
     let valid = false;
-    const existing = await this.userService.findOneByEmail(
-      createUserDTO.identifier,
+    const existing = await this.userService.findOneByEmailOrSocial(
+      createUserDTO,
       false,
     );
     const { deviceToken } = createUserDTO;
@@ -282,7 +282,7 @@ export class UserController {
       userData = hashMapToObject(ud);
     }
     if (!valid) {
-      if (validEmail(createUserDTO.identifier)) {
+      if (notEmptyString(createUserDTO.identifier, 5)) {
         const user = await this.userService.addUser(createUserDTO);
         if (user) {
           msg = 'User has been created successfully';
@@ -292,7 +292,7 @@ export class UserController {
           msg = 'Could not create a new user';
         }
       } else {
-        msg = 'Please enter a valid email address';
+        msg = 'Please enter a valid email address or other valid identifier';
       }
     }
     return res.status(HttpStatus.OK).json({

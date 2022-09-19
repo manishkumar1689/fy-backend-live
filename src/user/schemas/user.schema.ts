@@ -22,9 +22,20 @@ export const UserSchema = new mongoose.Schema({
       message: '{VALUE} is not a valid email',
     }, */
   },
+  socialId: {
+    type: String,
+    required: false,
+    unique: false,
+    // identifier may not always be an email, but must unique
+    // use client-side validation instead
+    /* validate: {
+      validator: validator.isEmail,
+      message: '{VALUE} is not a valid email',
+    }, */
+  },
   mode: {
     type: String,
-    enum: ['local', 'google', 'facebook', 'astro-databank'],
+    enum: ['local', 'google', 'facebook', 'apple', 'astro-databank'],
     default: 'local',
   },
   password: {
@@ -88,7 +99,7 @@ export const UserSchema = new mongoose.Schema({
   status: [StatusSchema],
   deviceToken: {
     type: String,
-    default: "",
+    default: '',
     required: false,
   },
   token: String,

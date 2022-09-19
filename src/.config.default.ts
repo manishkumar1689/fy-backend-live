@@ -19,6 +19,8 @@ export const mongo = {
   pass: 'T0XcJfpIBsFGkUY7',
 };
 
+export const astroCalcApi = 'https://astroapi.findingyou.co';
+
 export const redisOptions = {
   store: redisStore,
   host: 'localhost',

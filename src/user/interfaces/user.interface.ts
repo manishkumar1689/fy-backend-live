@@ -11,6 +11,7 @@ export interface User extends Document {
   readonly fullName: string;
   readonly nickName: string;
   readonly identifier: string;
+  readonly socialId?: string;
   readonly password: string;
   readonly mode: string;
   readonly roles: string[];

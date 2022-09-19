@@ -8,10 +8,7 @@ import { julToISODate } from '../date-funcs';
 import { KeyNum, KeyValueNum } from '../../../lib/interfaces';
 import { Chart } from '../models/chart';
 import { toIndianTimeJd, TransitionData } from '../transitions';
-import {
-  translateActionToGerund,
-  Condition,
-} from '../models/protocol-models';
+import { translateActionToGerund, Condition } from '../models/protocol-models';
 import { matchDikBalaTransition } from './graha-values';
 import { isNumeric, notEmptyString } from '../../../lib/validators';
 import { GeoLoc } from '../models/geo-loc';
@@ -33,7 +30,7 @@ export class PeakTime {
   constructor(startTs = 0, startMinIndex = 0, endMinIndex = 0) {
     this.startTs = startTs;
     this.startMinIndex = startMinIndex;
-    this.start = startTs + (startMinIndex * 60);
+    this.start = startTs + startMinIndex * 60;
     if (endMinIndex > startMinIndex) {
       this.setEnd(endMinIndex);
     }
@@ -41,7 +38,7 @@ export class PeakTime {
 
   setEnd(endMinIndex = 0) {
     if (endMinIndex > 0) {
-      this.end = this.startTs + (endMinIndex * 60);
+      this.end = this.startTs + endMinIndex * 60;
     }
   }
 
@@ -54,7 +51,7 @@ export class PeakTime {
   }
 
   get calculatedPeak(): number {
-    return this.peak > 0? this.peak : this.start + (this.end - this.start) / 2;
+    return this.peak > 0 ? this.peak : this.start + (this.end - this.start) / 2;
   }
 
   get notExactPeak(): boolean {
@@ -66,8 +63,8 @@ export class PeakTime {
       start: this.start,
       peak: this.calculatedPeak,
       end: this.end,
-      max: this.max
-     }
+      max: this.max,
+    };
   }
 }
 
@@ -958,7 +955,11 @@ export const matchBirdKeyRulers = (
   return matchBirdRulers(birdNum, isDayTime, activity);
 };
 
-export const matchBirdRelationsKeys = (bird1 = '', bird2 = '', waxing = true) => {
+export const matchBirdRelationsKeys = (
+  bird1 = '',
+  bird2 = '',
+  waxing = true,
+) => {
   const birdValues = Object.values(birdMap);
   const num1 = birdValues.indexOf(bird1) + 1;
   const num2 = birdValues.indexOf(bird2) + 1;
@@ -1194,7 +1195,7 @@ export const calcSubPeriods = (
   const activityKeys = subPeriods.map(period => {
     return period.key;
   });
-  
+
   return subPeriods.map((period, index) => {
     const startSubJd = prevJd;
     const endSubJd = prevJd + lengthJd * period.value;
@@ -1572,7 +1573,12 @@ export class PPRule {
         if (rs.conditionSet.conditionRefs.length > 1) {
           this.siblings =
             rs.conditionSet.conditionRefs.length > 1
-              ? rs.conditionSet.conditionRefs.filter(c => c instanceof Object && Object.keys(c).includes('fromMode'))
+              ? rs.conditionSet.conditionRefs
+                  .filter(
+                    c =>
+                      c instanceof Object &&
+                      Object.keys(c).includes('fromMode'),
+                  )
                   .slice(1)
                   .map(c => new PPRule(rs, c, false))
               : [];
@@ -1598,7 +1604,9 @@ export class PPRule {
       } else {
         this.matches.push(newMatch)
       } */
-      const hasSmeMatches = this.matches.some(m => start === m.start && m.end === end);
+      const hasSmeMatches = this.matches.some(
+        m => start === m.start && m.end === end,
+      );
       if (!hasSmeMatches) {
         this.matches.push(newMatch);
       }
@@ -1618,9 +1626,9 @@ export class PPRule {
           return 'subyama';
       }
     } else {
-      if (['as', 'ds', 'ic', 'mc', 'dik_bala_transition'].includes(
-        rule.context,
-      )) {
+      if (
+        ['as', 'ds', 'ic', 'mc', 'dik_bala_transition'].includes(rule.context)
+      ) {
         return 'orb';
       } else {
         return 'segment';
@@ -1629,12 +1637,15 @@ export class PPRule {
   }
 
   get bestMatchType() {
-    const rows = this.conditions().map(this.matchPeriodType).map(key => {
-      return {
-        key,
-        index: periodTypes.indexOf(key)
-      }
-    }).filter(row => row.index >= 0); 
+    const rows = this.conditions()
+      .map(this.matchPeriodType)
+      .map(key => {
+        return {
+          key,
+          index: periodTypes.indexOf(key),
+        };
+      })
+      .filter(row => row.index >= 0);
     rows.sort((a, b) => b.index - a.index);
     return rows.length > 0 ? rows[0].key : '';
   }
@@ -1654,7 +1665,7 @@ export class PPRule {
 
   validateAtMinJd(minJd = 0) {
     const num = this.validMatchesAtMinJd(minJd).length;
-    return this.hasSubCondition? num > 1 : num > 0;
+    return this.hasSubCondition ? num > 1 : num > 0;
   }
 
   betterMatchType(type = '') {
@@ -1667,11 +1678,18 @@ export class PPRule {
   } */
 
   get validMatches() {
-    const bestMatches = this.allMatches.filter(m => m.type === this.bestMatchType || this.betterMatchType(m.type));
-    const hasYamaCond = this.hasSubCondition && this.bestMatchType === 'subyama'? this.allMatches.some(m => m.type === 'yama') : false;
+    const bestMatches = this.allMatches.filter(
+      m => m.type === this.bestMatchType || this.betterMatchType(m.type),
+    );
+    const hasYamaCond =
+      this.hasSubCondition && this.bestMatchType === 'subyama'
+        ? this.allMatches.some(m => m.type === 'yama')
+        : false;
     if (hasYamaCond) {
       const yamaMatches = this.allMatches.filter(bm => bm.type === 'yama');
-      return bestMatches.filter(bm => yamaMatches.some(ym => bm.start >= ym.start && bm.end <= ym.end));
+      return bestMatches.filter(bm =>
+        yamaMatches.some(ym => bm.start >= ym.start && bm.end <= ym.end),
+      );
     } else {
       return bestMatches;
     }
@@ -1682,7 +1700,9 @@ export class PPRule {
   }
 
   get allMatches() {
-    return this.conditions().map(sr => sr.matches).reduce((a,b) => a.concat(b), []);
+    return this.conditions()
+      .map(sr => sr.matches)
+      .reduce((a, b) => a.concat(b), []);
   }
 
   numConditions() {
@@ -1690,7 +1710,11 @@ export class PPRule {
   }
 
   condition(index = 0): PPRule | void {
-    return index < 1? this : index <= this.siblings.length ? this.siblings[(index-1)] : null;
+    return index < 1
+      ? this
+      : index <= this.siblings.length
+      ? this.siblings[index - 1]
+      : null;
   }
 
   conditions(): PPRule[] {
@@ -1704,19 +1728,18 @@ export class PPRule {
   ppConditions(): PPRule[] {
     return this.conditions().filter(sr => !sr.isTransit);
   }
-
 }
 
-const simplifyRule = (rule:PPRule) => {
+const simplifyRule = (rule: PPRule) => {
   const conditions = rule.conditions().map(sr => {
-    const {from, to, key, context,action } = sr;
+    const { from, to, key, context, action } = sr;
     return {
       from,
       to,
       key,
       context,
       action,
-    }
+    };
   });
   const points = rule.isMatched ? rule.score : 0;
   return {
@@ -1727,9 +1750,9 @@ const simplifyRule = (rule:PPRule) => {
     matched: rule.isMatched,
     matches: rule.validMatches,
     period: rule.bestMatchType,
-    m: rule.matches
-  }
-}
+    m: rule.matches,
+  };
+};
 
 export const mapPPCondition = (condRef = null, rs: PredictiveRuleSet) => {
   return new PPRule(rs, condRef, true);
@@ -1858,14 +1881,14 @@ export const matchTransitionPeak = (rk = '', relTr: TransitionData): number => {
       case 'as':
       case 'rise':
       case 'rising':
-        return keys.includes('rise')? relTr.rise.jd : -1;
+        return keys.includes('rise') ? relTr.rise.jd : -1;
       case 'ds':
       case 'set':
       case 'setting':
-        return keys.includes('set')? relTr.set.jd : -1;
+        return keys.includes('set') ? relTr.set.jd : -1;
       case 'mc':
       case 'ic':
-        return keys.includes(rk)? relTr[rk].jd : -1;
+        return keys.includes(rk) ? relTr[rk].jd : -1;
       default:
         return -1;
     }
@@ -1917,21 +1940,30 @@ export const matchTransitionRange = (
   return trOrbs;
 } */
 
-const calcValueWithinOrb = (minJd = 0, start = 0, end = 0): { fraction: number; peak: number } => {
+const calcValueWithinOrb = (
+  minJd = 0,
+  start = 0,
+  end = 0,
+): { fraction: number; peak: number } => {
   const len = end - start;
   const half = len / 2;
   const peak = end - half;
   const dist = Math.abs(peak - minJd) / half;
   const fraction = 1 - dist;
   return { fraction, peak };
-}
+};
 
-const matchPPRulesToMinutes = (minJd = 0, rules: PPRule[], endSubJd = -1, skipTransitions = false) => {
+const matchPPRulesToMinutes = (
+  minJd = 0,
+  rules: PPRule[],
+  endSubJd = -1,
+  skipTransitions = false,
+) => {
   let score = 0;
   let ppScore = 0;
   const names: string[] = [];
   const peaks = [];
-  for (const rule of rules) { 
+  for (const rule of rules) {
     if (rule.isMatched) {
       // a rule may only match one in a given minute even if valid match spans may overlap
       let isMatched = false;
@@ -1939,9 +1971,13 @@ const matchPPRulesToMinutes = (minJd = 0, rules: PPRule[], endSubJd = -1, skipTr
         if (!isMatched && minJd >= match.start && minJd <= match.end) {
           if (match.type === 'orb') {
             if (!skipTransitions) {
-              const { fraction, peak } = calcValueWithinOrb(minJd, match.start, match.end);
+              const { fraction, peak } = calcValueWithinOrb(
+                minJd,
+                match.start,
+                match.end,
+              );
               if (endSubJd < 0 || (peak <= endSubJd && endSubJd > 0)) {
-                score += (rule.score * fraction);
+                score += rule.score * fraction;
                 names.push(rule.name);
                 peaks.push(peak);
               }
@@ -1960,41 +1996,52 @@ const matchPPRulesToMinutes = (minJd = 0, rules: PPRule[], endSubJd = -1, skipTr
     }
   }
   return { minuteScore: score, ppScore, names, peaks };
-}
+};
 
 const matchPPRulesOnly = (minJd = 0, rules: PPRule[]) => {
   return matchPPRulesToMinutes(minJd, rules, 0, true);
-}
+};
 
 const mapPPRuleResults = (ym = null, rules: PPRule[] = []) => {
-  const isValid = ym instanceof Object && Object.keys(ym).includes('subs') && ym.subs instanceof Array;
-    const subs = isValid ? ym.subs.map(sy => {
-      const result = matchPPRulesOnly(sy.start + (1 / 1440), rules);
-      return { ...sy, result: result.ppScore, rules: result.names };
-    }) : [];
-    const item = isValid ? ym : [];
-    return { ...item, subs };
-}
+  const isValid =
+    ym instanceof Object &&
+    Object.keys(ym).includes('subs') &&
+    ym.subs instanceof Array;
+  const subs = isValid
+    ? ym.subs.map(sy => {
+        const result = matchPPRulesOnly(sy.start + 1 / 1440, rules);
+        return { ...sy, result: result.ppScore, rules: result.names };
+      })
+    : [];
+  const item = isValid ? ym : [];
+  return { ...item, subs };
+};
 
 const translateTransitionKey = (key = '', isTr = false) => {
   const baseKey = isTr ? key.replace(/_point$/, '') : '';
   switch (baseKey) {
     case 'fortune':
     case 'spirit':
-      return ['lot', capitalize(baseKey)].join('Of') ;
+      return ['lot', capitalize(baseKey)].join('Of');
     default:
       return baseKey;
   }
-}
+};
 
-const processPPTransition = (r: PPRule, chart: Chart, allSubs = [], birthTransitions: TransitionData[], transitions: TransitionData[], birdGrahaSet: BirdGrahaSet) => {
+const processPPTransition = (
+  r: PPRule,
+  chart: Chart,
+  allSubs = [],
+  birthTransitions: TransitionData[],
+  transitions: TransitionData[],
+  birdGrahaSet: BirdGrahaSet,
+) => {
   const isTr = ['as', 'ds', 'ic', 'mc', 'dik_bala_transition'].includes(
     r.context,
   );
-  const trRef = translateTransitionKey(r.key, isTr)
+  const trRef = translateTransitionKey(r.key, isTr);
   const matchedRanges: TransitionOrb[] = [];
-  const relTransItems =
-    r.from === 'birth' ? birthTransitions : transitions;
+  const relTransItems = r.from === 'birth' ? birthTransitions : transitions;
   let subs = [];
   let grahaKeys = [];
   const startJd = allSubs[0].start;
@@ -2008,9 +2055,7 @@ const processPPTransition = (r: PPRule, chart: Chart, allSubs = [], birthTransit
       allSubs
         .filter(s => s.key === actKey)
         .filter(s => {
-          const relRows = relTransItems.filter(rt =>
-            s.rulers.includes(rt.key),
-          );
+          const relRows = relTransItems.filter(rt => s.rulers.includes(rt.key));
           relRows.forEach(rr => {
             if (Object.keys(rr).includes(trKey)) {
               if (rr[trKey].jd >= s.start && rr[trKey].jd < s.end) {
@@ -2035,7 +2080,9 @@ const processPPTransition = (r: PPRule, chart: Chart, allSubs = [], birthTransit
   const isDahsha = r.context.startsWith('dasha_');
   const isDasha2 = !isDahsha && r.context.startsWith('antardasha_');
   if (isDahsha || isDasha2) {
-    const refDashaLord = isDasha2 ? birdGrahaSet.dasha2Lord : birdGrahaSet.dashaLord;
+    const refDashaLord = isDasha2
+      ? birdGrahaSet.dasha2Lord
+      : birdGrahaSet.dashaLord;
     subs = filterDashaLordByObjectType(
       refDashaLord,
       allSubs,
@@ -2044,7 +2091,7 @@ const processPPTransition = (r: PPRule, chart: Chart, allSubs = [], birthTransit
     );
     subs.forEach(sub => {
       r.addMatch(sub.start, sub.end, 'subyama', r.score);
-    })
+    });
   }
   const isLord = r.context.startsWith('lord');
   let filterByGrahasAndAction = isLord;
@@ -2069,12 +2116,11 @@ const processPPTransition = (r: PPRule, chart: Chart, allSubs = [], birthTransit
   }
   if (filterByGrahasAndAction) {
     subs = allSubs.filter(
-      s =>
-        s.key === r.action && s.rulers.some(gk => grahaKeys.includes(gk)),
+      s => s.key === r.action && s.rulers.some(gk => grahaKeys.includes(gk)),
     );
     subs.forEach(sub => {
       r.addMatch(sub.start, sub.end, 'subyama', r.score);
-    })
+    });
   }
   if (isTr) {
     const lcGrKeys = grahaKeys.map(gk => gk.toLowerCase());
@@ -2094,15 +2140,14 @@ const processPPTransition = (r: PPRule, chart: Chart, allSubs = [], birthTransit
             notEmptyString(dikBalaTrans) &&
             Object.keys(relTr).includes(dikBalaTrans)
           ) {
-            mr = matchTransitionRange(dikBalaTrans, relTr)
+            mr = matchTransitionRange(dikBalaTrans, relTr);
           }
         }
         if (mr instanceof TransitionOrb) {
           if (mr.end > startJd && mr.start < endJd) {
             matchedRanges.push(mr);
-            r.addMatch(mr.start, mr.end,'orb', r.score);
+            r.addMatch(mr.start, mr.end, 'orb', r.score);
           }
-          
         }
       }
     }
@@ -2110,7 +2155,7 @@ const processPPTransition = (r: PPRule, chart: Chart, allSubs = [], birthTransit
 
   /* const matched = matchedRanges.length > 0 || pp2.valid || subs.length > 0; */
   const matched = matchedRanges.length > 0 || subs.length > 0;
-  
+
   return {
     rule: r,
     isTr,
@@ -2120,7 +2165,7 @@ const processPPTransition = (r: PPRule, chart: Chart, allSubs = [], birthTransit
     subs,
     trRef,
   };
-}
+};
 
 const matchRuleTransitionKey = (key: string): string => {
   if (key.length === 2) {
@@ -2147,10 +2192,12 @@ const matchRuleTransitionKey = (key: string): string => {
         return key;
     }
   }
-}
+};
 
 const matchTransitionKeys = (rules: PPRule[] = []) => {
-  const ruleKeys = rules.filter(r => ['mc', 'ic', 'as', 'ds', 'rise', 'set'].includes(r.action)).map(r => r.key);
+  const ruleKeys = rules
+    .filter(r => ['mc', 'ic', 'as', 'ds', 'rise', 'set'].includes(r.action))
+    .map(r => r.key);
   const keys: string[] = [];
   ruleKeys.forEach(rk => {
     const key = matchRuleTransitionKey(rk);
@@ -2159,7 +2206,7 @@ const matchTransitionKeys = (rules: PPRule[] = []) => {
     }
   });
   return keys;
-}
+};
 
 export const calculatePanchaPakshiData = async (
   chart: Chart,
@@ -2170,7 +2217,7 @@ export const calculatePanchaPakshiData = async (
   fetchNightAndDay = true,
   showMinutes = true,
   customCutoff = 0,
-  debug = false
+  debug = false,
 ): Promise<Map<string, any>> => {
   let data: Map<string, any> = new Map(
     Object.entries({
@@ -2194,25 +2241,35 @@ export const calculatePanchaPakshiData = async (
     jd,
     geo,
     chart,
-    fetchNightAndDay
+    fetchNightAndDay,
   );
   if (ppData.get('valid')) {
     data = new Map([...data, ...ppData]);
     data.set('message', 'valid data set');
   }
-  const matchedTransitions: { name: string; starts: string[], inRange: boolean; }[] = [];
-  
+  const matchedTransitions: {
+    name: string;
+    starts: string[];
+    inRange: boolean;
+  }[] = [];
+
   if (showTransitions) {
+    const tsStart = new Date().getTime();
     const {
       transitions,
       birthTransitions,
     } = await buildCurrentAndBirthExtendedTransitions(chart, geo, jd);
     data.set('transitions', transitions);
     data.set('birthTransitions', birthTransitions);
+    const tsEnd = new Date().getTime();
+    console.log((tsEnd - tsStart) / 1000);
     //const transitRules = rules.filter(r => r.from.includes('transit'));
-    const transitRules = rules.map(r => r.conditions()).reduce((a, b) => a.concat(b), []).filter(r => r.from.includes('transit'));
+    const transitRules = rules
+      .map(r => r.conditions())
+      .reduce((a, b) => a.concat(b), [])
+      .filter(r => r.from.includes('transit'));
     //const ppRules = rules.filter(r => r.from.startsWith('pa'));
-    //data.set('rules', rules); 
+    //data.set('rules', rules);
     const ym1 = data.get('yamas');
     const ym2 = data.get('yamas2');
     const hasYamas =
@@ -2241,7 +2298,7 @@ export const calculatePanchaPakshiData = async (
       const birdGrahaSet = mapBirdSet(data);
 
       if (hasDashaMatches) {
-        birdGrahaSet.dashaLord = matchCurrentDashaLord(chart, jd, 1).key
+        birdGrahaSet.dashaLord = matchCurrentDashaLord(chart, jd, 1).key;
       }
       if (hasDasha2Matches) {
         birdGrahaSet.dasha2Lord = matchCurrentDashaLord(chart, jd, 2).key;
@@ -2251,17 +2308,28 @@ export const calculatePanchaPakshiData = async (
       const nextRiseJd = ppData.get('nextRise');
       for (const r of rules) {
         for (const subR of r.transitConditions()) {
-          const result = processPPTransition(subR, chart, allSubs, birthTransitions, transitions, birdGrahaSet);
+          const result = processPPTransition(
+            subR,
+            chart,
+            allSubs,
+            birthTransitions,
+            transitions,
+            birdGrahaSet,
+          );
           if (result.matched) {
             rData.push(result);
             if (debug) {
-              const starts = result.matchedRanges.map(mr => julToISODate(mr.start));
-              const inRange = result.matchedRanges.some(mrn => mrn.end > riseJd && mrn.start <= nextRiseJd);
+              const starts = result.matchedRanges.map(mr =>
+                julToISODate(mr.start),
+              );
+              const inRange = result.matchedRanges.some(
+                mrn => mrn.end > riseJd && mrn.start <= nextRiseJd,
+              );
               matchedTransitions.push({
                 name: r.name,
                 starts,
-                inRange
-              })
+                inRange,
+              });
             }
           }
         }
@@ -2276,7 +2344,7 @@ export const calculatePanchaPakshiData = async (
       let segmentScore = 0;
       const periods = allYamasWithSubs.map((subs, subIndex) => {
         let yamaScore = 0;
-        const segmentIndex = (Math.floor(subIndex / 5) * 5) + 4;
+        const segmentIndex = Math.floor(subIndex / 5) * 5 + 4;
         const startSegment = subIndex % 5 === 0;
         if (startSegment) {
           segmentScore = 0;
@@ -2286,7 +2354,6 @@ export const calculatePanchaPakshiData = async (
           let subScore = 0;
           for (const rSet of rules) {
             for (const r of rSet.ppConditions()) {
-              
               const isSegment = r.key.includes('day_night');
               const friendRel = r.context.includes('friend');
               const enemyRel = r.context.includes('enemy');
@@ -2299,23 +2366,43 @@ export const calculatePanchaPakshiData = async (
                   if (startSegment) {
                     if (si === 0) {
                       let relMatched = false;
-                      const subActKey = r.key.includes('ruling') ? 'ruling' : 'dying';
-                      const isDay = (segmentIndex < 5 && dayFirst) || (segmentIndex >= 5 && !dayFirst);
+                      const subActKey = r.key.includes('ruling')
+                        ? 'ruling'
+                        : 'dying';
+                      const isDay =
+                        (segmentIndex < 5 && dayFirst) ||
+                        (segmentIndex >= 5 && !dayFirst);
                       if (feRel) {
-                        const relLetter = matchBirdRelationsKeys(birdGrahaSet.birth.bird, birdGrahaSet.matchBird(subActKey, isDay), birdGrahaSet.waxing);
+                        const relLetter = matchBirdRelationsKeys(
+                          birdGrahaSet.birth.bird,
+                          birdGrahaSet.matchBird(subActKey, isDay),
+                          birdGrahaSet.waxing,
+                        );
                         relMatched = relLetter === matchLetter;
                       } else if (bbRel) {
-                        const relBird = birdGrahaSet.matchBird(subActKey, isDay);
+                        const relBird = birdGrahaSet.matchBird(
+                          subActKey,
+                          isDay,
+                        );
                         relMatched = relBird === birdGrahaSet.birth.bird;
                       }
                       if (relMatched) {
                         segmentScore += r.score;
-                        r.addMatch(sub.start, allYamasWithSubs[segmentIndex][4].end, 'segment', r.score);
+                        r.addMatch(
+                          sub.start,
+                          allYamasWithSubs[segmentIndex][4].end,
+                          'segment',
+                          r.score,
+                        );
                       }
                     }
                   }
                 } else {
-                  const relLetter = matchBirdRelationsKeys(birdGrahaSet.birth.bird, sub.bird, birdGrahaSet.waxing);
+                  const relLetter = matchBirdRelationsKeys(
+                    birdGrahaSet.birth.bird,
+                    sub.bird,
+                    birdGrahaSet.waxing,
+                  );
                   if (relLetter === matchLetter) {
                     subScore += r.score;
                     r.addMatch(sub.start, sub.end, 'subyama', r.score);
@@ -2326,7 +2413,6 @@ export const calculatePanchaPakshiData = async (
                   yamaScore = r.score;
                   const endIndex = si + 4 < numSubs ? si + 4 : numSubs - 1;
                   r.addMatch(sub.start, subs[endIndex].end, 'yama', r.score);
-                  
                 } else if (!r.onlyAtStart) {
                   subScore += r.score;
                   r.addMatch(sub.start, sub.end, 'subyama', r.score);
@@ -2358,6 +2444,7 @@ export const calculatePanchaPakshiData = async (
           return { ...sub, score };
         });
       });
+
       const subPeriods = periods
         .reduce((a, b) => a.concat(b), [])
         .map(p => {
@@ -2392,7 +2479,7 @@ export const calculatePanchaPakshiData = async (
         const times: PeakTime[] = [];
         const peaksUsed: number[] = [];
         if (showMinutes) {
-          const cutOff = customCutoff > 0? customCutoff : maxPPValue + 10;
+          const cutOff = customCutoff > 0 ? customCutoff : maxPPValue + 10;
           data.set('cutOff', cutOff);
           let isLucky = false;
           let peakTimeIndex = -1;
@@ -2418,29 +2505,42 @@ export const calculatePanchaPakshiData = async (
                 }
               }
             }); */
-            const currSub = allSubs.find(s => currJd >= s.start && currJd <= s.end)
-            const endSubJd = applySubYamaTransitCutoff ? currSub instanceof Object ? currSub.end : -1 : -1;
-            const { minuteScore, ppScore, names, peaks } = matchPPRulesToMinutes(currJd, rules, endSubJd);
+            const currSub = allSubs.find(
+              s => currJd >= s.start && currJd <= s.end,
+            );
+            const endSubJd = applySubYamaTransitCutoff
+              ? currSub instanceof Object
+                ? currSub.end
+                : -1
+              : -1;
+            const {
+              minuteScore,
+              ppScore,
+              names,
+              peaks,
+            } = matchPPRulesToMinutes(currJd, rules, endSubJd);
             scores.push(minuteScore);
             names.forEach(nm => {
               if (matchedRulesNames.indexOf(nm) < 0) {
                 matchedRulesNames.push(nm);
               }
-            })
+            });
             if (ppScore > maxPPValue) {
               maxPPValue = ppScore;
             }
 
             if (debug) {
-               const subIndex = allSubs.findIndex(s => currJd >= s.start && currJd <= s.end);
-               const yama = Math.floor(subIndex / 5) + 1;
+              const subIndex = allSubs.findIndex(
+                s => currJd >= s.start && currJd <= s.end,
+              );
+              const yama = Math.floor(subIndex / 5) + 1;
               minuteMatches.push({
-                min: (i+1),
+                min: i + 1,
                 dt: julToDateParts(currJd).toISOString(),
                 yama,
                 sub: (subIndex % 5) + 1,
                 rules: names,
-                score: minuteScore
+                score: minuteScore,
               });
             }
 
@@ -2450,11 +2550,13 @@ export const calculatePanchaPakshiData = async (
                 peakTimeIndex = times.length;
                 times.push(pk);
               }
-              const pk = times[peakTimeIndex]
+              const pk = times[peakTimeIndex];
               if (minuteScore > pk.max) {
                 pk.setMax(minuteScore);
                 if (peaks.length > 0 && pk.notExactPeak) {
-                  const pkIndex = peaks.findIndex(pk => peaksUsed.indexOf(pk) < 0);
+                  const pkIndex = peaks.findIndex(
+                    pk => peaksUsed.indexOf(pk) < 0,
+                  );
                   const peakIndex = pkIndex < 0 ? 0 : pkIndex;
                   pk.setPeak(julToDateParts(peaks[peakIndex]).unixTimeInt);
                   peaksUsed.push(peaks[peakIndex]);
@@ -2472,6 +2574,9 @@ export const calculatePanchaPakshiData = async (
             }
             prevPP = ppScore;
           }
+
+          const tsEndRules = new Date().getTime();
+          console.log('mins', (tsEndRules - tsStart) / 1000);
           if (times.length > 0) {
             const lastTime = times.pop();
             if (lastTime.end <= lastTime.start) {
@@ -2484,7 +2589,7 @@ export const calculatePanchaPakshiData = async (
               if (end <= start || end <= peak) {
                 let endMatched = false;
                 if (i < lastTimeIndex) {
-                  const nextEnd = times[i+1].end;
+                  const nextEnd = times[i + 1].end;
                   // if there is another peak time within ten minutes use that
                   // as they almost definitely overlap
                   if (nextEnd < start + 600) {
@@ -2497,8 +2602,8 @@ export const calculatePanchaPakshiData = async (
                   times[i].end = peak + 60;
                 }
               } else if (peak < start) {
-                if (i > 0 && times[i-1].start < start - 600) {
-                  times[i].start = times[i-1].start;
+                if (i > 0 && times[i - 1].start < start - 600) {
+                  times[i].start = times[i - 1].start;
                 } else {
                   times[i].start = peak - 60;
                 }
@@ -2515,37 +2620,43 @@ export const calculatePanchaPakshiData = async (
           data.set('yamas2', ys2);
         }
         times.sort((a, b) => a.peak - b.peak);
-        
-        const notMatchedRuleNames = rules.map(r => r.name).filter(nm => matchedRulesNames.indexOf(nm) < 0);
-/*         console.log(times.map(time => {
-          const before = time.end < time.peak;
-          const beforeStart = time.peak < time.start;
-          const s = new Date(time.start * 1000).toISOString();
-          const p = new Date(time.peak * 1000).toISOString();
-          const e = new Date(time.end * 1000).toISOString();
-          return {...time, before, beforeStart, s, p, e};
-        })) */
+
+        const notMatchedRuleNames = rules
+          .map(r => r.name)
+          .filter(nm => matchedRulesNames.indexOf(nm) < 0);
         data.set('rules', rules.map(simplifyRule));
         if (showMinutes) {
           data.set('minutes', scores);
           data.set('maxPP', maxPPValue);
           data.set('maxScore', Math.max(...scores));
-          data.set('times', times.map(time => time.toObject()));
+          data.set(
+            'times',
+            times.map(time => time.toObject()),
+          );
         }
         if (debug) {
-          data.set('matchRuleNames', matchedRulesNames)
+          data.set('matchRuleNames', matchedRulesNames);
           data.set('notMatchedRuleNames', notMatchedRuleNames);
           data.set('minuteMatches', minuteMatches);
           data.set('matchedTransitions', matchedTransitions);
         }
       }
     }
+    const tsEndaAll = new Date().getTime();
+    console.log('end all', (tsEndaAll - tsStart) / 1000);
   }
   return data;
 };
 
-
-export const calcLuckyTimes = async (chart: Chart, jd = 0, geo: GeoLoc, rules: any[] = [], customCutoff = 0, dateMode = 'simple', showRules = true) => {
+export const calcLuckyTimes = async (
+  chart: Chart,
+  jd = 0,
+  geo: GeoLoc,
+  rules: any[] = [],
+  customCutoff = 0,
+  dateMode = 'simple',
+  showRules = true,
+) => {
   const data: Map<string, any> = new Map();
   const ppData = await calculatePanchaPakshiData(
     chart,
@@ -2555,7 +2666,7 @@ export const calcLuckyTimes = async (chart: Chart, jd = 0, geo: GeoLoc, rules: a
     true,
     true,
     true,
-    customCutoff
+    customCutoff,
   );
   if (ppData.get('valid') === true) {
     const keys = ['minuteStart', 'cutOff', 'minutes', 'times'];
@@ -2569,11 +2680,13 @@ export const calcLuckyTimes = async (chart: Chart, jd = 0, geo: GeoLoc, rules: a
       const endJd = ppData.get('endJd');
       const endJdp = julToDateParts(endJd);
       const startUn = startJdp.unixTimeInt;
-      const start = simpleDateMode ? startUn :  {
-        jd: startJd,
-        dt: startJdp.toISOString(),
-        un: startUn
-      }
+      const start = simpleDateMode
+        ? startUn
+        : {
+            jd: startJd,
+            dt: startJdp.toISOString(),
+            un: startUn,
+          };
       data.set('start', start);
       if (ppData.has('yamas')) {
         const firstYamas = ppData.get('yamas');
@@ -2581,37 +2694,43 @@ export const calcLuckyTimes = async (chart: Chart, jd = 0, geo: GeoLoc, rules: a
           const endYama = firstYamas[4];
           const jdP = julToDateParts(endYama.end);
           const ssUn = jdP.unixTimeInt;
-          const sunset = simpleDateMode ? ssUn : {
-            jd: endYama.end,
-            dt: jdP.toISOString(),
-            un: ssUn
-          };
+          const sunset = simpleDateMode
+            ? ssUn
+            : {
+                jd: endYama.end,
+                dt: jdP.toISOString(),
+                un: ssUn,
+              };
           data.set('sunset', sunset);
         }
       }
-      const endUn = endJdp.unixTimeInt
-      const end = simpleDateMode ? endUn : {
-        jd: endJd,
-        dt: endJdp.toISOString(),
-        un: endUn
-      };
+      const endUn = endJdp.unixTimeInt;
+      const end = simpleDateMode
+        ? endUn
+        : {
+            jd: endJd,
+            dt: endJdp.toISOString(),
+            un: endUn,
+          };
       data.set('end', end);
     }
     keys.forEach(k => {
       if (ppData.has(k)) {
         data.set(k, ppData.get(k));
       }
-    })
+    });
   } else {
     data.set('valid', false);
   }
   return data;
-}
+};
 
 export const mapPPRule = (rs: PredictiveRuleSet) => {
   // filter only top level conditions, not conditionSets
-  const conds = rs.conditionSet.conditionRefs.filter(c => c instanceof Object && Object.keys(c).includes('fromMode'));
-  // get index of first condition PanchaPakshi condtion and prepend it if is not first 
+  const conds = rs.conditionSet.conditionRefs.filter(
+    c => c instanceof Object && Object.keys(c).includes('fromMode'),
+  );
+  // get index of first condition PanchaPakshi condtion and prepend it if is not first
   const ppIndex = conds.findIndex(c => c.fromMode.startsWith('pa'));
   if (ppIndex > 0) {
     const c1 = conds.splice(ppIndex, 1);
@@ -2620,4 +2739,4 @@ export const mapPPRule = (rs: PredictiveRuleSet) => {
   }
   const cond = conds[0];
   return mapPPCondition(cond, rs);
-}
+};

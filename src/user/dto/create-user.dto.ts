@@ -18,6 +18,9 @@ export class CreateUserDTO {
   readonly identifier: string;
 
   @ApiProperty()
+  readonly socialId?: string;
+
+  @ApiProperty()
   readonly password: string;
 
   @ApiProperty()

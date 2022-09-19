@@ -619,6 +619,30 @@ export class UserService {
     return user;
   }
 
+  // Get a single User
+  async findOneByEmailOrSocial(
+    payload: CreateUserDTO,
+    activeOnly = true,
+  ): Promise<User> {
+    const filter = new Map<string, any>();
+    const conditions: any[] = [];
+    const { identifier, socialId, mode } = payload;
+    if (notEmptyString(identifier)) {
+      const rgx = new RegExp('^' + identifier.replace(/\./g, '.') + '$', 'i');
+      conditions.push({ identifier: rgx });
+    }
+    if (notEmptyString(socialId) && notEmptyString(mode) && mode !== 'local') {
+      conditions.push({ socialId, mode });
+    }
+    if (conditions.length > 0) {
+      filter.set('$or', conditions);
+      if (activeOnly) {
+        filter.set('active', true);
+      }
+      return await this.userModel.findOne(hashMapToObject(filter)).exec();
+    }
+  }
+
   async findByCriteria(criteria: any, activeOnly = true): Promise<string[]> {
     let users = [];
     if (criteria instanceof Object) {
@@ -761,6 +785,7 @@ export class UserService {
         case 'fullName':
         case 'imageUri':
         case 'mode':
+        case 'socialId':
         case 'deviceToken':
         case 'pob':
           userData.set(key, val);
