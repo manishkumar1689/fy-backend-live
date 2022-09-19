@@ -2254,15 +2254,15 @@ export const calculatePanchaPakshiData = async (
   }[] = [];
 
   if (showTransitions) {
-    const tsStart = new Date().getTime();
+    /* const tsStart = new Date().getTime(); */
     const {
       transitions,
       birthTransitions,
     } = await buildCurrentAndBirthExtendedTransitions(chart, geo, jd);
     data.set('transitions', transitions);
     data.set('birthTransitions', birthTransitions);
-    const tsEnd = new Date().getTime();
-    console.log((tsEnd - tsStart) / 1000);
+    // const tsEnd = new Date().getTime();
+    //console.log((tsEnd - tsStart) / 1000);
     //const transitRules = rules.filter(r => r.from.includes('transit'));
     const transitRules = rules
       .map(r => r.conditions())
@@ -2575,8 +2575,6 @@ export const calculatePanchaPakshiData = async (
             prevPP = ppScore;
           }
 
-          const tsEndRules = new Date().getTime();
-          console.log('mins', (tsEndRules - tsStart) / 1000);
           if (times.length > 0) {
             const lastTime = times.pop();
             if (lastTime.end <= lastTime.start) {
@@ -2642,8 +2640,8 @@ export const calculatePanchaPakshiData = async (
         }
       }
     }
-    const tsEndaAll = new Date().getTime();
-    console.log('end all', (tsEndaAll - tsStart) / 1000);
+    /* const tsEndaAll = new Date().getTime();
+    ///console.log('end all', (tsEndaAll - tsStart) / 1000); */
   }
   return data;
 };
