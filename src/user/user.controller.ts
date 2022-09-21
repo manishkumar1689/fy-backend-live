@@ -279,6 +279,16 @@ export class UserController {
         to: likeability.to,
         from: likeability.from,
       });
+      const feedbackItems = await this.getFacetedFeedbackItems('jungian', true);
+      const surveyData = await this.userService.matchSurveyData(
+        userID,
+        user,
+        feedbackItems,
+      );
+      ud.set('surveys', surveyData);
+      if (createUserDTO.deviceToken) {
+        ud.set('deviceToken', createUserDTO.deviceToken);
+      }
       userData = hashMapToObject(ud);
     }
     if (!valid) {
