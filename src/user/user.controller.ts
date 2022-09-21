@@ -2640,6 +2640,32 @@ export class UserController {
     };
   }
 
+  @Delete('delete/:userID/:adminUserID')
+  async deleteUser(
+    @Res() res,
+    @Param('userID') userID,
+    @Param('adminUserID') adminUserID,
+  ) {
+    let status = HttpStatus.NOT_ACCEPTABLE;
+    const result = { valid: false, authorised: false, user: null };
+    if (isValidObjectId(adminUserID)) {
+      const isAdmin = await this.userService.isAdminUser(adminUserID);
+      if (isAdmin) {
+        status = HttpStatus.NOT_FOUND;
+        result.authorised = true;
+        if (isValidObjectId(userID)) {
+          const user = await this.userService.deleteUser(userID);
+          if (user instanceof Model) {
+            result.user = extractSimplified(user, ['password']);
+            result.valid = true;
+            status = HttpStatus.OK;
+          }
+        }
+      }
+    }
+    return res.status(status).json(result);
+  }
+
   /*
    * WebWidgets
    * Deletes a simple astro pair object within a public user record
