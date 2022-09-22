@@ -343,7 +343,7 @@ export class UserService {
         'array',
       );
       pushNotifications = pnData.matched
-        ? pnData.item
+        ? pnData.item.filter(notEmptyString)
         : defaultPushNotifications;
     }
     return { lang, pushNotifications };
