@@ -112,6 +112,8 @@ import {
 } from './lib/calc-sbc';
 import { calcKotaChakraScoreData } from './lib/settings/kota-values';
 import { addSnippetKeyToSynastryAspectMatches } from './lib/synastry-aspect-mapper';
+import { GrahaPos } from './lib/point-transitions';
+import { astroCalcApi } from 'src/.config';
 const { ObjectId } = Types;
 
 @Injectable()
@@ -141,6 +143,15 @@ export class AstrologicService {
 
   getHttp(url: string): Promise<AxiosResponse> {
     return this.http.get(url).toPromise();
+  }
+
+  postHttp(url: string, payload = null): Promise<AxiosResponse> {
+    const options = {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    };
+    return this.http.post(url, payload, options).toPromise();
   }
 
   async createChart(data: CreateChartDTO) {
@@ -3047,5 +3058,42 @@ export class AstrologicService {
       }
     });
     return { rows, datetime: chartData.datetime, geo: chartData.geo };
+  }
+
+  async fetchCurrentAndTransposedTransitions(
+    positions: GrahaPos[],
+    jd: number,
+    geo: GeoPos,
+    geoB = null,
+    isDayTime = true,
+  ) {
+    const geo2 =
+      geoB instanceof GeoLoc
+        ? geoB.obj
+        : geoB instanceof Object && Object.keys(geoB).includes('lng')
+        ? geoB
+        : geo;
+    const geo1 =
+      geo instanceof GeoLoc
+        ? geo.obj
+        : geo instanceof Object
+        ? geo
+        : { lat: 0, lng: 0 };
+    const uri = [astroCalcApi, 'transposed-transition-sets'].join('/');
+    const payload = {
+      jd,
+      geo: geo1,
+      geo2,
+      positions,
+      days: 1,
+      isDayTime,
+    };
+
+    const remResp = await this.postHttp(uri, payload);
+    if (remResp.status < 300) {
+      return remResp.data;
+    } else {
+      return { valid: false };
+    }
   }
 }

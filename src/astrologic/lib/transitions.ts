@@ -32,6 +32,36 @@ export interface TransitionData {
   valid?: boolean;
 }
 
+export class TransSet {
+  transitions: TransitionData[] = [];
+  transposedTransitions: TransitionData[] = [];
+
+  constructor(
+    transitions: TransitionData[] = [],
+    transposedTransitions: TransitionData[] = [],
+  ) {
+    if (transitions instanceof Array) {
+      this.transitions = transitions;
+    }
+    if (transposedTransitions instanceof Array) {
+      this.transposedTransitions = transposedTransitions;
+    }
+  }
+
+  get birthTransitions() {
+    return this.transposedTransitions;
+  }
+
+  get valid() {
+    return (
+      this.transitions instanceof Array &&
+      this.transitions.length > 0 &&
+      this.transposedTransitions instanceof Array &&
+      this.transposedTransitions.length > 0
+    );
+  }
+}
+
 export interface SunTransitionData {
   jd: number;
   datetime?: Date;

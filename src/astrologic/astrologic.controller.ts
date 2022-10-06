@@ -62,6 +62,7 @@ import {
   buildExtendedTransitions,
   calcBaseLngSetJd,
   calcGrahaPos,
+  toSimplePositions,
 } from './lib/core';
 import {
   calcAltitudeResult,
@@ -174,12 +175,13 @@ import {
 } from './lib/settings/progression';
 import { objectToMap } from '../lib/entities';
 import { PreferenceDTO } from '../user/dto/preference.dto';
-import { julToDateParts } from './lib/julian-date';
+import { calcPreviousMidnightJd, julToDateParts } from './lib/julian-date';
 import { buildSbcScoreGrid, traverseAllNak28Cells } from './lib/calc-sbc';
 import {
   calcKotaChakraScoreData,
   calcKotaChakraScoreSet,
 } from './lib/settings/kota-values';
+import { process5PRulesWithPeaks, processTransitionData } from './lib/calc-5p';
 
 @Controller('astrologic')
 export class AstrologicController {
@@ -462,7 +464,7 @@ export class AstrologicController {
     #mobile
     #testing
   */
-  @Get('lucky-times/:chartRef/:loc/:dt?/:dateMode')
+  /* @Get('lucky-times/:chartRef/:loc/:dt?/:dtMode?')
   async ppLuckyTimes(
     @Res() res,
     @Param('chartRef') chartRef,
@@ -478,9 +480,9 @@ export class AstrologicController {
         message: '',
       }),
     );
-    let chartID = chartRef;
-    if (chartRef.includes('@') && chartRef.includes('.')) {
-      chartID = await this.astrologicService.getChartIDByEmail(chartRef);
+    let chartID = await this.astrologicService.getChartIDByUserRef(chartRef);
+    if (!notEmptyString(chartID, 12)) {
+      chartID = chartRef;
     }
     if (notEmptyString(chartID) && notEmptyString(loc, 3)) {
       const geo = locStringToGeo(loc);
@@ -522,6 +524,109 @@ export class AstrologicController {
       data.set('message', 'Invalid parameters');
     }
     return res.status(status).json(Object.fromEntries(data));
+  } */
+
+  @Get('lucky-times/:chartRef/:loc/:dt?/:dtMode?')
+  async ppLuckyTimes(
+    @Res() res,
+    @Param('chartRef') chartRef,
+    @Param('loc') loc,
+    @Param('dt') dt,
+    @Param('dtMode') dtMode,
+    @Query() query,
+  ) {
+    let chartID = await this.astrologicService.getChartIDByUserRef(chartRef);
+    if (!notEmptyString(chartID, 12)) {
+      chartID = chartRef;
+    }
+    const dateMode = notEmptyString(dtMode) ? dtMode.toLowerCase() : 'simple';
+    const result: Map<string, any> = new Map();
+    result.set('valid', false);
+    result.set('chartId', chartID);
+    let status = HttpStatus.BAD_REQUEST;
+    const paramKeys = query instanceof Object ? Object.keys(query) : [];
+    if (notEmptyString(chartID) && notEmptyString(loc, 3)) {
+      const showRules = paramKeys.includes('rules')
+        ? smartCastInt(query.rules, 0) > 0
+        : false;
+      const showYamas = paramKeys.includes('yamas')
+        ? smartCastInt(query.yamas, 0) > 0
+        : false;
+      const geo = locStringToGeo(loc);
+      const { dtUtc, jd } = matchJdAndDatetime(dt);
+      const chartData = await this.astrologicService.getChart(chartID);
+      const hasChart = chartData instanceof Model;
+      const valid = hasChart && chartData.grahas.length > 1;
+      result.set('dtUtc', dtUtc);
+      const refDt = new Date(dtUtc);
+      const refDtStr = refDt
+        .toISOString()
+        .split('.')
+        .shift();
+
+      const timeInfo = await this.geoService.fetchTzData(geo, refDtStr);
+
+      const midNightJd = calcPreviousMidnightJd(timeInfo.tzOffset, jd);
+
+      const endJd = midNightJd + 1;
+      if (valid) {
+        const cutoff = await this.settingService.getPPCutoff();
+        result.set('cutoff', cutoff);
+        result.set('jd', jd);
+        result.set('startJd', midNightJd);
+        result.set('endJd', endJd);
+        result.set('tzOffset', timeInfo.tzOffset);
+        const rules = await this.settingService.getPPRules();
+
+        const chartObj = chartData.toObject();
+        const chart = new Chart(chartObj);
+        const startScanJd = jd - 0.5;
+        const positions = toSimplePositions(chart, 'special');
+
+        const trData = await this.astrologicService.fetchCurrentAndTransposedTransitions(
+          positions,
+          startScanJd,
+          geo,
+          chart.geo,
+          chart.isDayTime,
+        );
+
+        const transitions = processTransitionData(trData, midNightJd, endJd);
+        const ppData = await process5PRulesWithPeaks(
+          chart,
+          [jd, midNightJd, endJd],
+          geo,
+          transitions,
+          rules,
+          cutoff,
+          timeInfo.tzOffset,
+          showRules,
+          dateMode,
+        );
+        const ppKeys = ppData.keys();
+        const excludeKeys = ['rules', 'span'];
+        if (!showYamas) {
+          excludeKeys.push('yamas1', 'yamas2', 'ruleJds', 'totalMatched');
+        }
+        for (const ppKey of ppKeys) {
+          if (excludeKeys.includes(ppKey) === false) {
+            result.set(ppKey, ppData.get(ppKey));
+          }
+        }
+        if (showRules) {
+          if (ppData.has('rules')) {
+            const ppRules = ppData.get('rules');
+            if (ppRules instanceof Array && ppRules.length > 0) {
+              result.set('rules', rules);
+            }
+          }
+        }
+        result.set('valid', valid);
+
+        status = HttpStatus.OK;
+      }
+    }
+    return res.status(status).json(Object.fromEntries(result));
   }
 
   /*

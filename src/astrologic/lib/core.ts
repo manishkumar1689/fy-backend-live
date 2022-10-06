@@ -22,6 +22,7 @@ import {
   SunTransitionData,
   TransitionData,
   calcSunTransJd,
+  TransSet,
 } from './transitions';
 import starValues from './settings/star-values';
 import asteroidValues from './settings/asteroid-values';
@@ -73,7 +74,7 @@ import { calcDist360, capitalize } from './helpers';
 import houseTypeData from './settings/house-type-data';
 import { sampleBaseObjects } from './custom-transits';
 import { GeoLoc } from './models/geo-loc';
-import { calcTransposedGrahaTransitions } from './point-transitions';
+import { calcTransposedGrahaTransitions, GrahaPos } from './point-transitions';
 import { KeyLng, SynastryAspectMatch } from './interfaces';
 import { keyValuesToSimpleObject } from '../../lib/converters';
 import { matchSynastryOrbRange } from './calc-orbs';
@@ -744,6 +745,31 @@ export const buildExtendedTransitions = async (
   return { jd, transitions, showGeoData, showSunData };
 };
 
+export const extractSpecialGrahaObjects = (chart: Chart): GrahaPos[] => {
+  const sphutaSet = chart.sphutas[0];
+  const gps: GrahaPos[] = [];
+  const ayaNum = sphutaSet.num;
+  const ayanamshaKey = matchAyanamshaKey(ayaNum);
+  const aya = chart.ayanamshas.find(row => row.key === ayanamshaKey);
+  const sphutaKeys = {
+    lotOfFortune: 'lotOfFortune',
+    lotOfSpirit: 'lotOfSpirit',
+    yogi: 'yogiSphuta',
+    avaYogi: 'avayogiSphuta',
+    brghuBindu: 'brghuBindu',
+  };
+  if (aya instanceof Object && sphutaSet instanceof Object) {
+    Object.entries(sphutaKeys).forEach(([k1, k2]) => {
+      const item = sphutaSet.items.find(item => item.key === k2);
+      if (item instanceof Object) {
+        const lng = (item.value + aya.value) % 360;
+        gps.push({ lng, lat: 0, lngSpeed: 0, key: k1 });
+      }
+    });
+  }
+  return gps;
+};
+
 export const buildCurrentAndBirthExtendedTransitions = async (
   chart: Chart,
   geo: GeoLoc,
@@ -758,35 +784,20 @@ export const buildCurrentAndBirthExtendedTransitions = async (
     chart,
   );
   const { transitions } = result;
-  const gps = chart.bodies.map(({ lng, lat, lngSpeed, key }) => {
+  const gps: GrahaPos[] = chart.bodies.map(({ lng, lat, lngSpeed, key }) => {
     return { lng, lat, lngSpeed, key };
   });
   if (chart.objects instanceof Array) {
     if (chart.sphutas.length > 0) {
-      const sphutaSet = chart.sphutas[0];
-      const ayaNum = sphutaSet.num;
-      const ayanamshaKey = matchAyanamshaKey(ayaNum);
-      const aya = chart.ayanamshas.find(row => row.key === ayanamshaKey);
-      const sphutaKeys = {
-        lotOfFortune: 'lotOfFortune',
-        lotOfSpirit: 'lotOfSpirit',
-        yogi: 'yogiSphuta',
-        avaYogi: 'avayogiSphuta',
-        brghuBindu: 'brghuBindu',
-      };
-      if (aya instanceof Object && sphutaSet instanceof Object) {
-        Object.entries(sphutaKeys).forEach(([k1, k2]) => {
-          const item = sphutaSet.items.find(item => item.key === k2);
-          if (item instanceof Object) {
-            const lng = (item.value + aya.value) % 360;
-            gps.push({ lng, lat: 0, lngSpeed: 0, key: k1 });
-          }
+      const extraGps = extractSpecialGrahaObjects(chart);
+      if (extraGps.length > 1) {
+        extraGps.forEach((gp: GrahaPos) => {
+          gps.push(gp);
         });
       }
     }
   }
   const ds = await calcTransposedGrahaTransitions(jd + offset, geo, gps);
-  const emptyTimeSet = { type: '', jd: 0, after: false };
   const birthTransitions: TransitionData[] = ds
     .filter(
       gSet =>
@@ -794,14 +805,10 @@ export const buildCurrentAndBirthExtendedTransitions = async (
     )
     .map(gSet => {
       const { key, transitions } = gSet;
-      const riseRow = transitions.find(item => item.type === 'rise');
-      const setRow = transitions.find(item => item.type === 'set');
-      const mcRow = transitions.find(item => item.type === 'mc');
-      const icRow = transitions.find(item => item.type === 'ic');
-      const rise = riseRow instanceof Object ? riseRow : { ...emptyTimeSet };
-      const set = setRow instanceof Object ? setRow : { ...emptyTimeSet };
-      const mc = mcRow instanceof Object ? mcRow : { ...emptyTimeSet };
-      const ic = icRow instanceof Object ? icRow : { ...emptyTimeSet };
+      const rise = transitions.find(item => item.type === 'rise');
+      const set = transitions.find(item => item.type === 'set');
+      const mc = transitions.find(item => item.type === 'mc');
+      const ic = transitions.find(item => item.type === 'ic');
       return { key, rise, set, mc, ic };
     });
   if (offset === -0.5) {
@@ -820,7 +827,7 @@ export const buildCurrentAndBirthExtendedTransitions = async (
       birthTransitions.push({ ...tr, key });
     });
   }
-  return { transitions, birthTransitions };
+  return new TransSet(transitions, birthTransitions);
 };
 
 const calcStarPosJd = async (jd: number, starname: string, mode = '2ut') => {
@@ -956,6 +963,73 @@ export const calcBodyJd = async (
     });
   }
   return new Graha(data);
+};
+
+/* Special objects */
+
+// If values are not from a birth chart, the sidereal natal ascendant must be specified
+const calcRelativeLoFDay = (relLagna = 0, moonLng = 0, sunLng = 0): number => {
+  return (relLagna + (moonLng - sunLng) + 360) % 360;
+};
+
+// If values are not from a birth chart, the sidereal natal ascendant must be specified
+const calcRelativeLoFNight = (
+  relLagna = 0,
+  moonLng = 0,
+  sunLng = 0,
+): number => {
+  return (relLagna + sunLng - moonLng + 360) % 360;
+};
+
+// required for current lot of fortune relative to someone's birth ascendant and time of birth (night or day)
+export const calcRelativeLotFortune = (
+  birthLagna = 0,
+  isDayTime = true,
+  moonLng = 0,
+  sunLng = 0,
+): number => {
+  return isDayTime
+    ? calcRelativeLoFDay(birthLagna, moonLng, sunLng)
+    : calcRelativeLoFNight(birthLagna, moonLng, sunLng);
+};
+
+// This follows the reverse logic of Lot of fortune
+export const calcRelativeLotSpirit = (
+  birthLagna = 0,
+  isDayTime = true,
+  moonLng = 0,
+  sunLng = 0,
+): number => {
+  return calcRelativeLotFortune(birthLagna, !isDayTime, moonLng, sunLng);
+};
+
+export const calcBrighuBindu = (moonLng = 0, rahuLng = 0): number => {
+  return ((moonLng + rahuLng) / 2) % 360;
+};
+
+export const calcSpecialObjectPositions = (
+  birthLagna = 0,
+  isDayTime = true,
+  moonLng = 0,
+  sunLng = 0,
+  rahuLng = 0,
+  prefix = '',
+): GrahaPos[] => {
+  const pos: GrahaPos[] = [];
+  const fortune = calcRelativeLotFortune(
+    birthLagna,
+    isDayTime,
+    moonLng,
+    sunLng,
+  );
+  const spirit = calcRelativeLotSpirit(birthLagna, isDayTime, moonLng, sunLng);
+  const bb = calcBrighuBindu(moonLng, rahuLng);
+  const hasPrefix = notEmptyString(prefix, 1);
+  const toKey = (key: string) => (hasPrefix ? [prefix, key].join('__') : key);
+  pos.push({ key: toKey('fortune'), lng: fortune, lat: 0, lngSpeed: 0 });
+  pos.push({ key: toKey('spirit'), lng: spirit, lat: 0, lngSpeed: 0 });
+  pos.push({ key: toKey('brighu_bindu'), lng: bb, lat: 0, lngSpeed: 0 });
+  return pos;
 };
 
 export const calcLngJd = async (jd: number, key: string): Promise<number> => {
@@ -2305,4 +2379,41 @@ export const getSunMoonSpecialValues = (
       .map(entry => [entry[0], entry[1].ruler]),
   );
   return { rulers, ...data };
+};
+
+const matchGrahaSetMode = (key = 'standard') => {
+  switch (key) {
+    case 'core':
+    case 'special':
+      return ['su', 'mo', 'me', 've', 'ma', 'ju', 'sa'];
+    default:
+      return ['su', 'mo', 'me', 've', 'ma', 'ju', 'sa', 'ur', 'ne', 'pl'];
+  }
+};
+
+export const toSimplePositions = (
+  chart: any,
+  mode = 'standard',
+): GrahaPos[] => {
+  let positions: GrahaPos[] = [];
+  if (chart instanceof Object && chart.grahas instanceof Array) {
+    const keys = matchGrahaSetMode(mode);
+    positions = chart.grahas
+      .filter(g => g instanceof Object && keys.includes(g.key))
+      .map(g => {
+        const { key, lng, lat, lngSpeed } = g;
+        return { key, lng, lat, lngSpeed };
+      });
+    if (mode === 'special') {
+      const extraPos = calcSpecialObjectPositions(
+        chart.lagna,
+        chart.indianTime.isDayTime,
+        chart.moon.lng,
+        chart.sun.lng,
+        chart.graha('ra').lng,
+      );
+      positions = [...positions, ...extraPos];
+    }
+  }
+  return positions;
 };

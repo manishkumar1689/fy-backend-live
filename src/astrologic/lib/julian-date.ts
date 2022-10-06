@@ -3,7 +3,7 @@ export const epoch = {
   year: 1970, // ref year
   weekDay: 4, // weekday num of 1 Jan 1970
   secondOffset: (1 / 3600) * 0.3333, // best second offset in hours to account for leap seconds
-  yearLength: 365.25
+  yearLength: 365.25,
 };
 
 export interface MonthDay {
@@ -22,8 +22,8 @@ const zPad = (num: number, places = 2): string => {
   const absNum = Math.abs(num);
   const tgRp = places - absNum.toString().length;
   const rp = tgRp > 0 ? (tgRp > places ? places : tgRp) : 0;
-  const negPrefix = num < 0 ? "-" : "";
-  return rp > 0 ? [negPrefix, "0".repeat(rp), absNum].join("") : num.toString();
+  const negPrefix = num < 0 ? '-' : '';
+  return rp > 0 ? [negPrefix, '0'.repeat(rp), absNum].join('') : num.toString();
 };
 
 const zPad2 = (num: number): string => {
@@ -104,7 +104,7 @@ const daysToYearItem = (refDay: number): YearItem => {
   return { year, day, startDay, numDays };
 };
 
-export const julToEpochDays = (jd) => {
+export const julToEpochDays = jd => {
   return jd - epoch.days;
 };
 
@@ -154,7 +154,7 @@ export const yearsFromNow = (jd = 0): number => {
   Return the julian day for the current unix time
   This is timezone-agnostic
 */
-export const dateStringToJulianDay = (dateStr = ""): number => {
+export const dateStringToJulianDay = (dateStr = ''): number => {
   const dtObj = new Date(dateStr);
   const ts = dtObj.getTime() / 1000;
   // subtract offset applied to Date object by the browser locale settings
@@ -271,13 +271,13 @@ export class JulDate {
     const mins = Math.abs(this.tzOffset) / 60;
     const hours = Math.floor(mins / 60);
     const minutes = mins % 60;
-    const posNeg = this.tzOffset < 0 ? "-" : "+";
+    const posNeg = this.tzOffset < 0 ? '-' : '+';
     const strHrs = padded ? zPad2(hours) : hours.toString();
-    const parts = ["UTC ", posNeg, strHrs];
+    const parts = ['UTC ', posNeg, strHrs];
     if (alwaysShowMinutes || minutes > 0) {
-      parts.push(":" + zPad2(minutes));
+      parts.push(':' + zPad2(minutes));
     }
-    return parts.join("");
+    return parts.join('');
   }
 
   get offsetHrs() {
@@ -289,15 +289,15 @@ export class JulDate {
   }
 
   toString(): string {
-    return this.format("iso");
+    return this.format('iso');
   }
 
   toISOString(): string {
-    return this.format("isoT") + ".000Z";
+    return this.format('isoT') + '.000Z';
   }
 
   toISOSimple(): string {
-    return this.format("isoT");
+    return this.format('isoT');
   }
 
   /* NB: 
@@ -319,44 +319,44 @@ export class JulDate {
    * examples
    */
   format(
-    fmt = "euro1",
+    fmt = 'euro1',
     timeOptions = {
       time: true,
       seconds: true,
-    }
+    },
   ): string {
     const [y, m, d] = [zPad4(this.year), zPad2(this.month), zPad2(this.day)];
     let dp = [d, m, y];
-    let sep = "/";
-    const midSep = fmt === "isoT" ? "T" : " ";
+    let sep = '/';
+    const midSep = fmt === 'isoT' ? 'T' : ' ';
     switch (fmt) {
-      case "us":
-      case "usa":
-      case "mdy":
+      case 'us':
+      case 'usa':
+      case 'mdy':
         dp = [m, d, y];
         break;
-      case "dm":
+      case 'dm':
         dp = [d, m];
         break;
-      case "euro2":
-      case "de":
-      case "eu":
-      case "euroDot":
-        sep = ".";
+      case 'euro2':
+      case 'de':
+      case 'eu':
+      case 'euroDot':
+        sep = '.';
         break;
-      case "euro3":
-      case "in":
-      case "euroHyphen":
-        sep = "-";
+      case 'euro3':
+      case 'in':
+      case 'euroHyphen':
+        sep = '-';
         break;
-      case "iso":
-      case "ymd":
-      case "isoT":
+      case 'iso':
+      case 'ymd':
+      case 'isoT':
         dp = [y, m, d];
-        sep = "-";
+        sep = '-';
         break;
-      case "-":
-      case "":
+      case '-':
+      case '':
         dp = [];
         break;
     }
@@ -366,37 +366,37 @@ export class JulDate {
       if (timeOptions.seconds) {
         timeParts.push(zPad2(this.seconds));
       }
-      parts.push(timeParts.join(":"));
+      parts.push(timeParts.join(':'));
     }
     return parts.join(midSep);
   }
 
   get isoDate() {
-    return this.format("iso", { time: false, seconds: false });
+    return this.format('iso', { time: false, seconds: false });
   }
 
   get ymdDate() {
-    return this.format("ymd", { time: false, seconds: false });
+    return this.format('ymd', { time: false, seconds: false });
   }
 
   get dmyDate() {
-    return this.format("dmy", { time: false, seconds: false });
+    return this.format('dmy', { time: false, seconds: false });
   }
 
   get dmDate() {
-    return [zPad2(this.month),this.year].join("/");
+    return [zPad2(this.month), this.year].join('/');
   }
 
   get euDate() {
-    return this.format("euroDot", { time: false, seconds: false });
+    return this.format('euroDot', { time: false, seconds: false });
   }
 
   get mdyDate() {
-    return this.format("mdy", { time: false, seconds: false });
+    return this.format('mdy', { time: false, seconds: false });
   }
 
   timeString(seconds = true): string {
-    return this.format("-", { time: true, seconds });
+    return this.format('-', { time: true, seconds });
   }
 
   get yearDay() {
@@ -412,11 +412,11 @@ export class JulDate {
   }
 
   get dmyHm() {
-    return this.format("dmy", { time: true, seconds: false });
+    return this.format('dmy', { time: true, seconds: false });
   }
 
   get dmyHms() {
-    return this.format("dmy", { time: true, seconds: true });
+    return this.format('dmy', { time: true, seconds: true });
   }
 }
 
@@ -430,11 +430,27 @@ export const currentJulianDate = (utc = false) => {
   return new JulDate(jd, offset);
 };
 
-export const dateStringToJulianDate = (dateStr = "", offset = 0) => {
+export const dateStringToJulianDate = (dateStr = '', offset = 0) => {
   const jd = dateStringToJulianDay(dateStr);
   return new JulDate(jd, offset);
-}
+};
 
 export const currentTzOffset = (): number => {
   return 0 - new Date().getTimezoneOffset() * 60;
-}
+};
+
+const calcMidNightStartFrac = (secs: number) => (1.5 - secs / 86400) % 1;
+
+const calcPreviousMidJd = (frac: number, jd: number) => {
+  const jdZero = Math.floor(jd);
+  const tgJd = jdZero + frac;
+  return tgJd < jd ? tgJd : tgJd - 1;
+};
+export const calcPreviousMidnightJd = (
+  offsetSecs: number,
+  refJd = 0,
+): number => {
+  const currJd = refJd < 100 ? currentJulianDay() : refJd;
+  const startFrac = calcMidNightStartFrac(offsetSecs);
+  return calcPreviousMidJd(startFrac, currJd);
+};

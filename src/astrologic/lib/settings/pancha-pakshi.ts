@@ -7,7 +7,7 @@ import {
 import { julToISODate } from '../date-funcs';
 import { KeyNum, KeyValueNum } from '../../../lib/interfaces';
 import { Chart } from '../models/chart';
-import { toIndianTimeJd, TransitionData } from '../transitions';
+import { toIndianTimeJd, TransitionData, TransSet } from '../transitions';
 import { translateActionToGerund, Condition } from '../models/protocol-models';
 import { matchDikBalaTransition } from './graha-values';
 import { isNumeric, notEmptyString } from '../../../lib/validators';
@@ -16,6 +16,8 @@ import { matchCurrentDashaLord } from '../models/dasha-set';
 import { PredictiveRuleSet } from '../../../setting/interfaces/predictive-rule-set.interface';
 import { julToDateParts } from '../julian-date';
 import { capitalize } from '../helpers';
+import { Console } from 'console';
+import { TransitionItem } from '../interfaces';
 
 const birdMap = { 1: 'vulture', 2: 'owl', 3: 'crow', 4: 'cock', 5: 'peacock' };
 
@@ -75,6 +77,22 @@ interface MinuteMatch {
   sub: number;
   rules: string[];
   score: number;
+}
+
+export interface RuleDataSet {
+  rule: PPRule;
+  isTr: boolean;
+  isLord: boolean;
+  matchedRanges: any[];
+  matched: boolean;
+  subs: any[];
+  trRef: string;
+}
+
+interface MatchedTransition {
+  name: string;
+  starts: string[];
+  inRange: boolean;
 }
 
 const birdAttributes = [
@@ -1355,7 +1373,6 @@ export const panchaPakshiDayNightSet = async (
   const special: any = {
     day: getSunMoonSpecialValues(moonJd, iTime, current.sunLng, current.lng),
   };
-
   if (fetchNightAndDay) {
     const jd2 = jd + 0.5;
     //const iTime2 = await toIndianTimeJd(jd2, geo);
@@ -1419,7 +1436,7 @@ interface DayNightBirdGraha {
   night: BirdGraha;
 }
 
-class BirdGrahaSet {
+export class BirdGrahaSet {
   birth: BirdGraha;
   ruling: DayNightBirdGraha;
   dying: BirdGraha;
@@ -1515,8 +1532,21 @@ class BirdGrahaSet {
   }
 }
 
-const mapBirdSet = (ppData: Map<string, any> = new Map()): BirdGrahaSet => {
+export const mapBirdSet = (
+  ppData: Map<string, any> = new Map(),
+): BirdGrahaSet => {
   return new BirdGrahaSet(ppData);
+};
+
+export const buildBirdSet = (
+  ppData: Map<string, any> = new Map(),
+  chart: Chart,
+  jd = 0,
+) => {
+  const bb = mapBirdSet(ppData);
+  bb.dashaLord = matchCurrentDashaLord(chart, jd, 1).key;
+  bb.dasha2Lord = matchCurrentDashaLord(chart, jd, 2).key;
+  return bb;
 };
 
 export const periodTypes = ['segment', 'yama', 'subyama', 'orb'];
@@ -1791,7 +1821,7 @@ export const mapPPCondition = (condRef = null, rs: PredictiveRuleSet) => {
 'avayogi_point',
 'avayogi_graha']
 */
-const filterDashaLordByObjectType = (
+export const filterDashaLordByObjectType = (
   dashaLord: string,
   allSubs: SubYama[] = [],
   birdsSet: BirdGrahaSet,
@@ -1897,7 +1927,7 @@ export const matchTransitionPeak = (rk = '', relTr: TransitionData): number => {
   }
 };
 
-const mapLords = (chart: Chart, key = '') => {
+export const mapLords = (chart: Chart, key = '') => {
   const houseNums = key
     .split('_')
     .filter(isNumeric)
@@ -1911,6 +1941,14 @@ export const matchTransitionRange = (
 ): TransitionOrb => {
   const orbMin = (1 / (24 * 60)) * 10;
   const peak = matchTransitionPeak(rk, relTr);
+  return new TransitionOrb(peak, orbMin);
+};
+
+export const matchTransitionItemRange = (
+  relTr: TransitionItem,
+): TransitionOrb => {
+  const orbMin = (1 / (24 * 60)) * 10;
+  const peak = relTr.jd;
   return new TransitionOrb(peak, orbMin);
 };
 
@@ -1940,7 +1978,7 @@ export const matchTransitionRange = (
   return trOrbs;
 } */
 
-const calcValueWithinOrb = (
+export const calcValueWithinOrb = (
   minJd = 0,
   start = 0,
   end = 0,
@@ -2017,7 +2055,7 @@ const mapPPRuleResults = (ym = null, rules: PPRule[] = []) => {
   return { ...item, subs };
 };
 
-const translateTransitionKey = (key = '', isTr = false) => {
+export const translateTransitionKey = (key = '', isTr = false): string => {
   const baseKey = isTr ? key.replace(/_point$/, '') : '';
   switch (baseKey) {
     case 'fortune':
@@ -2035,10 +2073,11 @@ const processPPTransition = (
   birthTransitions: TransitionData[],
   transitions: TransitionData[],
   birdGrahaSet: BirdGrahaSet,
-) => {
+): RuleDataSet => {
   const isTr = ['as', 'ds', 'ic', 'mc', 'dik_bala_transition'].includes(
     r.context,
   );
+
   const trRef = translateTransitionKey(r.key, isTr);
   const matchedRanges: TransitionOrb[] = [];
   const relTransItems = r.from === 'birth' ? birthTransitions : transitions;
@@ -2208,12 +2247,183 @@ const matchTransitionKeys = (rules: PPRule[] = []) => {
   return keys;
 };
 
-export const calculatePanchaPakshiData = async (
+export const matchPeriodsWithPPScores = (
+  allYamasWithSubs: any[] = [],
+  rules: PPRule[] = [],
+  birdGrahaSet: BirdGrahaSet,
+  dayFirst = true,
+  matchedRules: RuleDataSet[] = [],
+  hasSubs = false,
+) => {
+  let segmentScore = 0;
+  return allYamasWithSubs.map((subs, subIndex) => {
+    let yamaScore = 0;
+    const segmentIndex = Math.floor(subIndex / 5) * 5 + 4;
+    const startSegment = subIndex % 5 === 0;
+    if (startSegment) {
+      segmentScore = 0;
+    }
+    const numSubs = subs.length;
+    return subs.map((sub, si) => {
+      let subScore = 0;
+      for (const rSet of rules) {
+        for (const r of rSet.ppConditions()) {
+          const isSegment = r.key.includes('day_night');
+          const friendRel = r.context.includes('friend');
+          const enemyRel = r.context.includes('enemy');
+          const bbRel = r.context.includes('action_is_birth_bird');
+          const feRel = friendRel || enemyRel;
+          const isBirdRel = feRel || bbRel;
+          if (isBirdRel) {
+            const matchLetter = friendRel ? 'F' : 'E';
+            if (isSegment) {
+              if (startSegment) {
+                if (si === 0) {
+                  let relMatched = false;
+                  const subActKey = r.key.includes('ruling')
+                    ? 'ruling'
+                    : 'dying';
+                  const isDay =
+                    (segmentIndex < 5 && dayFirst) ||
+                    (segmentIndex >= 5 && !dayFirst);
+                  if (feRel) {
+                    const relLetter = matchBirdRelationsKeys(
+                      birdGrahaSet.birth.bird,
+                      birdGrahaSet.matchBird(subActKey, isDay),
+                      birdGrahaSet.waxing,
+                    );
+                    relMatched = relLetter === matchLetter;
+                  } else if (bbRel) {
+                    const relBird = birdGrahaSet.matchBird(subActKey, isDay);
+                    relMatched = relBird === birdGrahaSet.birth.bird;
+                  }
+                  if (relMatched) {
+                    segmentScore += r.score;
+                    r.addMatch(
+                      sub.start,
+                      allYamasWithSubs[segmentIndex][4].end,
+                      'segment',
+                      r.score,
+                    );
+                  }
+                }
+              }
+            } else {
+              const relLetter = matchBirdRelationsKeys(
+                birdGrahaSet.birth.bird,
+                sub.bird,
+                birdGrahaSet.waxing,
+              );
+              if (relLetter === matchLetter) {
+                subScore += r.score;
+                r.addMatch(sub.start, sub.end, 'subyama', r.score);
+              }
+            }
+          } else if (r.action === sub.key) {
+            if (r.onlyAtStart && si === 0) {
+              yamaScore = r.score;
+              const endIndex = si + 4 < numSubs ? si + 4 : numSubs - 1;
+              r.addMatch(sub.start, subs[endIndex].end, 'yama', r.score);
+            } else if (!r.onlyAtStart) {
+              subScore += r.score;
+              r.addMatch(sub.start, sub.end, 'subyama', r.score);
+            }
+          }
+        }
+      }
+      let subRuleScore = 0;
+      if (hasSubs) {
+        const matchedSubRules = matchedRules
+          .map(mr => {
+            const matchedSubs = mr.subs.filter(
+              s2 => s2.start === sub.start && s2.end === sub.end,
+            );
+            return {
+              matchedSubs,
+              rule: mr.rule,
+            };
+          })
+          .filter(mr => mr.matchedSubs.length > 0);
+
+        if (matchedSubRules.length > 0) {
+          subRuleScore = matchedSubRules
+            .map(mr => mr.rule.score)
+            .reduce((a, b) => a + b, 0);
+        }
+      }
+      const score = yamaScore + subScore + subRuleScore + segmentScore;
+      return { ...sub, score };
+    });
+  });
+};
+
+export const matchPeriodsWithPPScoresOnly = (
+  allYamasWithSubs: any[] = [],
+  rules: PPRule[] = [],
+  birdGrahaSet: BirdGrahaSet,
+  dayFirst = true,
+) => {
+  return matchPeriodsWithPPScores(
+    allYamasWithSubs,
+    rules,
+    birdGrahaSet,
+    dayFirst,
+  );
+};
+
+export const addMatchedTransitions = (
+  chart: Chart,
+  allSubs: any[],
+  rules: PPRule[] = [],
+  rData: RuleDataSet[] = [],
+  birthTransitions: TransitionData[] = [],
+  transitions: TransitionData[] = [],
+  birdGrahaSet: BirdGrahaSet,
+) => {
+  for (const r of rules) {
+    for (const subR of r.transitConditions()) {
+      const result = processPPTransition(
+        subR,
+        chart,
+        allSubs,
+        birthTransitions,
+        transitions,
+        birdGrahaSet,
+      );
+      if (result.matched) {
+        rData.push(result);
+      }
+    }
+  }
+};
+
+const mergeAllYamasWithSubs = (ym1: any[], ym2: any[]) => {
+  return ym1 instanceof Array && ym2 instanceof Array
+    ? [...ym1.map(y => y.subs), ...ym2.map(y => y.subs)]
+    : [];
+};
+
+export const extractAllYamasWithSubs = (data: Map<string, any> = new Map()) => {
+  const ym1 = data.get('yamas');
+  const ym2 = data.get('yamas2');
+  return mergeAllYamasWithSubs(ym1, ym2);
+};
+
+export const toAllYamaSubs = (allYamasWithSubs: any[] = [], dayFirst) => {
+  return allYamasWithSubs
+    .reduce((a, b) => a.concat(b))
+    .map((s, i) => {
+      const isDayTime = dayFirst ? i < 25 : i >= 25;
+      return { ...s, isDayTime };
+    });
+};
+
+export const calculatePanchaPakshiDataRaw = async (
   chart: Chart,
   jd = 0,
   geo: GeoLoc,
   rules: PPRule[],
-  showTransitions = false,
+  transSet: TransSet,
   fetchNightAndDay = true,
   showMinutes = true,
   customCutoff = 0,
@@ -2247,29 +2457,15 @@ export const calculatePanchaPakshiData = async (
     data = new Map([...data, ...ppData]);
     data.set('message', 'valid data set');
   }
-  const matchedTransitions: {
-    name: string;
-    starts: string[];
-    inRange: boolean;
-  }[] = [];
 
-  if (showTransitions) {
-    /* const tsStart = new Date().getTime(); */
-    const {
-      transitions,
-      birthTransitions,
-    } = await buildCurrentAndBirthExtendedTransitions(chart, geo, jd);
+  if (transSet.valid) {
+    const { birthTransitions, transitions } = transSet;
     data.set('transitions', transitions);
     data.set('birthTransitions', birthTransitions);
-    // const tsEnd = new Date().getTime();
-    //console.log((tsEnd - tsStart) / 1000);
-    //const transitRules = rules.filter(r => r.from.includes('transit'));
     const transitRules = rules
       .map(r => r.conditions())
       .reduce((a, b) => a.concat(b), [])
       .filter(r => r.from.includes('transit'));
-    //const ppRules = rules.filter(r => r.from.startsWith('pa'));
-    //data.set('rules', rules);
     const ym1 = data.get('yamas');
     const ym2 = data.get('yamas2');
     const hasYamas =
@@ -2282,12 +2478,7 @@ export const calculatePanchaPakshiData = async (
         ? [...ym1.map(y => y.subs), ...ym2.map(y => y.subs)]
         : [];
       const dayFirst = ppData.get('isDayTime');
-      const allSubs = allYamasWithSubs
-        .reduce((a, b) => a.concat(b))
-        .map((s, i) => {
-          const isDayTime = dayFirst ? i < 25 : i >= 25;
-          return { ...s, isDayTime };
-        });
+      const allSubs = toAllYamaSubs(allYamasWithSubs, dayFirst);
       const rData = [];
       const hasDashaMatches = transitRules.some(r =>
         r.context.startsWith('dasha_'),
@@ -2296,7 +2487,6 @@ export const calculatePanchaPakshiData = async (
         r.context.startsWith('antardasha_'),
       );
       const birdGrahaSet = mapBirdSet(data);
-
       if (hasDashaMatches) {
         birdGrahaSet.dashaLord = matchCurrentDashaLord(chart, jd, 1).key;
       }
@@ -2304,9 +2494,18 @@ export const calculatePanchaPakshiData = async (
         birdGrahaSet.dasha2Lord = matchCurrentDashaLord(chart, jd, 2).key;
       }
       data.set('valid', true);
-      const riseJd = ppData.get('rise');
-      const nextRiseJd = ppData.get('nextRise');
-      for (const r of rules) {
+      /* const riseJd = ppData.get('rise');
+      const nextRiseJd = ppData.get('nextRise'); */
+      addMatchedTransitions(
+        chart,
+        allSubs,
+        rules,
+        rData,
+        birthTransitions,
+        transitions,
+        birdGrahaSet,
+      );
+      /* for (const r of rules) {
         for (const subR of r.transitConditions()) {
           const result = processPPTransition(
             subR,
@@ -2333,7 +2532,7 @@ export const calculatePanchaPakshiData = async (
             }
           }
         }
-      }
+      } */
       //data.set('rules', rData);
       const hasSubs = rData.some(r => r.subs.length > 0);
       const matchedRules = hasSubs
@@ -2341,110 +2540,14 @@ export const calculatePanchaPakshiData = async (
         : [];
       data.set('numSubMatches', matchedRules.length);
       data.set('hasSubMatches', hasSubs);
-      let segmentScore = 0;
-      const periods = allYamasWithSubs.map((subs, subIndex) => {
-        let yamaScore = 0;
-        const segmentIndex = Math.floor(subIndex / 5) * 5 + 4;
-        const startSegment = subIndex % 5 === 0;
-        if (startSegment) {
-          segmentScore = 0;
-        }
-        const numSubs = subs.length;
-        return subs.map((sub, si) => {
-          let subScore = 0;
-          for (const rSet of rules) {
-            for (const r of rSet.ppConditions()) {
-              const isSegment = r.key.includes('day_night');
-              const friendRel = r.context.includes('friend');
-              const enemyRel = r.context.includes('enemy');
-              const bbRel = r.context.includes('action_is_birth_bird');
-              const feRel = friendRel || enemyRel;
-              const isBirdRel = feRel || bbRel;
-              if (isBirdRel) {
-                const matchLetter = friendRel ? 'F' : 'E';
-                if (isSegment) {
-                  if (startSegment) {
-                    if (si === 0) {
-                      let relMatched = false;
-                      const subActKey = r.key.includes('ruling')
-                        ? 'ruling'
-                        : 'dying';
-                      const isDay =
-                        (segmentIndex < 5 && dayFirst) ||
-                        (segmentIndex >= 5 && !dayFirst);
-                      if (feRel) {
-                        const relLetter = matchBirdRelationsKeys(
-                          birdGrahaSet.birth.bird,
-                          birdGrahaSet.matchBird(subActKey, isDay),
-                          birdGrahaSet.waxing,
-                        );
-                        relMatched = relLetter === matchLetter;
-                      } else if (bbRel) {
-                        const relBird = birdGrahaSet.matchBird(
-                          subActKey,
-                          isDay,
-                        );
-                        relMatched = relBird === birdGrahaSet.birth.bird;
-                      }
-                      if (relMatched) {
-                        segmentScore += r.score;
-                        r.addMatch(
-                          sub.start,
-                          allYamasWithSubs[segmentIndex][4].end,
-                          'segment',
-                          r.score,
-                        );
-                      }
-                    }
-                  }
-                } else {
-                  const relLetter = matchBirdRelationsKeys(
-                    birdGrahaSet.birth.bird,
-                    sub.bird,
-                    birdGrahaSet.waxing,
-                  );
-                  if (relLetter === matchLetter) {
-                    subScore += r.score;
-                    r.addMatch(sub.start, sub.end, 'subyama', r.score);
-                  }
-                }
-              } else if (r.action === sub.key) {
-                if (r.onlyAtStart && si === 0) {
-                  yamaScore = r.score;
-                  const endIndex = si + 4 < numSubs ? si + 4 : numSubs - 1;
-                  r.addMatch(sub.start, subs[endIndex].end, 'yama', r.score);
-                } else if (!r.onlyAtStart) {
-                  subScore += r.score;
-                  r.addMatch(sub.start, sub.end, 'subyama', r.score);
-                }
-              }
-            }
-          }
-          let subRuleScore = 0;
-          if (hasSubs) {
-            const matchedSubRules = matchedRules
-              .map(mr => {
-                const matchedSubs = mr.subs.filter(
-                  s2 => s2.start === sub.start && s2.end === sub.end,
-                );
-                return {
-                  matchedSubs,
-                  rule: mr.rule,
-                };
-              })
-              .filter(mr => mr.matchedSubs.length > 0);
-
-            if (matchedSubRules.length > 0) {
-              subRuleScore = matchedSubRules
-                .map(mr => mr.rule.score)
-                .reduce((a, b) => a + b, 0);
-            }
-          }
-          const score = yamaScore + subScore + subRuleScore + segmentScore;
-          return { ...sub, score };
-        });
-      });
-
+      const periods = matchPeriodsWithPPScores(
+        allYamasWithSubs,
+        rules,
+        birdGrahaSet,
+        dayFirst,
+        matchedRules,
+        hasSubs,
+      );
       const subPeriods = periods
         .reduce((a, b) => a.concat(b), [])
         .map(p => {
@@ -2476,6 +2579,7 @@ export const calculatePanchaPakshiData = async (
         const dayLength = endJd - startJd;
         const maxMins = Math.ceil(dayLength * minsDay);
         const minuteMatches: MinuteMatch[] = [];
+        let prevMinMatchScore = -1;
         const times: PeakTime[] = [];
         const peaksUsed: number[] = [];
         if (showMinutes) {
@@ -2530,18 +2634,21 @@ export const calculatePanchaPakshiData = async (
             }
 
             if (debug) {
-              const subIndex = allSubs.findIndex(
-                s => currJd >= s.start && currJd <= s.end,
-              );
-              const yama = Math.floor(subIndex / 5) + 1;
-              minuteMatches.push({
-                min: i + 1,
-                dt: julToDateParts(currJd).toISOString(),
-                yama,
-                sub: (subIndex % 5) + 1,
-                rules: names,
-                score: minuteScore,
-              });
+              if (minuteScore !== prevMinMatchScore) {
+                const subIndex = allSubs.findIndex(
+                  s => currJd >= s.start && currJd <= s.end,
+                );
+                const yama = Math.floor(subIndex / 5) + 1;
+                minuteMatches.push({
+                  min: i + 1,
+                  dt: julToDateParts(currJd).toISOString(),
+                  yama,
+                  sub: (subIndex % 5) + 1,
+                  rules: names,
+                  score: minuteScore,
+                });
+              }
+              prevMinMatchScore = minuteScore;
             }
 
             if (minuteScore >= cutOff) {
@@ -2574,7 +2681,6 @@ export const calculatePanchaPakshiData = async (
             }
             prevPP = ppScore;
           }
-
           if (times.length > 0) {
             const lastTime = times.pop();
             if (lastTime.end <= lastTime.start) {
@@ -2622,6 +2728,14 @@ export const calculatePanchaPakshiData = async (
         const notMatchedRuleNames = rules
           .map(r => r.name)
           .filter(nm => matchedRulesNames.indexOf(nm) < 0);
+        /*         console.log(times.map(time => {
+          const before = time.end < time.peak;
+          const beforeStart = time.peak < time.start;
+          const s = new Date(time.start * 1000).toISOString();
+          const p = new Date(time.peak * 1000).toISOString();
+          const e = new Date(time.end * 1000).toISOString();
+          return {...time, before, beforeStart, s, p, e};
+        })) */
         data.set('rules', rules.map(simplifyRule));
         if (showMinutes) {
           data.set('minutes', scores);
@@ -2636,14 +2750,39 @@ export const calculatePanchaPakshiData = async (
           data.set('matchRuleNames', matchedRulesNames);
           data.set('notMatchedRuleNames', notMatchedRuleNames);
           data.set('minuteMatches', minuteMatches);
-          data.set('matchedTransitions', matchedTransitions);
+          //data.set('matchedTransitions', matchedTransitions);
         }
       }
     }
-    /* const tsEndaAll = new Date().getTime();
-    ///console.log('end all', (tsEndaAll - tsStart) / 1000); */
   }
   return data;
+};
+
+export const calculatePanchaPakshiData = async (
+  chart: Chart,
+  jd = 0,
+  geo: GeoLoc,
+  rules: PPRule[],
+  showTransitions = false,
+  fetchNightAndDay = true,
+  showMinutes = true,
+  customCutoff = 0,
+  debug = false,
+): Promise<Map<string, any>> => {
+  const transSet = showTransitions
+    ? await buildCurrentAndBirthExtendedTransitions(chart, geo, jd)
+    : new TransSet();
+  return await calculatePanchaPakshiDataRaw(
+    chart,
+    jd,
+    geo,
+    rules,
+    transSet,
+    fetchNightAndDay,
+    showMinutes,
+    customCutoff,
+    debug,
+  );
 };
 
 export const calcLuckyTimes = async (

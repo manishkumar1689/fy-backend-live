@@ -109,11 +109,18 @@ export interface SynastryAspectMatch {
   deg: number;
   k1: string;
   k2: string;
-  orb?: number,
+  orb?: number;
   value?: number;
   distance?: number;
   key?: string;
   first?: number;
   ak1?: string;
   ak2?: string;
+}
+
+export interface TransitionItem {
+  key: string;
+  type: string;
+  transposed: boolean;
+  jd: number;
 }

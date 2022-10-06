@@ -63,4 +63,8 @@ export class GeoLoc {
   get latLng() {
     return { lat: this.lat, lng: this.lng };
   }
+
+  get obj() {
+    return { lat: this.lat, lng: this.lng, alt: this.alt };
+  }
 }

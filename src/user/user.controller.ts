@@ -136,7 +136,10 @@ import { ResetDTO } from './dto/reset.dto';
 import { EmailParamsDTO } from './dto/email-params.dto';
 import { filterByLang, matchValidLang } from '../lib/mappers';
 import { Kuta } from '../astrologic/lib/kuta';
-import { julToDateParts } from '../astrologic/lib/julian-date';
+import {
+  calcPreviousMidnightJd,
+  julToDateParts,
+} from '../astrologic/lib/julian-date';
 import {
   calcLuckyTimes,
   PPRule,
@@ -145,7 +148,11 @@ import { locStringToGeo } from '../astrologic/lib/converters';
 import { calcKotaChakraScoreData } from '../astrologic/lib/settings/kota-values';
 import { GeoLoc } from '../astrologic/lib/models/geo-loc';
 import { CreateFeedbackDTO } from '../feedback/dto/create-feedback.dto';
-import { ApiBody, ApiProperty } from '@nestjs/swagger';
+import { toSimplePositions } from '../astrologic/lib/core';
+import {
+  process5PRulesWithPeaks,
+  processTransitionData,
+} from 'src/astrologic/lib/calc-5p';
 
 @Controller('user')
 export class UserController {
@@ -1733,7 +1740,7 @@ export class UserController {
             customCutoff,
             dateMode,
           );
-          ctData.set('luckyTimes', luckyData);
+          ctData.set('luckyTimes', Object.fromEntries(luckyData.entries()));
           /* const tzData = await this.geoService.fetchTzData(geo, julToDateParts(jd).isoDate, true);
           
           const nowDt = new Date(julToDateParts(jd).unixMillisecs);
@@ -1802,6 +1809,78 @@ export class UserController {
   }
 
   async fetchLuckyTimes24h(
+    chart: Chart,
+    jd = 0,
+    geo: GeoLoc,
+    rules: PPRule[],
+    cutoff = 0,
+    dateMode = 'simple',
+  ) {
+    const result: Map<string, any> = new Map();
+
+    const refDt = julToDateParts(jd).toDate();
+    const refDtStr = refDt
+      .toISOString()
+      .split('.')
+      .shift();
+
+    const timeInfo = await this.geoService.fetchTzData(geo, refDtStr);
+    const midNightJd = calcPreviousMidnightJd(timeInfo.tzOffset, jd);
+
+    const endJd = midNightJd + 1;
+    const startScanJd = jd - 0.5;
+    const positions = toSimplePositions(chart, 'special');
+
+    const trData = await this.astrologicService.fetchCurrentAndTransposedTransitions(
+      positions,
+      startScanJd,
+      geo,
+      chart.geo,
+      chart.isDayTime,
+    );
+
+    const transitions = processTransitionData(trData, midNightJd, endJd);
+    const ppData = await process5PRulesWithPeaks(
+      chart,
+      [jd, midNightJd, endJd],
+      geo,
+      transitions,
+      rules,
+      cutoff,
+      timeInfo.tzOffset,
+      false,
+      dateMode,
+    );
+    const ppKeys = ppData.keys();
+    const excludeKeys = [
+      'rules',
+      'span',
+      'yamas1',
+      'yamas2',
+      'ruleJds',
+      'totalMatched',
+      'tzOffset',
+      'startJd',
+      'endJd',
+      'unix',
+      'jd',
+    ];
+    for (const ppKey of ppKeys) {
+      if (excludeKeys.includes(ppKey) === false) {
+        result.set(ppKey, ppData.get(ppKey));
+      }
+      const span = result.get('spanUnix');
+      if (span instanceof Array && span.length > 1) {
+        const [start, end] = span;
+        result.set('start', start);
+        result.set('end', end);
+        result.delete('spanUnix');
+      }
+    }
+    return result;
+  }
+
+  /* async fetchLuckyTimes24h(
     chart: Chart,
     jd = 0,
     geo: GeoLoc,
@@ -1881,9 +1960,9 @@ export class UserController {
       }
     }
     return data;
-  }
+  } */
 
-  async fetchLuckyTimes(
+  /* async fetchLuckyTimes(
     current = true,
     chart: Chart,
     jd = 0,
@@ -1943,7 +2022,7 @@ export class UserController {
         };
       }
     }
-  }
+  } */
 
   /*
     #mobile
