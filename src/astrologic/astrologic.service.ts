@@ -113,7 +113,7 @@ import {
 import { calcKotaChakraScoreData } from './lib/settings/kota-values';
 import { addSnippetKeyToSynastryAspectMatches } from './lib/synastry-aspect-mapper';
 import { GrahaPos } from './lib/point-transitions';
-import { astroCalcApi } from 'src/.config';
+import { astroCalcApi } from '../.config';
 const { ObjectId } = Types;
 
 @Injectable()
