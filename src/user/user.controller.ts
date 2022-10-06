@@ -287,7 +287,15 @@ export class UserController {
       );
       ud.set('surveys', surveyData);
       if (createUserDTO.deviceToken) {
-        ud.set('deviceToken', createUserDTO.deviceToken);
+        const tokenRefs = ud.get('deviceTokens');
+        const dvs = tokenRefs instanceof Array ? tokenRefs : [];
+        if (dvs.indexOf(createUserDTO.deviceToken) < 0) {
+          dvs.push(createUserDTO.deviceToken);
+          ud.set('deviceTokens', dvs);
+        }
+        if (ud.has('deviceToken')) {
+          ud.delete('deviceToken');
+        }
       }
       userData = hashMapToObject(ud);
     }
@@ -1380,7 +1388,15 @@ export class UserController {
         );
         userData.set('login', loginDt);
         if (notEmptyString(deviceToken, 5)) {
-          userData.set('deviceToken', deviceToken);
+          const tokenRefs = userData.get('deviceTokens');
+          const dvs = tokenRefs instanceof Array ? tokenRefs : [];
+          if (dvs.indexOf(deviceToken) < 0) {
+            dvs.push(deviceToken);
+            userData.set('deviceTokens', dvs);
+          }
+          if (userData.has('deviceToken')) {
+            userData.delete('deviceToken');
+          }
         }
         const flagItems = await this.feedbackService.getAllUserInteractions(
           userID,
