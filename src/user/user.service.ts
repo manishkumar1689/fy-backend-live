@@ -253,7 +253,7 @@ export class UserService {
     const fieldList =
       fields.length > 0
         ? fields.join(' ')
-        : '_id active nickName dob geo gender roles profiles preferences surveys deviceToken';
+        : '_id active nickName dob geo gender roles profiles preferences surveys deviceTokens';
     const items = await this.userModel
       .find({
         _id: uid,
@@ -587,10 +587,10 @@ export class UserService {
     return { roles, likeStartTs, superlikeStartTs };
   }
 
-  async getUserDeviceToken(userID: string): Promise<string> {
-    const tokenData = await this.getUser(userID, ['deviceToken']);
-    const tokenRef = tokenData instanceof Object ? tokenData.deviceToken : '';
-    return notEmptyString(tokenRef, 5) ? tokenRef : '';
+  async getUserDeviceTokens(userID: string): Promise<string[]> {
+    const tokenData = await this.getUser(userID, ['deviceTokens']);
+    const tokenRefs = tokenData instanceof Object ? tokenData.deviceTokens : [];
+    return tokenRefs instanceof Array ? tokenRefs : [];
   }
 
   async getUserStatus(userID: string): Promise<any> {
@@ -781,12 +781,22 @@ export class UserService {
             userData.set('roles', val);
           }
           break;
+
+        case 'deviceToken':
+          if (val instanceof String) {
+            userData.set('deviceTokens', [val]);
+          }
+          break;
+        case 'deviceTokens':
+          if (val instanceof Array) {
+            userData.set('deviceTokens', val);
+          }
+          break;
         case 'nickName':
         case 'fullName':
         case 'imageUri':
         case 'mode':
         case 'socialId':
-        case 'deviceToken':
         case 'pob':
           userData.set(key, val);
           break;
@@ -979,13 +989,17 @@ export class UserService {
     };
     const user = await this.userModel
       .findById(userID)
-      .select('identifier login deviceToken');
+      .select('identifier login deviceTokens');
     if (user instanceof Model) {
-      const { identifier, deviceToken, login } = user;
+      const { identifier, deviceTokens, login } = user;
       const hasDeviceTokenRef = notEmptyString(deviceTokenRef, 6);
-      const deviceTokenMatched = hasDeviceTokenRef
-        ? deviceTokenRef === deviceToken
-        : false;
+      const hasDeviceTokens =
+        deviceTokens instanceof Array && deviceTokens.length > 0;
+      const deviceTokenIndex =
+        hasDeviceTokens && hasDeviceTokenRef
+          ? deviceTokens.indexOf(deviceTokenRef)
+          : -1;
+      const deviceTokenMatched = deviceTokenIndex >= 0;
       const mayMatchIdentifier =
         notEmptyString(identifier, 4) && notEmptyString(userRef);
       const matched =
@@ -993,16 +1007,19 @@ export class UserService {
         (mayMatchIdentifier &&
           identifier.toLowerCase() === userRef.toLowerCase());
       if (matched) {
+        const newDeviceTokens = deviceTokenMatched
+          ? deviceTokens.splice(deviceTokenIndex, 1)
+          : deviceTokens;
         const edited = deviceTokenMatched
           ? {
-              deviceToken: '',
+              deviceToken: newDeviceTokens,
               modifiedAt: nowDt,
             }
           : { modifiedAt: nowDt };
         const updated = await this.userModel.findByIdAndUpdate(userID, edited);
         result.ts = nowDt.getTime();
         result.deviceTokenMatched = deviceTokenMatched;
-        result.hasDeviceToken = notEmptyString(deviceToken);
+        result.hasDeviceToken = hasDeviceTokens;
         result.matched = updated instanceof Object;
         if (login instanceof Date) {
           result.login = login;
@@ -1319,7 +1336,13 @@ export class UserService {
     const edited: Map<string, any> = new Map();
     edited.set('login', login);
     if (hasDeviceToken) {
-      edited.set('deviceToken', deviceToken);
+      const deviceTokens = await this.getUserDeviceTokens(userID);
+      const tokenExists =
+        deviceTokens.length > 0 ? deviceTokens.includes(deviceToken) : false;
+      if (!tokenExists) {
+        deviceTokens.push(deviceToken);
+        edited.set('deviceTokens', deviceTokens);
+      }
     }
     if (hasGeo) {
       const nullVal =

@@ -98,8 +98,13 @@ export const UserSchema = new mongoose.Schema({
   boosts: { type: Number, required: false, default: 0 },
   status: [StatusSchema],
   deviceToken: {
-    type: String,
+    type: String, // dev legacy, remove
     default: '',
+    required: false,
+  },
+  deviceTokens: {
+    type: [String],
+    default: [],
     required: false,
   },
   token: String,

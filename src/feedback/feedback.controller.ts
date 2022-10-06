@@ -16,7 +16,7 @@ import { FeedbackService } from './feedback.service';
 import { UserService } from '../user/user.service';
 import { SettingService } from '../setting/setting.service';
 import { CreateFlagDTO } from './dto/create-flag.dto';
-import { extractPushNotifications, pushMessage } from '../lib/notifications';
+import { pushMessage, sendNotificationMessage } from '../lib/notifications';
 import { isNumeric, notEmptyString } from '../lib/validators';
 import { SwipeDTO } from './dto/swipe.dto';
 import { sanitize, smartCastInt } from '../lib/converters';
@@ -183,50 +183,30 @@ export class FeedbackController {
     nickName = '',
     profileImg = '',
   ) {
-    const { key, type, value, user, targetUser } = createFlagDTO;
-    const targetDeviceToken = await this.userService.getUserDeviceToken(
+    const { targetUser } = createFlagDTO;
+    const targetDeviceTokens = await this.userService.getUserDeviceTokens(
       targetUser,
     );
-    let fcm: any = { valid: false, reason: 'missing device token' };
+    const fcm = {
+      valid: false,
+      reason: 'missing device token(s)',
+      results: [],
+    };
 
-    if (notEmptyString(targetDeviceToken, 5)) {
-      const plainText = type === 'text' && notEmptyString(value);
-      const titleText =
-        type === 'title_text' &&
-        value instanceof Object &&
-        Object.keys(value).includes('title');
-      const hasCustomTitle = notEmptyString(customTitle, 3);
-      if (plainText || titleText || customTitle) {
-        const hasCustomBody = notEmptyString(customBody, 3);
-        const title = hasCustomTitle
-          ? customTitle
-          : plainText
-          ? key.replace(/_/g, ' ')
-          : value.title;
-        const body = hasCustomBody
-          ? customBody
-          : plainText
-          ? notEmptyString(value, 2)
-            ? value
-            : 'Someone has interacted with you.'
-          : value.text;
-        const payload: any = {
-          key,
-          type,
-          value,
-          user,
-          targetUser,
-        };
-        if (notEmptyString(notificationKey)) {
-          payload.notificationKey = notificationKey;
-        }
-        if (notEmptyString(nickName)) {
-          payload.nickName = nickName;
-        }
-        if (notEmptyString(profileImg, 5)) {
-          payload.profileImg = profileImg;
-        }
-        fcm = await pushMessage(targetDeviceToken, title, body, payload);
+    for (const token of targetDeviceTokens) {
+      const result = await sendNotificationMessage(
+        token,
+        createFlagDTO,
+        customTitle,
+        customBody,
+        notificationKey,
+        nickName,
+        profileImg,
+      );
+      if (result instanceof Object && result.valid) {
+        fcm.valid = true;
+        fcm.reason = 'success';
+        fcm.results.push(result);
       }
     }
     return fcm;
@@ -465,14 +445,20 @@ export class FeedbackController {
         : `${fromUser.nickName} has accepted your friend request`;
       const type = 'int';
       const value = requestMode ? 1 : 2;
-      if (notEmptyString(otherUser.deviceToken)) {
-        fcm = await pushMessage(otherUser.deviceToken, title, body, {
+      if (notEmptyString(otherUser.deviceTokens)) {
+        const payload = {
           key,
           type,
           value,
           user: fromId,
           targetUser: toId,
-        });
+        };
+        for (const token of otherUser.deviceTokens) {
+          const result = await pushMessage(token, title, body, payload);
+          if (result instanceof Object && result.valid) {
+            fcm = result;
+          }
+        }
       }
     }
     const status = valid ? HttpStatus.OK : HttpStatus.NOT_ACCEPTABLE;

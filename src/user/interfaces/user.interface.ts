@@ -30,7 +30,8 @@ export interface User extends Document {
   readonly preview: string;
   readonly dob: Date;
   readonly pob?: string;
-  readonly deviceToken: string;
+  readonly deviceToken: string; // dev legacy, remove
+  readonly deviceTokens: string[];
   readonly token: string;
   readonly likeStartTs: number;
   readonly superlikeStartTs: number;
