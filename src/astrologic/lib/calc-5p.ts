@@ -456,9 +456,11 @@ export const process5PRulesWithPeaks = async (
   result.set('spanUnix', [julToUnixInt(startJd), julToUnixInt(endJd)]);
   result.set('sunset', julToUnixInt(ppData2.get('set')));
   result.set('sunrise', julToUnixInt(ppData2.get('rise')));
+  filteredPeaks.sort((a, b) => a.peak - b.peak);
 
   const mapFunc = dateMode === 'all' ? mapToPeakVariants : mapToSimplePeak;
   const mappedPeaks = showRules ? filteredPeaks : filteredPeaks.map(mapFunc);
+
   result.set('times', mappedPeaks);
   result.set('totalMatched', totalMatched);
   result.set('span', [startJd, endJd]);
