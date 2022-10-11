@@ -804,6 +804,9 @@ export class AstrologicController {
     const future = params.get('future');
     const futureInt = isNumeric(future) ? smartCastInt(future) : 5;
     const futureFrac = futureInt / yearsInt;
+    const extended = params.get('extended')
+      ? smartCastInt(params.get('extended'), 0) > 0
+      : false;
     const hasGeo1 = isLocationString(loc1);
     const hasGeo2 = isLocationString(loc2);
     const geo1 = hasGeo1 ? locStringToGeo(loc1) : null;
@@ -820,7 +823,9 @@ export class AstrologicController {
     const showIsoDates = params.has('iso')
       ? smartCastInt(params.get('iso'), 0) > 0
       : false;
-    const progressKeys = ['su', 've', 'ma'];
+    const progressKeys = extended
+      ? ['su', 'mo', 'me', 've', 'ma', 'ju', 'sa', 'ur', 'ne', 'pl', 'ra', 'ke']
+      : ['su', 've', 'ma'];
     const ayanamshaKey = notEmptyString(ayanamsha) ? ayanamsha : 'true_citra';
     let jd1 = 0;
     let jd2 = 0;
