@@ -1036,15 +1036,20 @@ export const calcLngJd = async (jd: number, key: string): Promise<number> => {
   let data: any = { valid: false };
   const body = grahaValues.find(b => b.key === key);
   if (body) {
-    //const gFlag = swisseph.SEFLG_TR;
-    await calcUtAsync(jd, body.num, 0).catch(result => {
+    const num = ['ra', 'ke'].includes(key) ? 11 : body.num;
+    await calcUtAsync(jd, num, 0).catch(result => {
       if (result instanceof Object) {
         data = result;
         data.valid = Object.keys(result).includes('longitude');
+        data.reverse = body.calc === 'opposite';
       }
     });
   }
-  return data.valid ? data.longitude : 0;
+  return data.valid
+    ? data.reverse
+      ? 360 - data.longitude
+      : data.longitude
+    : 0;
 };
 
 export const calcLngsJd = async (
