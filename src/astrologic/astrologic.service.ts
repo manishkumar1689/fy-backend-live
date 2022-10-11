@@ -2328,6 +2328,10 @@ export class AstrologicService {
     return await this.chartModel.deleteOne({ _id: chartID }).exec();
   }
 
+  async deleteChartByUser(userID: string) {
+    return await this.chartModel.deleteMany({ _id: userID }).exec();
+  }
+
   async sanitizePairedCharts(start = 0, limit = 1000) {
     const pcs = await this.getPairedCharts(start, limit);
     const relTypeKeys = matchDefaultVocabOptionKeys('type');

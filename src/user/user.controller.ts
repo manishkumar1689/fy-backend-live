@@ -75,6 +75,7 @@ import { ProfileDTO } from './dto/profile.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
   deleteFile,
+  deleteUserFiles,
   generateFileName,
   matchFileTypeAndMime,
   mediaPath,
@@ -2739,19 +2740,24 @@ export class UserController {
     @Param('adminUserID') adminUserID,
   ) {
     let status = HttpStatus.NOT_ACCEPTABLE;
+    let authorised = false;
     const result = { valid: false, authorised: false, user: null };
     if (isValidObjectId(adminUserID)) {
-      const isAdmin = await this.userService.isAdminUser(adminUserID);
-      if (isAdmin) {
-        status = HttpStatus.NOT_FOUND;
-        result.authorised = true;
-        if (isValidObjectId(userID)) {
-          const user = await this.userService.deleteUser(userID);
-          if (user instanceof Model) {
-            result.user = extractSimplified(user, ['password']);
-            result.valid = true;
-            status = HttpStatus.OK;
-          }
+      authorised = await this.userService.isAdminUser(adminUserID);
+    } else {
+      authorised = await this.userService.matchesToken(userID, adminUserID);
+    }
+    if (authorised) {
+      result.authorised = true;
+      if (isValidObjectId(userID)) {
+        const user = await this.userService.deleteUser(userID);
+        if (user instanceof Model) {
+          result.user = extractSimplified(user, ['password']);
+          result.valid = true;
+          status = HttpStatus.OK;
+          await this.userService.deleteAnswersByUserAndType(userID, 'jungian');
+          await this.astrologicService.deleteChartByUser(userID);
+          deleteUserFiles(userID, 'media');
         }
       }
     }
@@ -3258,5 +3264,11 @@ export class UserController {
         result.error = e;
       });
     return { ...result, payload };
+  }
+
+  @Delete('file/:userID')
+  async deleteFiles(@Res() res, @Param('userID') userID) {
+    const result = await deleteUserFiles(userID, 'media');
+    return res.json(result);
   }
 }

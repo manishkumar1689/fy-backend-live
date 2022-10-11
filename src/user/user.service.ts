@@ -2157,6 +2157,15 @@ export class UserService {
     return user instanceof Object ? this.hasAdminRole(user) : false;
   }
 
+  async matchesToken(userID: string, token: string): Promise<boolean> {
+    const user = isValidObjectId(userID)
+      ? await this.getUser(userID, ['deviceTokens'])
+      : null;
+    return user instanceof Object && user.deviceTokens instanceof Array
+      ? user.deviceTokens.includes(token)
+      : false;
+  }
+
   async isPaidMember(userID: string): Promise<boolean> {
     const roles = await this.getRoles(userID);
     return (

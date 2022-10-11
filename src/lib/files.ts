@@ -380,12 +380,20 @@ export const deleteFile = (filename: string, directory = '') => {
 
 export const deleteUserFiles = async (userID: string, directory = '') => {
   const targetType = typeof directory === 'string' ? directory : 'media';
-  const data = { matched: null, deleted: 0 };
+  const data = { matched: null, deleted: 0, out: null };
   if (notEmptyString(userID, 16)) {
     const fp = buildFullPath(userID + '-*', targetType);
-    if (fs.existsSync(fp)) {
-      const out = await run(`ls -l ${fp} | wc -l`);
-      data.matched = out;
+    const out = await run(`ls -l ${fp} | wc -l`);
+    if (notEmptyString(out.stdout) && /^\s*(\d+)\s*/.test(out.stdout)) {
+      data.matched = parseInt(out.stdout, 10);
+      if (data.matched > 0 && data.matched < 1000) {
+        const delOut = await run(`rm ${fp}`);
+        if (notEmptyString(delOut.stderr, 1)) {
+          data.out = delOut;
+        } else {
+          data.deleted = data.matched;
+        }
+      }
     }
   }
   return data;
