@@ -729,6 +729,7 @@ export class UserService {
       null,
       true,
     );
+    console.log(userObj);
     const newUser = new this.userModel(userObj);
     return newUser.save();
   }
@@ -783,7 +784,7 @@ export class UserService {
           break;
 
         case 'deviceToken':
-          if (val instanceof String) {
+          if (typeof val === 'string') {
             userData.set('deviceTokens', [val]);
           }
           break;
@@ -1007,16 +1008,17 @@ export class UserService {
         (mayMatchIdentifier &&
           identifier.toLowerCase() === userRef.toLowerCase());
       if (matched) {
-        const newDeviceTokens = deviceTokenMatched
-          ? deviceTokens.splice(deviceTokenIndex, 1)
-          : deviceTokens;
+        if (deviceTokenMatched) {
+          deviceTokens.splice(deviceTokenIndex, 1);
+        }
         const edited = deviceTokenMatched
           ? {
-              deviceToken: newDeviceTokens,
+              deviceTokens,
               modifiedAt: nowDt,
             }
           : { modifiedAt: nowDt };
         const updated = await this.userModel.findByIdAndUpdate(userID, edited);
+        console.log(updated, edited, deviceTokenIndex, deviceTokens);
         result.ts = nowDt.getTime();
         result.deviceTokenMatched = deviceTokenMatched;
         result.hasDeviceToken = hasDeviceTokens;

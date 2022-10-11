@@ -14,6 +14,9 @@ import { hashMapToObject } from './entities';
 import { imageSize } from 'image-size';
 import { emptyString, isNumber, notEmptyString } from './validators';
 import { resizeImage } from './resize';
+import * as util from 'util';
+const exec = require('child_process').exec;
+const run = util.promisify(exec);
 
 export const mimeFileFilter = (req, file, callback) => {
   const ext = path.extname(file.originalname);
@@ -373,6 +376,19 @@ export const deleteFile = (filename: string, directory = '') => {
     deleted = true;
   }
   return deleted;
+};
+
+export const deleteUserFiles = async (userID: string, directory = '') => {
+  const targetType = typeof directory === 'string' ? directory : 'media';
+  const data = { matched: null, deleted: 0 };
+  if (notEmptyString(userID, 16)) {
+    const fp = buildFullPath(userID + '-*', targetType);
+    if (fs.existsSync(fp)) {
+      const out = await run(`ls -l ${fp} | wc -l`);
+      data.matched = out;
+    }
+  }
+  return data;
 };
 
 export const smartParseJsonFromBuffer = buffer => {

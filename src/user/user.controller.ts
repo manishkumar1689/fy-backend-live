@@ -140,10 +140,7 @@ import {
   calcPreviousMidnightJd,
   julToDateParts,
 } from '../astrologic/lib/julian-date';
-import {
-  calcLuckyTimes,
-  PPRule,
-} from '../astrologic/lib/settings/pancha-pakshi';
+import { PPRule } from '../astrologic/lib/settings/pancha-pakshi';
 import { locStringToGeo } from '../astrologic/lib/converters';
 import { calcKotaChakraScoreData } from '../astrologic/lib/settings/kota-values';
 import { GeoLoc } from '../astrologic/lib/models/geo-loc';
