@@ -729,7 +729,6 @@ export class UserService {
       null,
       true,
     );
-    console.log(userObj);
     const newUser = new this.userModel(userObj);
     return newUser.save();
   }
@@ -1018,7 +1017,6 @@ export class UserService {
             }
           : { modifiedAt: nowDt };
         const updated = await this.userModel.findByIdAndUpdate(userID, edited);
-        console.log(updated, edited, deviceTokenIndex, deviceTokens);
         result.ts = nowDt.getTime();
         result.deviceTokenMatched = deviceTokenMatched;
         result.hasDeviceToken = hasDeviceTokens;

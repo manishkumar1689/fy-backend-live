@@ -150,7 +150,7 @@ import { toSimplePositions } from '../astrologic/lib/core';
 import {
   process5PRulesWithPeaks,
   processTransitionData,
-} from 'src/astrologic/lib/calc-5p';
+} from '../astrologic/lib/calc-5p';
 
 @Controller('user')
 export class UserController {
