@@ -1572,6 +1572,45 @@ export class UserController {
     #mobile
     #admin
   */
+  @Put('activate-status/:userID')
+  async activeStatus(
+    @Res() res,
+    @Param('userID') userID,
+    @Body() activeStatusDTO: ActiveStatusDTO,
+  ) {
+    const { active } = activeStatusDTO;
+    const data = {
+      valid: false,
+      user: null,
+    };
+    let HStatus = HttpStatus.NOT_ACCEPTABLE;
+    if (isValidObjectId(userID)) {
+      const expiryDt = new Date(
+        new Date().getTime() + 10 * 365.25 * 24 * 60 * 60 * 1000,
+      );
+      const activeStatus = active === true;
+      const userData = await this.userService.updateActive(
+        userID,
+        activeStatus,
+        'user_action',
+        expiryDt,
+        activeStatus,
+      );
+      if (
+        userData instanceof Object &&
+        notEmptyString(userData.identifier, 5)
+      ) {
+        data.user = userData;
+        data.valid = true;
+        HStatus = HttpStatus.OK;
+      }
+    }
+    return res.status(HStatus).json(data);
+  }
+  /*
+    #mobile
+    #admin
+  */
   @Put('toggle-active/:userID')
   async toggleActive(
     @Res() res,
