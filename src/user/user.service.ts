@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { isValidObjectId, Model } from 'mongoose';
 import { ObjectId } from 'mongoose/lib/types';
 import { InjectModel } from '@nestjs/mongoose';
@@ -1501,6 +1501,7 @@ export class UserService {
     const data = {
       user: null,
       valid: false,
+      exists: false,
     };
     if (user instanceof Object && prefItems instanceof Array) {
       const prefs = this.mergePreferences(
@@ -1509,6 +1510,7 @@ export class UserService {
           pr => pr instanceof Object && otherTypes.includes(pr.type) === false,
         ),
       );
+      data.exists = true;
       const dt = new Date();
       const editMap: Map<string, any> = new Map();
       editMap.set('preferences', prefs);
@@ -1589,9 +1591,33 @@ export class UserService {
         new: true,
       });
       data.user = this.removeHiddenFields(savedUser);
-      data.valid = true;
+      data.valid = data.user instanceof Object;
     }
     return data;
+  }
+
+  async memberActive(
+    userID: string,
+  ): Promise<{ active: boolean; exists: boolean; status: number }> {
+    let user = null;
+    const validId = isValidObjectId(userID);
+    if (validId) {
+      user = await this.userModel
+        .findOne({ _id: userID })
+        .select({ active: 1 });
+    }
+    const exists = user instanceof Object;
+    const active = exists && user.active;
+    const status = active
+      ? HttpStatus.OK
+      : exists || !validId
+      ? HttpStatus.NOT_ACCEPTABLE
+      : HttpStatus.NOT_FOUND;
+    return {
+      exists,
+      active,
+      status,
+    };
   }
 
   removeHiddenFields(user = null) {

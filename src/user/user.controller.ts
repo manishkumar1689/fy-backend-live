@@ -582,8 +582,12 @@ export class UserController {
     @Req() request: Request,
   ) {
     const { query } = request;
-    const items = await this.fetchMembers(start, limit, query);
-    return res.json(items);
+    const userId = query instanceof Object ? query.user : '';
+    const userStatus = await this.userService.memberActive(userId);
+    const items = userStatus.active
+      ? await this.fetchMembers(start, limit, query)
+      : [];
+    return res.status(userStatus.status).json(items);
   }
 
   async fetchMembers(
@@ -604,7 +608,10 @@ export class UserController {
     let filterIds = [];
     let hasFilterIds = false;
     //const notLiked = queryKeys.includes('notliked');
-    let hasUser = queryKeys.includes('user') && notEmptyString(query.user, 16);
+    let hasUser =
+      queryKeys.includes('user') &&
+      notEmptyString(query.user, 16) &&
+      isValidObjectId(query.user);
     const userId = hasUser ? query.user : '';
     let refChart = null;
     let hasRefChart = false;
@@ -634,10 +641,7 @@ export class UserController {
       'likeability',
       'likability',
     ];
-    if (
-      queryKeys.includes('user') &&
-      paramKeys.some(k => likeabilityKeys.includes(k))
-    ) {
+    if (hasUser && paramKeys.some(k => likeabilityKeys.includes(k))) {
       const matchedKey = paramKeys.find(k => likeabilityKeys.includes(k));
       const filterByLikeability = notEmptyString(matchedKey);
       if (filterByLikeability) {
@@ -1333,7 +1337,11 @@ export class UserController {
   @Post('login')
   async login(@Res() res, @Body() loginDTO: LoginDTO) {
     const data = await this.processLogin(loginDTO);
-    const status = data.valid ? HttpStatus.OK : HttpStatus.NOT_ACCEPTABLE;
+    const status = data.valid
+      ? HttpStatus.OK
+      : data.exists
+      ? HttpStatus.NOT_ACCEPTABLE
+      : HttpStatus.NOT_FOUND;
     return res.status(status).json(data);
   }
   /*
@@ -1342,7 +1350,11 @@ export class UserController {
   @Post('member-login')
   async memberLogin(@Res() res, @Body() loginDTO: LoginDTO) {
     const data = await this.processLogin(loginDTO, 'member');
-    const status = data.valid ? HttpStatus.OK : HttpStatus.NOT_ACCEPTABLE;
+    const status = data.valid
+      ? HttpStatus.OK
+      : data.exists
+      ? HttpStatus.NOT_ACCEPTABLE
+      : HttpStatus.NOT_FOUND;
     return res.status(status).json(data);
   }
 
@@ -1354,12 +1366,14 @@ export class UserController {
     const user = await this.userService.findOneByEmail(loginDTO.email, false);
     const userData = new Map<string, any>();
     let valid = false;
+    let exists = false;
     const isMemberLogin = mode === 'member';
     if (!user) {
       userData.set('msg', 'User not found');
       userData.set('key', 'not-found');
     } else {
       valid = user.active;
+      exists = true;
       if (!valid) {
         userData.set('msg', 'Inactive account');
         userData.set('key', 'inactive');
@@ -1464,6 +1478,7 @@ export class UserController {
         }
       }
     }
+    userData.set('exists', exists);
     userData.set('valid', valid);
     return hashMapToObject(userData);
   }
@@ -2399,7 +2414,13 @@ export class UserController {
     @Body() preferences: PreferenceDTO[],
   ) {
     const data = await this.userService.savePreferences(userID, preferences);
-    return res.json(data);
+    let status = HttpStatus.OK;
+    if (!data.exists) {
+      status = HttpStatus.NOT_FOUND;
+    } else if (!data.valid) {
+      status = HttpStatus.NOT_ACCEPTABLE;
+    }
+    return res.status(status).json(data);
   }
 
   /*
@@ -3034,17 +3055,21 @@ export class UserController {
       user: null,
       fileDeleted: false,
     };
+
+    let status = HttpStatus.NOT_FOUND;
     const result = await this.userService.deleteMediaItemByRef(
       userID,
       mediaRef,
     );
     if (result.user instanceof Object) {
       data.user = result.user;
+      status = HttpStatus.NOT_ACCEPTABLE;
     }
     if (result.deleted) {
       if (result.item instanceof Object) {
         data.item = result.item;
         data.valid = true;
+        status = HttpStatus.OK;
         if (data.item.source === 'local') {
           data.fileDeleted = deleteFile(data.item.filename, 'media');
           if (data.item.variants.length > 0) {
@@ -3061,7 +3086,7 @@ export class UserController {
         }
       }
     }
-    return res.json(data);
+    return res.status(status).json(data);
   }
 
   /*
