@@ -398,10 +398,12 @@ export class UserController {
       createUserDTO,
       roles,
     );
-    const status =
-      user instanceof Object && keys.length > 0
+    const hasUser = user instanceof Object;
+    const status = hasUser
+      ? keys.length > 0
         ? HttpStatus.OK
-        : HttpStatus.NOT_ACCEPTABLE;
+        : HttpStatus.NOT_ACCEPTABLE
+      : HttpStatus.NOT_FOUND;
 
     return res.status(status).json({
       message,
@@ -429,6 +431,7 @@ export class UserController {
     let status = HttpStatus.NOT_ACCEPTABLE;
     let reason = 'invalid_input';
     let valid = false;
+    let exists = false;
     if (filteredEntries.length === 2) {
       const filteredDTO = Object.fromEntries(filteredEntries) as CreateUserDTO;
       const {
@@ -439,13 +442,21 @@ export class UserController {
       } = await this.userService.updateUser(userID, filteredDTO, roles);
       msg = message;
       reason = reasonKey;
-      valid = user instanceof Object && keys.length > 0;
-      status = valid ? HttpStatus.OK : HttpStatus.NOT_ACCEPTABLE;
+      const hasUser = user instanceof Object;
+      if (hasUser) {
+        exists = true;
+      }
+      status = hasUser
+        ? keys.length > 0
+          ? HttpStatus.OK
+          : HttpStatus.NOT_ACCEPTABLE
+        : HttpStatus.NOT_FOUND;
     }
     const baseResult = {
       message: msg,
       reason,
       valid,
+      exists,
     };
     return res.status(status).json(baseResult);
   }
@@ -1676,6 +1687,7 @@ export class UserController {
       dt = params.dt;
     }
     const { dtUtc, jd } = matchJdAndDatetime(dt);
+    let status = HttpStatus.NOT_ACCEPTABLE;
     let cid = '';
     if (paramKeys.includes('cid')) {
       cid = params.cid;
@@ -1711,10 +1723,10 @@ export class UserController {
         : 'en';
     const lang = matchValidLang(langRef, 'en');
     let rsMap: Map<string, any> = new Map();
+    rsMap.set('valid', false);
     rsMap.set('jd', jd);
     rsMap.set('unix', julToDateParts(jd).unixTimeInt);
     rsMap.set('dtUtc', dtUtc);
-
     const ayanamsaKey =
       paramKeys.includes('aya') &&
       notEmptyString(params.aya, 5) &&
@@ -1731,7 +1743,9 @@ export class UserController {
       if (chartData instanceof Model) {
         const cDataObj = chartData.toObject();
         const chart = new Chart(cDataObj);
+        status = HttpStatus.OK;
         chart.setAyanamshaItemByKey(ayanamsaKey);
+        rsMap.set('valid', true);
         const ctData = await buildCurrentTrendsData(
           jd,
           chart,
@@ -1823,10 +1837,13 @@ export class UserController {
         rsMap.set('kotaCakra', kc.total);
         //rsMap.set('transitGrahas', transitChart);
         rsMap = new Map([...rsMap, ...ctData]);
+      } else {
+        status = HttpStatus.NOT_FOUND;
       }
     }
     const allowedKeys = [
       'jd',
+      'valid',
       'dtUtc',
       'unix',
       'ayanamshas',
@@ -1850,13 +1867,15 @@ export class UserController {
       );
     }
     if (showLuckyTimes) {
-      allowedKeys.push('luckyTimes', 'luckyTimesPrev', 'tzData');
+      allowedKeys.push('valid', 'luckyTimes', 'luckyTimesPrev', 'tzData');
     }
-    return res.json(
-      Object.fromEntries(
-        [...rsMap.entries()].filter(entry => allowedKeys.includes(entry[0])),
-      ),
-    );
+    return res
+      .status(status)
+      .json(
+        Object.fromEntries(
+          [...rsMap.entries()].filter(entry => allowedKeys.includes(entry[0])),
+        ),
+      );
   }
 
   async fetchLuckyTimes24h(
@@ -2438,6 +2457,7 @@ export class UserController {
     const matchedType = /jung/.test(type) ? 'jungian' : 'faceted';
     const notCached = isNumeric(reset) && smartCastInt(reset, 0) > 0;
     const cached = !notCached;
+    const userStatus = await this.userService.memberActive(userID);
     const preferences = prefs.map(pr => {
       const { key, value } = pr;
       const adjustedValue = value - big5FacetedScaleOffset;
@@ -2468,6 +2488,8 @@ export class UserController {
         prefs,
         questions,
       );
+    } else {
+      userStatus.status = HttpStatus.NOT_ACCEPTABLE;
     }
     const completed = result.answers.length >= questions.length;
     result.analysis = completed
@@ -2491,7 +2513,7 @@ export class UserController {
       result.categories = merged.categories;
       result.valid = result.answers.length > 0;
     }
-    return res.json(result);
+    return res.statsu(userStatus.status).json(result);
   }
 
   /*

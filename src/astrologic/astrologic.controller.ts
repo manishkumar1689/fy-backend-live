@@ -3958,9 +3958,15 @@ export class AstrologicController {
     @Param('limit') limit = '100',
   ) {
     const data = { valid: false, items: [], message: 'invalid user ID' };
+    const validIdentifier = isValidObjectId(userID);
+    let status = validIdentifier
+      ? HttpStatus.NOT_FOUND
+      : HttpStatus.NOT_ACCEPTABLE;
     const user = await this.userService.getUser(userID);
+
     if (user instanceof Object) {
       if (user.active) {
+        status = HttpStatus.OK;
         const startVal = smartCastInt(start, 0);
         const limitVal = smartCastInt(limit, 100);
         const chartObj = await this.astrologicService.getUserBirthChart(userID);
@@ -4002,6 +4008,8 @@ export class AstrologicController {
         } else {
           data.message = 'Inactive account';
         }
+      } else {
+        status = HttpStatus.NOT_ACCEPTABLE;
       }
     }
     return res.status(HttpStatus.OK).json(data);
