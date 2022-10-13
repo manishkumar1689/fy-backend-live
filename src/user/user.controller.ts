@@ -1363,7 +1363,7 @@ export class UserController {
     const user = await this.userService.findOneByEmail(loginDTO.email, false);
     const userData = new Map<string, any>();
     const validIdentifier = notEmptyString(loginDTO.email, 7);
-    let valid = notEmptyString(loginDTO.email);
+    let valid = false;
     let exists = false;
     const isMemberLogin = mode === 'member';
     if (!user) {
