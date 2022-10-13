@@ -503,16 +503,15 @@ export class UserController {
     } else {
       total = await this.userService.count(criteria, activeOnly);
     }
-    if (criteria)
-      return res.status(HttpStatus.OK).json({
-        start,
-        total,
-        grandTotal,
-        activeTotal,
-        perPage: limit,
-        num: users.length,
-        items: users,
-      });
+    return res.status(HttpStatus.OK).json({
+      start,
+      total,
+      grandTotal,
+      activeTotal,
+      perPage: limit,
+      num: users.length,
+      items: users,
+    });
   }
 
   @Get('list-csv/:startDt?/:endDt?')

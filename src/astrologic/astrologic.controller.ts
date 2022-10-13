@@ -1795,6 +1795,7 @@ export class AstrologicController {
     // basic | simple | complete
     const ayaKey = notEmptyString(ayanamsha, 5) ? ayanamsha : 'true_citra';
     const simpleMode = notEmptyString(mode, 3) ? mode : 'basic';
+    const userStatus = await this.userService.memberActive(inData.user);
     const data = await this.saveChartData(
       { ...inData, status: 'member' },
       true,
@@ -1808,7 +1809,10 @@ export class AstrologicController {
     if (valid && ayaKey === 'true_citra') {
       addExtraPanchangaNumValues(data.chart, ayaKey);
     }
-    return res.status(HttpStatus.OK).json({ valid, shortTz, chart });
+    if (userStatus.exists && !valid) {
+      userStatus.status = HttpStatus.NOT_ACCEPTABLE;
+    }
+    return res.status(userStatus.status).json({ valid, shortTz, chart });
   }
 
   /*
