@@ -318,7 +318,8 @@ export class UserController {
         msg = 'Please enter a valid email address or other valid identifier';
       }
     }
-    return res.status(HttpStatus.OK).json({
+    const status = valid ? HttpStatus.OK : HttpStatus.NOT_ACCEPTABLE;
+    return res.status(status).json({
       message: msg,
       user: userData,
       valid,
@@ -1337,11 +1338,9 @@ export class UserController {
   @Post('login')
   async login(@Res() res, @Body() loginDTO: LoginDTO) {
     const data = await this.processLogin(loginDTO);
-    const status = data.valid
+    const status = data.validIdentifier
       ? HttpStatus.OK
-      : data.exists
-      ? HttpStatus.NOT_ACCEPTABLE
-      : HttpStatus.NOT_FOUND;
+      : HttpStatus.NOT_ACCEPTABLE;
     return res.status(status).json(data);
   }
   /*
@@ -1350,11 +1349,9 @@ export class UserController {
   @Post('member-login')
   async memberLogin(@Res() res, @Body() loginDTO: LoginDTO) {
     const data = await this.processLogin(loginDTO, 'member');
-    const status = data.valid
+    const status = data.validIdentifier
       ? HttpStatus.OK
-      : data.exists
-      ? HttpStatus.NOT_ACCEPTABLE
-      : HttpStatus.NOT_FOUND;
+      : HttpStatus.NOT_ACCEPTABLE;
     return res.status(status).json(data);
   }
 
@@ -1365,7 +1362,8 @@ export class UserController {
   async processLogin(loginDTO: LoginDTO, mode = 'editor') {
     const user = await this.userService.findOneByEmail(loginDTO.email, false);
     const userData = new Map<string, any>();
-    let valid = false;
+    const validIdentifier = notEmptyString(loginDTO.email, 7);
+    let valid = notEmptyString(loginDTO.email);
     let exists = false;
     const isMemberLogin = mode === 'member';
     if (!user) {
@@ -1478,6 +1476,7 @@ export class UserController {
         }
       }
     }
+    userData.set('validIdentifier', validIdentifier);
     userData.set('exists', exists);
     userData.set('valid', valid);
     return hashMapToObject(userData);

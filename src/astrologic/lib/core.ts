@@ -2064,6 +2064,7 @@ export const calcAllAspects = (
         value: angle,
       });
       if (mutual && grahaKeys1.includes(k2) === false) {
+        //if (mutual) {
         const gr1B = c1.graha(k2);
         const gr2B = c2.graha(k1);
         const angleB = relativeAngle(gr1B.longitude, gr2B.longitude);

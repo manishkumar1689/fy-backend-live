@@ -1923,7 +1923,14 @@ export class AstrologicService {
     const kcS2 = calcKotaChakraScoreData(chart, refChart, kcScoreSet, true);
     const baseAspectKeys = ['as', 'su', 'mo', 'me', 've', 'ma'];
     const ascAspectKeys = [...baseAspectKeys, 'ju', 'sa', 'ur', 'pl'];
-    const aspectMatches = calcAspectMatches(
+    /*  const aspectMatches = calcAspectMatches(
+      refChart,
+      chart,
+      baseAspectKeys,
+      ascAspectKeys,
+      orbMap,
+    ); */
+    const aspectMatches = calcMutualAspectMatches(
       refChart,
       chart,
       baseAspectKeys,
