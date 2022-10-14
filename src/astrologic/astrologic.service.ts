@@ -64,7 +64,6 @@ import {
 } from './lib/settings/vocab-values';
 import {
   calcAllAspects,
-  calcAspectMatches,
   calcAyanamsha,
   calcCompactChartData,
   calcCoreGrahaPositions,

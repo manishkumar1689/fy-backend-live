@@ -433,6 +433,7 @@ export class UserController {
     let valid = false;
     let exists = false;
     if (filteredEntries.length === 2) {
+      valid = true;
       const filteredDTO = Object.fromEntries(filteredEntries) as CreateUserDTO;
       const {
         user,
@@ -1442,35 +1443,6 @@ export class UserController {
           userData.set('chart', chartObj);
         }
         if (matchedObj.preferences instanceof Array) {
-          /*  const { answers } = await this.userService.getSurveyDomainScoresAndAnswers(userID, 'jungian', true);
-          const hasAnswers = answers instanceof Array && answers.length > 8;
-          let defaultLetters = '';
-          let hasJungianData = hasAnswers;
-          if (!hasAnswers) {
-            const strLetters = extractDefaultJungianPersonalityTypeLetters(matchedObj);
-            if (strLetters.length === 4) {
-              defaultLetters = strLetters;
-              hasJungianData = true;
-            }
-          }
-          if (hasJungianData) {
-            
-            const matchedLang = matchLangFromPreferences(matchedObj.preferences);
-            const analysis = hasAnswers ? summariseJungianAnswers(answers) : extractFromBasicJungianSummary(matchedObj);
-            const merged = await this.mergeSurveyFeedback(analysis, 'jungian', matchedLang, true);
-            const letters = hasAnswers ? merged.letters : defaultLetters;
-            userData.set('surveys', {
-              jungian: {
-                title: merged.title,
-                text: merged.text,
-                letters,
-                analysis,
-                categories: merged.categories,
-                answers,
-              }
-            });
-          } */
-
           const feedbackItems = await this.getFacetedFeedbackItems(
             'jungian',
             true,
@@ -3005,6 +2977,7 @@ export class UserController {
       const uploadAuth = await this.maxUploadByUser(userID);
       if (!uploadAuth.valid) {
         data.message = 'unmatched user';
+        status = HttpStatus.NOT_FOUND;
       } else if (!uploadAuth.mayUploadMore) {
         data.message = `User has reached maximum upload limit of ${uploadAuth.limit}`;
       } else {

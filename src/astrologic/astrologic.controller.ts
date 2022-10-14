@@ -161,7 +161,6 @@ import {
 import { GeoPos } from './interfaces/geo-pos';
 import { processPredictiveRuleSet } from './lib/predictions';
 import {
-  calcLuckyTimes,
   calculatePanchaPakshiData,
   panchaPakshiDayNightSet,
 } from './lib/settings/pancha-pakshi';
@@ -175,7 +174,7 @@ import {
 } from './lib/settings/progression';
 import { objectToMap } from '../lib/entities';
 import { PreferenceDTO } from '../user/dto/preference.dto';
-import { calcPreviousMidnightJd, julToDateParts } from './lib/julian-date';
+import { calcPreviousMidnightJd } from './lib/julian-date';
 import { buildSbcScoreGrid, traverseAllNak28Cells } from './lib/calc-sbc';
 import {
   calcKotaChakraScoreData,
@@ -3970,7 +3969,6 @@ export class AstrologicController {
 
     if (user instanceof Object) {
       if (user.active) {
-        status = HttpStatus.OK;
         const startVal = smartCastInt(start, 0);
         const limitVal = smartCastInt(limit, 100);
         const chartObj = await this.astrologicService.getUserBirthChart(userID);
@@ -4009,14 +4007,16 @@ export class AstrologicController {
           }
           data.valid = true;
           data.message = 'OK';
+          status = HttpStatus.OK;
         } else {
           data.message = 'Inactive account';
+          status = HttpStatus.NOT_ACCEPTABLE;
         }
       } else {
         status = HttpStatus.NOT_ACCEPTABLE;
       }
     }
-    return res.status(HttpStatus.OK).json(data);
+    return res.status(status).json(data);
   }
 
   /*
@@ -4032,9 +4032,16 @@ export class AstrologicController {
     @Query() query,
   ) {
     const data: any = { valid: false, items: [], message: 'invalid user ID' };
-    const user = await this.userService.getUser(userID);
+    const validId = isValidObjectId(userID);
+    const user = validId ? await this.userService.getUser(userID) : null;
+    const hasUser = user instanceof Object;
     const isDefaultBirthChart = smartCastInt(defaultOnly) > 0;
     const isAdmin = this.userService.hasAdminRole(user);
+    let status = validId
+      ? hasUser
+        ? HttpStatus.NOT_FOUND
+        : HttpStatus.OK
+      : HttpStatus.NOT_ACCEPTABLE;
     if (user instanceof Object) {
       if (user.active) {
         const startVal = smartCastInt(start, 0);
@@ -4053,10 +4060,11 @@ export class AstrologicController {
           data.message = 'OK';
         } else {
           data.message = 'Inactive account';
+          status = HttpStatus.NOT_ACCEPTABLE;
         }
       }
     }
-    return res.status(HttpStatus.OK).json(data);
+    return res.status(status).json(data);
   }
 
   @Put('save-chart-order/:userID')
