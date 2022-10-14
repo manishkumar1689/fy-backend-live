@@ -835,7 +835,7 @@ export class UserController {
     );
     /*  const users = this.userService.filterByPreferences(
       data,
-      query,
+      query,f
       prefOptions,
     ); */
     const otherUserIds = preFetchFlags ? users.map(u => u._id) : [];
@@ -2441,8 +2441,8 @@ export class UserController {
       notEmptyString(lang, 1) && /[a-z][a-z][a-z]?(-[A-Z][A-Z])/.test(lang)
         ? lang
         : 'en';
-    const result: any = { valid: false, answers: [], analysis: {} };
-    //if (data instanceof Object && data.valid) {
+    const { exists } = userStatus;
+    const result: any = { valid: false, answers: [], analysis: {}, exists };
     const { surveys } = await this.settingService.getSurveyData();
 
     const optType =
@@ -2498,6 +2498,7 @@ export class UserController {
     @Body() preferenceDTO: PreferenceDTO,
   ) {
     const { value } = preferenceDTO;
+    const userStatus = await this.userService.memberActive(userID);
     const result: any = { valid: false, user: null, msg: 'invalid' };
     if (notEmptyString(value, 3)) {
       const correctedValue = value
@@ -2534,7 +2535,7 @@ export class UserController {
     } else {
       result.msg = 'too short';
     }
-    return res.json(result);
+    return res.status(userStatus.status).json(result);
   }
 
   async getFacetedFeedbackItems(

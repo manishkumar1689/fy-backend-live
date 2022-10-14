@@ -1598,7 +1598,12 @@ export class UserService {
 
   async memberActive(
     userID: string,
-  ): Promise<{ active: boolean; exists: boolean; status: number }> {
+  ): Promise<{
+    active: boolean;
+    exists: boolean;
+    validId: boolean;
+    status: number;
+  }> {
     let user = null;
     const validId = isValidObjectId(userID);
     if (validId) {
@@ -1610,12 +1615,15 @@ export class UserService {
     const active = exists && user.active;
     const status = active
       ? HttpStatus.OK
-      : exists || !validId
+      : exists && validId
+      ? HttpStatus.UNAUTHORIZED
+      : !validId
       ? HttpStatus.NOT_ACCEPTABLE
       : HttpStatus.NOT_FOUND;
     return {
       exists,
       active,
+      validId,
       status,
     };
   }
