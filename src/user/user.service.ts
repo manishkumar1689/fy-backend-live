@@ -1501,6 +1501,7 @@ export class UserService {
     const data = {
       user: null,
       valid: false,
+      active: false,
       exists: false,
     };
     if (user instanceof Object && prefItems instanceof Array) {
@@ -1511,6 +1512,7 @@ export class UserService {
         ),
       );
       data.exists = true;
+      data.active = user.active;
       const dt = new Date();
       const editMap: Map<string, any> = new Map();
       editMap.set('preferences', prefs);

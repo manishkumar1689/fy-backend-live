@@ -1698,6 +1698,8 @@ export class UserController {
     rsMap.set('jd', jd);
     rsMap.set('unix', julToDateParts(jd).unixTimeInt);
     rsMap.set('dtUtc', dtUtc);
+    rsMap.set('exists', false);
+    rsMap.set('active', false);
     const ayanamsaKey =
       paramKeys.includes('aya') &&
       notEmptyString(params.aya, 5) &&
@@ -1712,6 +1714,14 @@ export class UserController {
       const chartData = await this.astrologicService.getChart(cid);
 
       if (chartData instanceof Model) {
+        rsMap.set('exists', true);
+        const userStatus = await this.userService.memberActive(chartData.user);
+        console.log(userStatus);
+        if (userStatus.active) {
+          rsMap.set('active', true);
+        } else {
+          status = HttpStatus.UNAUTHORIZED;
+        }
         const cDataObj = chartData.toObject();
         const chart = new Chart(cDataObj);
         status = HttpStatus.OK;
@@ -2406,6 +2416,8 @@ export class UserController {
     let status = HttpStatus.OK;
     if (!data.exists) {
       status = HttpStatus.NOT_FOUND;
+    } else if (data.active === false) {
+      status = HttpStatus.UNAUTHORIZED;
     } else if (!data.valid) {
       status = HttpStatus.NOT_ACCEPTABLE;
     }
