@@ -1660,12 +1660,12 @@ export class UserController {
     const { dtUtc, jd } = matchJdAndDatetime(dt);
     let status = HttpStatus.NOT_ACCEPTABLE;
     let cid = '';
-    if (paramKeys.includes('cid')) {
+    if (paramKeys.includes('cid') && isValidObjectId(params.cid)) {
       cid = params.cid;
     }
     if (paramKeys.includes('email')) {
       cid = await this.astrologicService.getChartIDByEmail(params.email);
-    } else if (paramKeys.includes('user')) {
+    } else if (paramKeys.includes('user') && isValidObjectId(params.user)) {
       cid = await this.astrologicService.getChartIDByUser(params.user);
     }
     let showMode = 'matches';
@@ -1716,108 +1716,94 @@ export class UserController {
       if (chartData instanceof Model) {
         rsMap.set('exists', true);
         const userStatus = await this.userService.memberActive(chartData.user);
-        console.log(userStatus);
         if (userStatus.active) {
           rsMap.set('active', true);
         } else {
           status = HttpStatus.UNAUTHORIZED;
         }
-        const cDataObj = chartData.toObject();
-        const chart = new Chart(cDataObj);
-        status = HttpStatus.OK;
-        chart.setAyanamshaItemByKey(ayanamsaKey);
-        rsMap.set('valid', true);
-        const ctData = await buildCurrentTrendsData(
-          jd,
-          chart,
-          showMode,
-          ayanamsaKey,
-          tropicalMode,
-          true,
-          dateMode,
-        );
-        const matches = ctData.get('matches');
-        if (showBirthChart) {
-          const varaNum = chart.vara.num;
-          cDataObj.numValues.push({ key: 'vara', value: varaNum });
-          const moonNak = chart.moon.nakshatra27;
-          cDataObj.numValues.push({ key: 'moonNak', value: moonNak });
-          rsMap.set(
-            'birthChart',
-            simplifyChart(cDataObj, ayanamsaKey, 'simple'),
-          );
-        }
-        if (showPanchanga) {
-          const pd = extractPanchangaData(chart);
-          rsMap.set('panchanga', Object.fromEntries(pd.entries()));
-        }
-        if (matches instanceof Array) {
-          const keys = matches.map(m => {
-            const [cat, sub] = m.snippetKey;
-            return [cat, sub].join('__');
-          });
-          const snippets = await this.snippetService.getByKeys(
-            keys,
-            'current_trends',
-          );
-          const fullMatches = matches.map(m =>
-            mergeCurrentTrendsWithSnippets(m, snippets, lang),
-          );
-          if (fullMatches.length > 0) {
-            fullMatches.sort((a, b) => a.days - b.days);
-            ctData.set('aspectMatches', fullMatches);
-          }
-        }
-        if (showLuckyTimes) {
-          const rules = await this.settingService.getPPRules();
-          const customCutoff = await this.settingService.getPPCutoff();
-          //const ppData = await calcLuckyTimes(chart, jd, geo, rules, customCutoff, dateMode, false);
-          //const luckyData = Object.fromEntries(ppData.entries());
-          //const luckyDataPrev = await this.fetchLuckyTimes(false, chart, jd, geo, rules, customCutoff, dateMode);
-
-          //const luckyData = await this.fetchLuckyTimes(true, chart, jd, geo, rules, customCutoff, dateMode);
-          //ctData.set('luckyTimes', luckyData);
-          //ctData.set('luckyTimesPrev', luckyDataPrev);
-          const luckyData = await this.fetchLuckyTimes24h(
-            chart,
+        if (userStatus.active) {
+          const cDataObj = chartData.toObject();
+          const chart = new Chart(cDataObj);
+          status = HttpStatus.OK;
+          chart.setAyanamshaItemByKey(ayanamsaKey);
+          rsMap.set('valid', true);
+          const ctData = await buildCurrentTrendsData(
             jd,
-            geo,
-            rules,
-            customCutoff,
+            chart,
+            showMode,
+            ayanamsaKey,
+            tropicalMode,
+            true,
             dateMode,
           );
-          ctData.set('luckyTimes', Object.fromEntries(luckyData.entries()));
-          /* const tzData = await this.geoService.fetchTzData(geo, julToDateParts(jd).isoDate, true);
-          
-          const nowDt = new Date(julToDateParts(jd).unixMillisecs);
-          nowDt.setHours(0,0,0);
-          const serverTsOffset = (nowDt.getTimezoneOffset() * 60);
-          const midnightTs = Math.round((Math.round(nowDt.getTime() / 1000) - tzData.tzOffset - serverTsOffset) / 60) * 60; */
-          //ctData.set('tzData', {...tzData, midnightTs });
+          const matches = ctData.get('matches');
+          if (showBirthChart) {
+            const varaNum = chart.vara.num;
+            cDataObj.numValues.push({ key: 'vara', value: varaNum });
+            const moonNak = chart.moon.nakshatra27;
+            cDataObj.numValues.push({ key: 'moonNak', value: moonNak });
+            rsMap.set(
+              'birthChart',
+              simplifyChart(cDataObj, ayanamsaKey, 'simple'),
+            );
+          }
+          if (showPanchanga) {
+            const pd = extractPanchangaData(chart);
+            rsMap.set('panchanga', Object.fromEntries(pd.entries()));
+          }
+          if (matches instanceof Array) {
+            const keys = matches.map(m => {
+              const [cat, sub] = m.snippetKey;
+              return [cat, sub].join('__');
+            });
+            const snippets = await this.snippetService.getByKeys(
+              keys,
+              'current_trends',
+            );
+            const fullMatches = matches.map(m =>
+              mergeCurrentTrendsWithSnippets(m, snippets, lang),
+            );
+            if (fullMatches.length > 0) {
+              fullMatches.sort((a, b) => a.days - b.days);
+              ctData.set('aspectMatches', fullMatches);
+            }
+          }
+          if (showLuckyTimes) {
+            const rules = await this.settingService.getPPRules();
+            const customCutoff = await this.settingService.getPPCutoff();
+            const luckyData = await this.fetchLuckyTimes24h(
+              chart,
+              jd,
+              geo,
+              rules,
+              customCutoff,
+              dateMode,
+            );
+            ctData.set('luckyTimes', Object.fromEntries(luckyData.entries()));
+          }
+          const kcScoreSet = await this.settingService.getKotaChakraScoreSet();
+          const geoLoc = geo instanceof Object ? geo : chart.geo;
+          const transitChart = await this.astrologicService.getCurrentChartObj(
+            dtUtc,
+            geoLoc,
+          );
+          transitChart.setAyanamshaItemByKey('true_citra');
+          const kc = calcKotaChakraScoreData(
+            chart,
+            transitChart,
+            kcScoreSet,
+            true,
+          );
+          rsMap.set(
+            'transitLngs',
+            transitChart.bodies.map(gr => {
+              const { key, longitude } = gr;
+              return { key, longitude };
+            }),
+          );
+          rsMap.set('kotaCakra', kc.total);
+          rsMap = new Map([...rsMap, ...ctData]);
         }
-        const kcScoreSet = await this.settingService.getKotaChakraScoreSet();
-        const geoLoc = geo instanceof Object ? geo : chart.geo;
-        const transitChart = await this.astrologicService.getCurrentChartObj(
-          dtUtc,
-          geoLoc,
-        );
-        transitChart.setAyanamshaItemByKey('true_citra');
-        const kc = calcKotaChakraScoreData(
-          chart,
-          transitChart,
-          kcScoreSet,
-          true,
-        );
-        rsMap.set(
-          'transitLngs',
-          transitChart.bodies.map(gr => {
-            const { key, longitude } = gr;
-            return { key, longitude };
-          }),
-        );
-        rsMap.set('kotaCakra', kc.total);
-        //rsMap.set('transitGrahas', transitChart);
-        rsMap = new Map([...rsMap, ...ctData]);
       } else {
         status = HttpStatus.NOT_FOUND;
       }
@@ -1825,6 +1811,8 @@ export class UserController {
     const allowedKeys = [
       'jd',
       'valid',
+      'exists',
+      'active',
       'dtUtc',
       'unix',
       'ayanamshas',
@@ -1848,7 +1836,7 @@ export class UserController {
       );
     }
     if (showLuckyTimes) {
-      allowedKeys.push('valid', 'luckyTimes', 'luckyTimesPrev', 'tzData');
+      allowedKeys.push('luckyTimes', 'luckyTimesPrev', 'tzData');
     }
     return res
       .status(status)
