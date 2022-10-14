@@ -2090,14 +2090,26 @@ export const calcAspectMatches = (
   mutual = false,
 ): SynastryAspectMatch[] => {
   const aspects = calcAllAspects(c1, c2, grahaKeys1, grahaKeys2, mutual);
+  const hasOrbMap = orbMap instanceof Object;
+  const orbMapKeys = hasOrbMap ? Object.keys(orbMap) : [];
+  const hasExtendedOrb = hasOrbMap
+    ? orbMapKeys.includes('major') &&
+      orbMapKeys.includes('minor') &&
+      orbMap.minor instanceof Object
+    : false;
   return aspects
     .map(asp => {
       const aDegs =
         asp.k1 === 'as' && asp.k2 === 'as' ? ascAspectDegs : aspectDegs;
       return aDegs
         .map(deg => {
-          // const row = matchAspectRowByDeg(deg);
-          const orbRow = matchSynastryOrbRange(asp.k1, asp.k2, deg, orbMap);
+          const isMinor = hasExtendedOrb && aspectDegs.includes(deg) === false;
+          const refOrbMap = isMinor
+            ? orbMap.minor
+            : hasExtendedOrb
+            ? orbMap.major
+            : orbMap;
+          const orbRow = matchSynastryOrbRange(asp.k1, asp.k2, deg, refOrbMap);
           const ranges = orbRow.ranges
             .map(range => {
               const [first, second] = range;
