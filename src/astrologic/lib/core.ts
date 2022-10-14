@@ -2100,7 +2100,9 @@ export const calcAspectMatches = (
   return aspects
     .map(asp => {
       const aDegs =
-        asp.k1 === 'as' && asp.k2 === 'as' ? ascAspectDegs : aspectDegs;
+        hasExtendedOrb && asp.k1 === 'as' && asp.k2 === 'as'
+          ? ascAspectDegs
+          : aspectDegs;
       return aDegs
         .map(deg => {
           const isMinor = hasExtendedOrb && aspectDegs.includes(deg) === false;
