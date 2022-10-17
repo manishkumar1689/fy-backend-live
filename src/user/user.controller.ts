@@ -601,6 +601,12 @@ export class UserController {
     return res.status(userStatus.status).json(items);
   }
 
+  @Get('member-active/:userID')
+  async memberActiveStatus(@Res() res, @Param('userID') userID) {
+    const result = await this.userService.memberActive(userID);
+    return res.status(result.status).json(result);
+  }
+
   async fetchMembers(
     start = 0,
     limit = 100,
