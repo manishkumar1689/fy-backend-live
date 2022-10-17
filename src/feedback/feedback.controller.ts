@@ -228,146 +228,159 @@ export class FeedbackController {
   @Post('swipe')
   async saveSwipe(@Res() res, @Body() swipeDTO: SwipeDTO) {
     const { to, from, value, context } = swipeDTO;
-    const minRatingValue = await this.settingService.minPassValue();
-    const contextKey = notEmptyString(context)
-      ? sanitize(context, '_')
-      : 'swipe';
-    const prevSwipe = await this.feedbackService.prevSwipe(from, to);
-    const recipSwipe = await this.feedbackService.prevSwipe(to, from);
+    const userStatus = await this.userService.memberActive(from);
+    let status = userStatus.status;
     let intValue = smartCastInt(value, 0);
+    const data: any = {
+      valid: false,
+      updated: false,
+      value: intValue,
+    };
+    if (userStatus.active) {
+      const minRatingValue = await this.settingService.minPassValue();
+      const contextKey = notEmptyString(context)
+        ? sanitize(context, '_')
+        : 'swipe';
+      const prevSwipe = await this.feedbackService.prevSwipe(from, to);
+      data.recipSwipe = await this.feedbackService.prevSwipe(to, from);
 
-    const {
-      roles,
-      likeStartTs,
-      superlikeStartTs,
-    } = await this.userService.memberRolesAndLikeStart(from);
-    const nowTs = new Date().getTime();
-    const currStartTs =
-      intValue === 1 ? likeStartTs : intValue > 1 ? superlikeStartTs : 0;
-    let numSwipes = await this.feedbackService.countRecentLikeability(
-      from,
-      intValue,
-      currStartTs,
-    );
-    // fetch the max limit for this swipe action associated with a user's current roles
-    let maxRating = await this.settingService.getMaxRatingLimit(
-      roles,
-      intValue,
-    );
-    // the like Start timestamp is in the future and the action is like
-    // set the limit to zero
-    if (currStartTs > nowTs && intValue > 0) {
-      maxRating = -1;
-    }
-    const hasPaidRole = roles.some(rk => rk.includes('member'));
-    const data: any = { valid: false, updated: false, value: intValue };
-    const hasPrevPass = prevSwipe.valid && prevSwipe.value < 1;
-    const isPass = intValue <= 0;
-    // for free members set pass value to 0 if the other has liked them
-    /* if (isPass && !hasPaidRole && recipSwipe.value > 0) {
+      const {
+        roles,
+        likeStartTs,
+        superlikeStartTs,
+      } = await this.userService.memberRolesAndLikeStart(from);
+      const nowTs = new Date().getTime();
+      const currStartTs =
+        intValue === 1 ? likeStartTs : intValue > 1 ? superlikeStartTs : 0;
+      let numSwipes = await this.feedbackService.countRecentLikeability(
+        from,
+        intValue,
+        currStartTs,
+      );
+      // fetch the max limit for this swipe action associated with a user's current roles
+      let maxRating = await this.settingService.getMaxRatingLimit(
+        roles,
+        intValue,
+      );
+      // the like Start timestamp is in the future and the action is like
+      // set the limit to zero
+      if (currStartTs > nowTs && intValue > 0) {
+        maxRating = -1;
+      }
+      const hasPaidRole = roles.some(rk => rk.includes('member'));
+      const hasPrevPass = prevSwipe.valid && prevSwipe.value < 1;
+      const isPass = intValue <= 0;
+      // for free members set pass value to 0 if the other has liked them
+      /* if (isPass && !hasPaidRole && recipSwipe.value > 0) {
       intValue = 0;
       isPass = false;
     } */
-    const prevPass = isPass && hasPrevPass ? prevSwipe.value : 0;
-    if (contextKey.includes('like') === false && intValue < 1 && isPass) {
-      const isHardPass = intValue <= minRatingValue;
-      if (isHardPass) {
-        intValue = minRatingValue;
-      } else if (hasPrevPass) {
-        intValue = prevSwipe.value - 1;
-      }
-    }
-    data.remaining = maxRating > 0 ? maxRating - numSwipes : 0;
-    data.nextStartTs = currStartTs;
-    data.secondsToWait =
-      maxRating < 1 ? Math.ceil((currStartTs - nowTs - 50) / 1000) : 0;
-    data.roles = roles;
-
-    // skip maxRating check only if value is zero. If likes are used up, the value will be -1
-    if (
-      (numSwipes < maxRating || maxRating === 0) &&
-      prevPass > minRatingValue
-    ) {
-      const flagData = {
-        user: from,
-        targetUser: to,
-        key: 'likeability',
-        type: 'int',
-        isRating: true,
-        value: intValue,
-      } as CreateFlagDTO;
-      const flag = await this.feedbackService.saveFlag(flagData);
-      const valid = Object.keys(flag).includes('value');
-      const sendMsg = intValue >= 1;
-      let fcm = {};
-      if (sendMsg) {
-        const {
-          lang,
-          pushNotifications,
-        } = await this.userService.getPreferredLangAndPnOptions(
-          flagData.targetUser,
-        );
-        const pnKey =
-          recipSwipe.value > 0
-            ? 'been_matched'
-            : intValue > 1
-            ? 'been_superliked'
-            : 'been_liked';
-        const maySend = pushNotifications.includes(pnKey);
-        if (maySend) {
-          const {
-            nickName,
-            profileImg,
-          } = await this.userService.getNickNameAndPic(flagData.user);
-
-          const {
-            title,
-            body,
-          } = await this.snippetService.buildRatingTitleBody(
-            nickName,
-            intValue,
-            recipSwipe.value,
-            lang,
-          );
-          fcm = await this.sendNotification(
-            flagData,
-            title,
-            body,
-            pnKey,
-            nickName,
-            profileImg,
-          );
+      const prevPass = isPass && hasPrevPass ? prevSwipe.value : 0;
+      if (contextKey.includes('like') === false && intValue < 1 && isPass) {
+        const isHardPass = intValue <= minRatingValue;
+        if (isHardPass) {
+          intValue = minRatingValue;
+        } else if (hasPrevPass) {
+          intValue = prevSwipe.value - 1;
         }
       }
-      data.valid = valid;
-      data.flag = flag;
-      data.fcm = fcm;
-      data.prevSwipe = prevSwipe;
-      if (valid && prevSwipe.value !== intValue) {
-        numSwipes++;
-        data.remaining--;
-        data.updated = true;
+      data.remaining = maxRating > 0 ? maxRating - numSwipes : 0;
+      data.nextStartTs = currStartTs;
+      data.secondsToWait =
+        maxRating < 1 ? Math.ceil((currStartTs - nowTs - 50) / 1000) : 0;
+      data.roles = roles;
+      data.value = intValue;
+      // skip maxRating check only if value is zero. If likes are used up, the value will be -1
+      if (
+        (numSwipes < maxRating || maxRating === 0) &&
+        prevPass > minRatingValue
+      ) {
+        const flagData = {
+          user: from,
+          targetUser: to,
+          key: 'likeability',
+          type: 'int',
+          isRating: true,
+          value: intValue,
+        } as CreateFlagDTO;
+        const flag = await this.feedbackService.saveFlag(flagData);
+        const valid = Object.keys(flag).includes('value');
+        const sendMsg = intValue >= 1;
+        let fcm = {};
+        if (sendMsg) {
+          const {
+            lang,
+            pushNotifications,
+          } = await this.userService.getPreferredLangAndPnOptions(
+            flagData.targetUser,
+          );
+          const pnKey =
+            data.recipSwipe.value > 0
+              ? 'been_matched'
+              : intValue > 1
+              ? 'been_superliked'
+              : 'been_liked';
+          const maySend = pushNotifications.includes(pnKey);
+          if (maySend) {
+            const {
+              nickName,
+              profileImg,
+            } = await this.userService.getNickNameAndPic(flagData.user);
+
+            const {
+              title,
+              body,
+            } = await this.snippetService.buildRatingTitleBody(
+              nickName,
+              intValue,
+              data.recipSwipe.value,
+              lang,
+            );
+            fcm = await this.sendNotification(
+              flagData,
+              title,
+              body,
+              pnKey,
+              nickName,
+              profileImg,
+            );
+          }
+        }
+        data.valid = valid;
+        if (!data.valid) {
+          status = HttpStatus.NOT_ACCEPTABLE;
+        }
+        data.flag = flag;
+        data.fcm = fcm;
+        data.prevSwipe = prevSwipe;
+        if (valid && prevSwipe.value !== intValue) {
+          numSwipes++;
+          data.remaining--;
+          data.updated = true;
+        }
+        data.count = numSwipes;
       }
-      data.count = numSwipes;
-    }
-    if (
-      intValue > 0 &&
-      !hasPaidRole &&
-      data.remaining < 1 &&
-      data.secondsToWait < 1
-    ) {
-      const hrsReset = await this.settingService.getFreeMemberLikeResetHours();
-      const nextTs = await this.userService.updateLikeStartTs(
-        from,
-        hrsReset,
-        intValue,
-      );
-      if (nextTs > 0) {
-        data.nextStartTs = nextTs;
-        data.secondsToWait = Math.ceil((nextTs - nowTs - 50) / 1000);
+      data.hasPaidRole = hasPaidRole;
+      if (
+        intValue > 0 &&
+        !hasPaidRole &&
+        data.remaining < 1 &&
+        data.secondsToWait < 1
+      ) {
+        const hrsReset = await this.settingService.getFreeMemberLikeResetHours();
+        const nextTs = await this.userService.updateLikeStartTs(
+          from,
+          hrsReset,
+          intValue,
+        );
+        if (nextTs > 0) {
+          data.nextStartTs = nextTs;
+          data.secondsToWait = Math.ceil((nextTs - nowTs - 50) / 1000);
+        }
       }
     }
-    return res.status(HttpStatus.OK).json({ ...data, recipSwipe, hasPaidRole });
+
+    return res.status(status).json({ ...data });
   }
 
   /*

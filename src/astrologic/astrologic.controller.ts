@@ -1630,6 +1630,7 @@ export class AstrologicController {
       ? smartCastInt(query.uc, 0) > 0
       : false;
     const showP2 = keys.includes('p2') ? smartCastInt(query.p2, 0) > 0 : false;
+    let status = HttpStatus.NOT_ACCEPTABLE;
     //const dtUtc = applyTzOffsetToDateString(refDt, geoInfo.offset);
     // refDT in local time will be converted to UTC
     const data = await this.fetchCompactChart(
@@ -1676,14 +1677,18 @@ export class AstrologicController {
     let userChart = null;
     let c1 = new Chart();
     if (notEmptyString(userID, 16)) {
-      const chartRecord = await this.astrologicService.getUserBirthChart(
-        userID,
-      );
-      if (chartRecord instanceof Model) {
-        const chartData = chartRecord.toObject();
-        c1 = new Chart(chartData);
-        userChart = simplifyAstroChart(chartData, true, true);
-        addExtraPanchangaNumValuesFromClass(chartData, c1, 'true_citra');
+      const userStatus = await this.userService.memberActive(userID);
+      status = userStatus.status;
+      if (userStatus.active) {
+        const chartRecord = await this.astrologicService.getUserBirthChart(
+          userID,
+        );
+        if (chartRecord instanceof Model) {
+          const chartData = chartRecord.toObject();
+          c1 = new Chart(chartData);
+          userChart = simplifyAstroChart(chartData, true, true);
+          addExtraPanchangaNumValuesFromClass(chartData, c1, 'true_citra');
+        }
       }
     }
     const hasUserChart = userChart instanceof Object;
@@ -1708,9 +1713,9 @@ export class AstrologicController {
             userChart,
           }
         : { valid: true, saved, nickName, ...compatibility, chart: otherChart };
-      return res.json(result);
+      return res.status(status).json(result);
     } else {
-      return res.status(HttpStatus.BAD_REQUEST).json({ valid: false });
+      return res.status(status).json({ valid: false });
     }
   }
 

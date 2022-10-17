@@ -98,7 +98,6 @@ import {
   dateAgoString,
   isoDateToMilliSecs,
   matchJdAndDatetime,
-  matchLocaleJulianDayData,
 } from '../astrologic/lib/date-funcs';
 import {
   cleanSnippet,
@@ -2387,7 +2386,15 @@ export class UserController {
     @Body() preferenceDTO: PreferenceDTO,
   ) {
     const data = await this.userService.savePreference(userID, preferenceDTO);
-    return res.json(data);
+    let status = HttpStatus.OK;
+    if (!data.exists) {
+      status = HttpStatus.NOT_FOUND;
+    } else if (data.active === false) {
+      status = HttpStatus.UNAUTHORIZED;
+    } else if (!data.valid) {
+      status = HttpStatus.NOT_ACCEPTABLE;
+    }
+    return res.status(status).json(data);
   }
 
   /*

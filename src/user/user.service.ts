@@ -1467,9 +1467,13 @@ export class UserService {
     const data = {
       user: null,
       valid: false,
+      exists: false,
+      active: false,
     };
     if (notEmptyString(userID, 16) && preference instanceof Object) {
       const sd = await this.savePreferences(userID, [preference]);
+      data.active = sd.active;
+      data.exists = sd.active;
       if (sd.valid) {
         if (feedbackItems.length > 2) {
           const surveys = await this.matchSurveyData(
