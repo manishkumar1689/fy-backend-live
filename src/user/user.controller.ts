@@ -150,6 +150,7 @@ import {
   process5PRulesWithPeaks,
   processTransitionData,
 } from '../astrologic/lib/calc-5p';
+import { BlockRecord } from '../feedback/lib/interfaces';
 
 @Controller('user')
 export class UserController {
@@ -2831,6 +2832,25 @@ export class UserController {
       }
     }
     return res.status(status).json(result);
+  }
+
+  @Get('blocks/:userID')
+  async listBlocks(@Res() res, @Param('userID') userID) {
+    const items: BlockRecord[] = [];
+    let valid = false;
+    if (isValidObjectId(userID)) {
+      const blocks = await this.feedbackService.getBlocksByUser(userID);
+      valid = true;
+      if (blocks.length > 0) {
+        for (const item of blocks) {
+          const info = await this.userService.getBasicById(item.user);
+          if (info instanceof Object) {
+            items.push({ ...item, info });
+          }
+        }
+      }
+    }
+    return res.json({ valid, items });
   }
 
   /*

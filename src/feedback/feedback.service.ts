@@ -14,6 +14,7 @@ import {
   UserFlagSet,
 } from '../lib/notifications';
 import { smartCastInt } from '../lib/converters';
+import { BlockRecord } from './lib/interfaces';
 
 @Injectable()
 export class FeedbackService {
@@ -315,6 +316,39 @@ export class FeedbackService {
       }
     }
     return result;
+  }
+
+  async getBlocksByUser(userID = '', mode = 'both'): Promise<BlockRecord[]> {
+    const orConditions = [];
+    if (['both', 'all', 'to'].includes(mode)) {
+      orConditions.push({ user: userID });
+    }
+    if (['both', 'all', 'from'].includes(mode)) {
+      orConditions.push({ targetUser: userID });
+    }
+    const items = await this.flagModel.find({
+      key: 'blocked',
+      $or: [orConditions],
+    });
+    const records: BlockRecord[] = [];
+    for (const item of items) {
+      const record = {
+        user: '',
+        mode: 'none',
+        mutual: false,
+        createdAt: item.createdAt,
+      };
+      if (item.user.toString() === userID) {
+        record.user = item.user.toString();
+        record.mode = 'from';
+        record.mutual = items.some(row => row.targetUser.toString() === userID);
+      } else {
+        record.user = item.targetUser.toString();
+        record.mode = 'to';
+        record.mutual = items.some(row => row.user.toString() === userID);
+      }
+    }
+    return records;
   }
 
   async fetchByLikeability(
