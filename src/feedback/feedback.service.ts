@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { isValidObjectId, Model } from 'mongoose';
+import { isValidObjectId, Model, Types } from 'mongoose';
 import { minutesAgoTs, yearsAgoString } from '../astrologic/lib/date-funcs';
 import { extractDocId, extractSimplified } from '../lib/entities';
 import { notEmptyString, validISODateString } from '../lib/validators';
@@ -15,6 +15,7 @@ import {
 } from '../lib/notifications';
 import { smartCastInt } from '../lib/converters';
 import { BlockRecord } from './lib/interfaces';
+const { ObjectId } = Types;
 
 @Injectable()
 export class FeedbackService {
@@ -271,11 +272,11 @@ export class FeedbackService {
   async blockOtherUser(currUserID = '', otherUserID = '') {
     const current = await this.isBlocked(currUserID, otherUserID);
     const result = {
-      valid: false,
+      valid: isValidObjectId(currUserID) && isValidObjectId(otherUserID),
       blocked: current.blocked,
       byOtherUser: current.to,
     };
-    if (!current.blocked) {
+    if (!current.blocked && result.valid) {
       const nowDt = new Date();
       const fieldData = {
         key: 'blocked',
@@ -320,15 +321,16 @@ export class FeedbackService {
 
   async getBlocksByUser(userID = '', mode = 'both'): Promise<BlockRecord[]> {
     const orConditions = [];
+    const userObjId = ObjectId(userID);
     if (['both', 'all', 'to'].includes(mode)) {
-      orConditions.push({ user: userID });
+      orConditions.push({ user: userObjId });
     }
     if (['both', 'all', 'from'].includes(mode)) {
-      orConditions.push({ targetUser: userID });
+      orConditions.push({ targetUser: userObjId });
     }
     const items = await this.flagModel.find({
       key: 'blocked',
-      $or: [orConditions],
+      $or: orConditions,
     });
     const records: BlockRecord[] = [];
     for (const item of items) {
@@ -347,6 +349,7 @@ export class FeedbackService {
         record.mode = 'to';
         record.mutual = items.some(row => row.user.toString() === userID);
       }
+      records.push(record);
     }
     return records;
   }
@@ -487,6 +490,13 @@ export class FeedbackService {
             )
             .map(flag => flag.user)
         : [];
+    if (fromFlags instanceof Array && toFlags instanceof Array) {
+      [...fromFlags, ...toFlags].forEach(fl => {
+        if (fl.key === 'blocked') {
+          excludedIds.push(fl.user);
+        }
+      });
+    }
     const includedIds =
       !preFetchFlags || searchMode || likeMode || superlikeMode
         ? fromFlags

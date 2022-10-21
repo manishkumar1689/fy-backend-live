@@ -520,7 +520,7 @@ export class FeedbackController {
       .json({ valid, result, mode: 'unfriend', fromId, toId });
   }
 
-  @Post('block/:userId')
+  @Post('block')
   async blockUser(@Res() res, @Body() userPair: UserPairDTO) {
     const { from, to } = userPair;
     let status = HttpStatus.NOT_ACCEPTABLE;
