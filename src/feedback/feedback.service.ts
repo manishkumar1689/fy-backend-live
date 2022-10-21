@@ -243,6 +243,80 @@ export class FeedbackService {
     };
   }
 
+  async isBlocked(
+    currUserID = '',
+    otherUserID = '',
+  ): Promise<{ blocked: boolean; from: boolean; to: boolean }> {
+    const blockFlags = await this.flagModel
+      .find({
+        key: 'blocked',
+        $or: [
+          { user: currUserID, targetUser: otherUserID },
+          { user: otherUserID, targetUser: currUserID },
+        ],
+      })
+      .limit(2);
+    const result = { blocked: false, from: false, to: false };
+    if (blockFlags.length > 0) {
+      result.blocked = true;
+      result.from = blockFlags.some(row => row.user.toString() === currUserID);
+      result.to = blockFlags.some(
+        row => row.targetUser.toString() === currUserID,
+      );
+    }
+    return result;
+  }
+
+  async blockOtherUser(currUserID = '', otherUserID = '') {
+    const current = await this.isBlocked(currUserID, otherUserID);
+    const result = {
+      valid: false,
+      blocked: current.blocked,
+      byOtherUser: current.to,
+    };
+    if (!current.blocked) {
+      const nowDt = new Date();
+      const fieldData = {
+        key: 'blocked',
+        user: currUserID,
+        targetUser: otherUserID,
+        value: true,
+        type: 'boolean',
+        isRating: true,
+        createdAt: nowDt,
+        modifiedAt: nowDt,
+      };
+      const newFlag = new this.flagModel(fieldData);
+      const saved = await newFlag.save();
+      if (saved instanceof Model) {
+        result.valid = true;
+        result.blocked = true;
+      }
+    }
+    return result;
+  }
+
+  async unblockOtherUser(currUserID = '', otherUserID = '') {
+    const current = await this.isBlocked(currUserID, otherUserID);
+    const result = {
+      valid: false,
+      blocked: current.blocked,
+      byOtherUser: current.to,
+    };
+    if (current.blocked) {
+      const deleted = await this.flagModel.deleteOne({
+        key: 'blocked',
+        user: currUserID,
+        targetUser: otherUserID,
+      });
+      if (deleted.ok) {
+        result.valid = true;
+        result.blocked = current.to;
+      }
+    }
+    return result;
+  }
+
   async fetchByLikeability(
     userId = '',
     startDate = null,

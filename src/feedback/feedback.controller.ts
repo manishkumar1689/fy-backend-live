@@ -24,6 +24,7 @@ import { objectToMap } from '../lib/entities';
 import { isValidObjectId } from 'mongoose';
 import { fromBase64 } from '../lib/hash';
 import { SnippetService } from '../snippet/snippet.service';
+import { UserPairDTO } from './dto/user-pair.dto';
 
 @Controller('feedback')
 export class FeedbackController {
@@ -517,6 +518,27 @@ export class FeedbackController {
     return res
       .status(status)
       .json({ valid, result, mode: 'unfriend', fromId, toId });
+  }
+
+  @Post('block/:userId')
+  async blockUser(@Res() res, @Body() userPair: UserPairDTO) {
+    const { from, to } = userPair;
+    let status = HttpStatus.NOT_ACCEPTABLE;
+    let result: any = { valid: false };
+    if (isValidObjectId(from) && isValidObjectId(to)) {
+      result = await this.feedbackService.blockOtherUser(from, to);
+      if (!result.valid) {
+        status = HttpStatus.NOT_FOUND;
+      }
+    }
+    return res.status(status).json(result);
+  }
+
+  @Delete('unblock/:fromId/:toId')
+  async unBlockUser(@Res() res, @Param('fromId') fromId, @Param('toId') toId) {
+    const result = await this.feedbackService.unblockOtherUser(fromId, toId);
+    const status = result.valid ? HttpStatus.OK : HttpStatus.NOT_ACCEPTABLE;
+    return res.status(status).json(result);
   }
 
   @Delete('delete-flag/:key/:user/:user2/:mutual?')

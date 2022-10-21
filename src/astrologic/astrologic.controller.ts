@@ -85,7 +85,6 @@ import {
   julToUnixTime,
   matchLocaleJulianDayData,
 } from './lib/date-funcs';
-import { chartData } from './lib/chart';
 import { getFuncNames, getConstantVals } from './lib/sweph-test';
 import {
   calcGrahaSignTimeline,
@@ -100,7 +99,6 @@ import {
   calcTransition,
   calcTransitionJd,
 } from './lib/transitions';
-import { readEpheFiles } from './lib/files';
 import { ChartInputDTO } from './dto/chart-input.dto';
 import { smartCastInt, smartCastFloat, smartCastBool } from '../lib/converters';
 import { PairedChartInputDTO } from './dto/paired-chart-input.dto';
@@ -271,34 +269,6 @@ export class AstrologicController {
       valid,
       chart,
     });
-  }
-
-  /*
-    #astrotesting
-  */
-  @Get('swisseph/files/:subDir?')
-  async ephemerisFiles(@Res() res, @Param('subDir') subDir) {
-    const subDirRef = notEmptyString(subDir, 2) ? subDir : '';
-    const data = await readEpheFiles(subDirRef);
-    return res.status(HttpStatus.OK).json(data);
-  }
-
-  /*
-    #mobile
-    #astrotesting
-  */
-  @Get('chart/:loc/:dt')
-  async chart(@Res() res, @Param('loc') loc, @Param('dt') dt) {
-    if (validISODateString(dt) && notEmptyString(loc, 3)) {
-      const data = await chartData(dt, loc);
-      return res.status(HttpStatus.OK).json(data);
-    } else {
-      const result = {
-        valid: false,
-        message: 'Invalid parameters',
-      };
-      return res.status(HttpStatus.BAD_REQUEST).json(result);
-    }
   }
 
   /*
