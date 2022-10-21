@@ -534,6 +534,7 @@ export class FeedbackController {
     return res.status(status).json(result);
   }
 
+  // remove block
   @Delete('unblock/:fromId/:toId')
   async unBlockUser(@Res() res, @Param('fromId') fromId, @Param('toId') toId) {
     const result = await this.feedbackService.unblockOtherUser(fromId, toId);
