@@ -4014,11 +4014,12 @@ export class AstrologicController {
           data.message = 'OK';
           status = HttpStatus.OK;
         } else {
-          data.message = 'Inactive account';
-          status = HttpStatus.NOT_ACCEPTABLE;
+          data.message = 'No charts available';
+          status = HttpStatus.NO_CONTENT;
         }
       } else {
-        status = HttpStatus.NOT_ACCEPTABLE;
+        data.message = 'Inactive account';
+        status = HttpStatus.UNAUTHORIZED;
       }
     }
     return res.status(status).json(data);
