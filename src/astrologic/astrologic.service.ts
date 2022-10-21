@@ -2335,7 +2335,7 @@ export class AstrologicService {
   }
 
   async deleteChartByUser(userID: string) {
-    return await this.chartModel.deleteMany({ _id: userID }).exec();
+    return await this.chartModel.deleteMany({ user: userID }).exec();
   }
 
   async sanitizePairedCharts(start = 0, limit = 1000) {

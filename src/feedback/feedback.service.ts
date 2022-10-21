@@ -562,6 +562,19 @@ export class FeedbackService {
     return { result, result2 };
   }
 
+  // Only call this method when deleting a user altogether
+  async deleteByFromUser(userID = '') {
+    let result: any = { ok: 0, n: 0, deletedCount: 0 };
+    if (isValidObjectId(userID)) {
+      result = await this.flagModel
+        .deleteMany({
+          user: userID,
+        })
+        .exec();
+    }
+    return result;
+  }
+
   buildFilterCriteria(userRef = '', keyRef = '', otherCriteria = null) {
     const filterByUser = notEmptyString(userRef, 8);
     const filterByKey = notEmptyString(keyRef, 2);

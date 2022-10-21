@@ -2823,7 +2823,10 @@ export class UserController {
           status = HttpStatus.OK;
           await this.userService.deleteAnswersByUserAndType(userID, 'jungian');
           await this.astrologicService.deleteChartByUser(userID);
+          await this.feedbackService.deleteByFromUser(userID);
           deleteUserFiles(userID, 'media');
+        } else {
+          status = HttpStatus.NOT_FOUND;
         }
       }
     }
