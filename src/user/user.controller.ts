@@ -2843,7 +2843,7 @@ export class UserController {
       valid = true;
       if (blocks.length > 0) {
         for (const item of blocks) {
-          const info = await this.userService.getBasicById(item.user);
+          const info = await this.userService.getCoreFields(item.user);
           if (info instanceof Object) {
             items.push({ ...item, info });
           }

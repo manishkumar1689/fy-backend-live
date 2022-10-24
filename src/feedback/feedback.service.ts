@@ -333,6 +333,7 @@ export class FeedbackService {
       $or: orConditions,
     });
     const records: BlockRecord[] = [];
+    const uids: string[] = [];
     for (const item of items) {
       const record = {
         user: '',
@@ -340,16 +341,19 @@ export class FeedbackService {
         mutual: false,
         createdAt: item.createdAt,
       };
-      if (item.user.toString() === userID) {
+      if (item.user.toString() !== userID) {
         record.user = item.user.toString();
         record.mode = 'from';
-        record.mutual = items.some(row => row.targetUser.toString() === userID);
+        record.mutual = items.some(row => row.user.toString() === userID);
       } else {
         record.user = item.targetUser.toString();
         record.mode = 'to';
-        record.mutual = items.some(row => row.user.toString() === userID);
+        record.mutual = items.some(row => row.targetUser.toString() === userID);
       }
-      records.push(record);
+      if (uids.includes(record.user) === false) {
+        records.push(record);
+      }
+      uids.push(record.user);
     }
     return records;
   }

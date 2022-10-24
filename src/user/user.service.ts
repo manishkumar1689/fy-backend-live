@@ -268,6 +268,21 @@ export class UserService {
     return user;
   }
 
+  async getCoreFields(uid: string) {
+    return await this.getBasicById(uid, [
+      '_id',
+      'active',
+      'fullName',
+      'identifier',
+      'nickName',
+      'dob',
+      'geo',
+      'gender',
+      'roles',
+      'profiles',
+    ]);
+  }
+
   async getNickName(uid: string): Promise<string> {
     const userRec = await this.getBasicById(uid, ['nickName']);
     return userRec instanceof Object ? userRec.nickName : '';
