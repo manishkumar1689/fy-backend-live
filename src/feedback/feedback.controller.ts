@@ -25,6 +25,7 @@ import { isValidObjectId } from 'mongoose';
 import { fromBase64 } from '../lib/hash';
 import { SnippetService } from '../snippet/snippet.service';
 import { UserPairDTO } from './dto/user-pair.dto';
+import { CreateFeedbackDTO } from './dto/create-feedback.dto';
 
 @Controller('feedback')
 export class FeedbackController {
@@ -518,6 +519,24 @@ export class FeedbackController {
     return res
       .status(status)
       .json({ valid, result, mode: 'unfriend', fromId, toId });
+  }
+
+  @Post('save-message')
+  async saveMessage(@Res() res, @Body() createFeedbackDTO: CreateFeedbackDTO) {
+    let { deviceDetails, key } = createFeedbackDTO;
+    const hasDeviceDetails = notEmptyString(deviceDetails, 5);
+    if (!hasDeviceDetails && res.req.headers instanceof Object) {
+      if (res.req.headers['user-agent']) {
+        deviceDetails = res.req.headers['user-agent'];
+      }
+    }
+    const hasKey = notEmptyString(key, 3);
+    if (!hasKey) {
+      key = 'message';
+    }
+    const payload = { ...createFeedbackDTO, deviceDetails };
+    const data = await this.feedbackService.saveFeedback(payload);
+    return res.json(data);
   }
 
   @Post('block')
