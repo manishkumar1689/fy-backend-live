@@ -76,6 +76,91 @@ export class FeedbackService {
   }
 
   async listAll(start = 0, limit = 100, criteria: any = null) {
+    const matchedCriteria = this.translateFbCriteria(criteria);
+    const steps = [
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'user',
+          foreignField: '_id',
+          as: 'u',
+        },
+      },
+      {
+        $unwind: '$u',
+      },
+      {
+        $match: matchedCriteria,
+      },
+      {
+        $project: {
+          _id: 1,
+          key: 1,
+          reason: 1,
+          text: 1,
+          active: 1,
+          deviceDetails: 1,
+          mediaItems: 1,
+          createdAt: 1,
+          modifiedAt: 1,
+          targetUser: 1,
+          user: 1,
+          userId: '$u._id',
+          email: '$u.identifier',
+          fullName: '$u.fullName',
+          nickName: '$u.nickName',
+          roles: '$u.roles',
+          userActive: '$u.active',
+        },
+      },
+      {
+        $sort: {
+          modifiedAt: -1,
+        },
+      },
+      {
+        $skip: start,
+      },
+      {
+        $limit: limit,
+      },
+    ];
+    return await this.feedbackModel.aggregate(steps);
+  }
+
+  async countAll(criteria: any = null) {
+    const matchedCriteria = this.translateFbCriteria(criteria);
+    const steps = [
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'user',
+          foreignField: '_id',
+          as: 'u',
+        },
+      },
+      {
+        $unwind: '$u',
+      },
+      {
+        $match: matchedCriteria,
+      },
+      { $group: { _id: null, count: { $sum: 1 } } },
+    ];
+    const rows: any[] = await this.feedbackModel.aggregate(steps);
+    if (
+      rows instanceof Array &&
+      rows.length > 0 &&
+      rows[0] instanceof Object &&
+      rows[0].count > 0
+    ) {
+      return rows[0].count;
+    } else {
+      return 0;
+    }
+  }
+
+  translateFbCriteria(criteria: any = null) {
     const keys = criteria instanceof Object ? Object.keys(criteria) : [];
     const filter: Map<string, any> = new Map();
     if (keys.length < 1) {
@@ -94,51 +179,33 @@ export class FeedbackService {
         }
       }
     }
+    return Object.fromEntries(filter);
+  }
 
+  async getFeedbackTypes() {
     const steps = [
       {
-        $lookup: {
-          from: 'users',
-          localField: 'user',
-          foreignField: '_id',
-          as: 'u',
-        },
-      },
-      {
-        $unwind: '$u',
-      },
-      {
-        $match: Object.fromEntries(filter),
-      },
-      {
-        $project: {
-          _id: 1,
-          key: 1,
-          reason: 1,
-          text: 1,
-          active: 1,
-          deviceDetails: 1,
-          mediaItems: 1,
-          createdAt: 1,
-          modifiedAt: 1,
-          user: 1,
-          targetUser: 1,
-          userId: '$u._id',
-          email: '$u.identifier',
-          fullName: '$u.fullName',
-          nickName: '$u.nickName',
-          roles: '$u.roles',
-          userActive: '$u.active',
-        },
-      },
-      {
-        $skip: start,
-      },
-      {
-        $limit: limit,
+        $group: { _id: '$key', num: { $sum: 1 } },
       },
     ];
-    return await this.feedbackModel.aggregate(steps);
+    const rows = await this.feedbackModel.aggregate(steps);
+    return rows instanceof Array
+      ? rows.map(row => {
+          const { _id, num } = row;
+          const words = _id.split('_').map(w => {
+            let str = '';
+            if (w.length > 0) {
+              str = w.substring(0, 1).toUpperCase();
+              if (w.length > 1) {
+                str += w.substring(1);
+              }
+            }
+            return str;
+          });
+          const title = words.join(' ');
+          return { key: _id, title, num };
+        })
+      : [];
   }
 
   async saveFeedback(data: any = null): Promise<string> {
