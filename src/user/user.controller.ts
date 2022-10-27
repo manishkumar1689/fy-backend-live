@@ -2834,9 +2834,15 @@ export class UserController {
     return res.status(status).json(result);
   }
 
-  @Get('blocks/:userID')
-  async listBlocks(@Res() res, @Param('userID') userID) {
+  @Get('blocks/:userID/:messages?')
+  async listBlocks(
+    @Res() res,
+    @Param('userID') userID,
+    @Param('messages') messages,
+  ) {
     const items: BlockRecord[] = [];
+    const showMessages = smartCastInt(messages, 0) > 0;
+    let fbItems: any[] = [];
     let valid = false;
     if (isValidObjectId(userID)) {
       const blocks = await this.feedbackService.getBlocksByUser(userID);
@@ -2849,8 +2855,16 @@ export class UserController {
           }
         }
       }
+      if (showMessages) {
+        const rows = await this.feedbackService.listAll(0, 1000, {
+          user: userID,
+        });
+        fbItems = await this.userService.mergeTargetUsersWithFeedbackItems(
+          rows,
+        );
+      }
     }
-    return res.json({ valid, items });
+    return res.json({ valid, items, messages: fbItems });
   }
 
   /*

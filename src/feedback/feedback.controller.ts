@@ -48,29 +48,11 @@ export class FeedbackController {
     const startInt = isNumeric(start) ? smartCastInt(start, 0) : 0;
     const limitInt = isNumeric(limit) ? smartCastInt(limit, 100) : 100;
 
-    const data = await this.feedbackService.listAll(startInt, limitInt, query);
+    const rows = await this.feedbackService.listAll(startInt, limitInt, query);
     const total = await this.feedbackService.countAll(query);
-    const items: any[] = [];
-    for (const row of data) {
-      if (row instanceof Object) {
-        const { targetUser } = row;
-        let hasTargetUser = false;
-        let tu: any = { _id: '' };
-        if (targetUser instanceof Object) {
-          const otherUser = await this.userService.getCoreFields(
-            targetUser.toString(),
-          );
-          if (
-            otherUser instanceof Object &&
-            notEmptyString(otherUser.identifier, 4)
-          ) {
-            tu = otherUser;
-            hasTargetUser = true;
-          }
-        }
-        items.push({ ...row, targetUser: tu, hasTargetUser });
-      }
-    }
+    const items = await this.userService.mergeTargetUsersWithFeedbackItems(
+      rows,
+    );
     const num = items.length;
     const valid = num > 0;
     const types = await this.feedbackService.getFeedbackTypes();

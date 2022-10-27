@@ -174,7 +174,7 @@ export class FeedbackService {
             filter.set('key', criteria.key);
             break;
           case 'user':
-            filter.set('user', criteria.user);
+            filter.set('user', ObjectId(criteria.user));
             break;
         }
       }
