@@ -3156,7 +3156,7 @@ export class UserController {
     return res.json(result);
   }
 
-  // Rate another user (like = 1, superlike = 2, pass = -1, -2, -3)
+  // Send generic key by type (key)
   @Post('feedback/:key')
   async send(
     @Res() res,
@@ -3171,6 +3171,7 @@ export class UserController {
     payload: CreateFeedbackDTO,
     key = 'message',
     targetUser = '',
+    sendToTargetUser = false,
   ) {
     const user = await this.userService.getBasicById(payload.user, [
       'identifier',
@@ -3188,9 +3189,13 @@ export class UserController {
       mail: 'not_sent',
     };
     let isToAdmin = true;
-    let toUserEmail = '';
+    let toUserEmail = mailDetails.fromAddress;
     let toName = 'Support';
-    if (notEmptyString(targetUser, 12) && isValidObjectId(targetUser)) {
+    if (
+      sendToTargetUser &&
+      notEmptyString(targetUser, 12) &&
+      isValidObjectId(targetUser)
+    ) {
       const toUser = await this.userService.getBasicById(payload.user, [
         'identifier',
         'fullName',
@@ -3257,6 +3262,9 @@ export class UserController {
     return result;
   }
 
+  /*
+   * mobile post feedback with optional attachment
+   */
   @Post('post-feedback/:key')
   @UseInterceptors(FileInterceptor('file'))
   async postFeedback(
@@ -3315,9 +3323,27 @@ export class UserController {
       ) {
         saveData.deviceDetails = payload.deviceDetails;
       }
-      saveData.mediaItems = [fileData];
+      let hasTarget = false;
+      if (
+        payloadKeys.includes('targetUser') &&
+        isValidObjectId(payload.targetUser)
+      ) {
+        saveData.targetUser = payload.targetUser;
+        hasTarget = true;
+      }
+      if (payloadKeys.includes('reason') && notEmptyString(payload.reason)) {
+        saveData.reason = payload.reason;
+      }
 
-      result = await this.sendFeedback(saveData as CreateFeedbackDTO, key);
+      saveData.mediaItems = [fileData];
+      const sendToTargetUser = hasTarget && ['user_report'].includes(key);
+      const recipientUserId = sendToTargetUser ? payload.targetUser : '';
+      result = await this.sendFeedback(
+        saveData as CreateFeedbackDTO,
+        key,
+        recipientUserId,
+        sendToTargetUser,
+      );
       result.valid = true;
     }
     res.json(result);

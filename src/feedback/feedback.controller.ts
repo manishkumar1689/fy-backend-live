@@ -49,7 +49,28 @@ export class FeedbackController {
     const limitInt = isNumeric(limit) ? smartCastInt(limit, 100) : 100;
 
     const data = await this.feedbackService.listAll(startInt, limitInt, query);
-    return res.json(data);
+    const items: any[] = [];
+    for (const row of data) {
+      if (row instanceof Object) {
+        const { targetUser } = row;
+        let hasTargetUser = false;
+        let tu: any = { _id: '' };
+        if (targetUser) {
+          const otherUser = await this.userService.getCoreFields(
+            targetUser.toString(),
+          );
+          if (
+            otherUser instanceof Object &&
+            notEmptyString(otherUser.identifier, 4)
+          ) {
+            tu = otherUser;
+            hasTargetUser = true;
+          }
+        }
+        items.push({ ...row, targetUser: tu, hasTargetUser });
+      }
+    }
+    return res.json(items);
   }
 
   @Get('list-by-target/:user?/:key?')
@@ -521,7 +542,7 @@ export class FeedbackController {
       .json({ valid, result, mode: 'unfriend', fromId, toId });
   }
 
-  @Post('save-message')
+  @Post('report')
   async saveMessage(@Res() res, @Body() createFeedbackDTO: CreateFeedbackDTO) {
     let { deviceDetails, key } = createFeedbackDTO;
     const hasDeviceDetails = notEmptyString(deviceDetails, 5);

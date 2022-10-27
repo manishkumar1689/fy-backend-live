@@ -6,6 +6,7 @@ export interface Feedback extends Document {
   readonly targetUser?: string;
   readonly key: string;
   readonly active: boolean;
+  readonly reason?: string;
   readonly text: string;
   readonly deviceDetails?: string;
   readonly mediaItems?: MediaItem[];

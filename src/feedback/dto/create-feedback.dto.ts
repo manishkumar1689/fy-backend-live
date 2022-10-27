@@ -13,6 +13,8 @@ export class CreateFeedbackDTO {
 
   @ApiProperty()
   readonly active: boolean;
+  @ApiProperty()
+  readonly reason?: string;
 
   @ApiProperty()
   readonly text: string;

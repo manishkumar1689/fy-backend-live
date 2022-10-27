@@ -23,6 +23,11 @@ export const FeedbackSchema = new mongoose.Schema({
     required: true,
     default: true,
   },
+  reason: {
+    type: String,
+    required: false,
+    default: '',
+  },
   text: {
     type: String,
     required: true,
