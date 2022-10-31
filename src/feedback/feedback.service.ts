@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { HttpService, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { isValidObjectId, Model, Types } from 'mongoose';
+import { AxiosResponse } from 'axios';
 import { minutesAgoTs, yearsAgoString } from '../astrologic/lib/date-funcs';
 import { extractDocId, extractSimplified } from '../lib/entities';
 import { notEmptyString, validISODateString } from '../lib/validators';
@@ -15,6 +16,7 @@ import {
 } from '../lib/notifications';
 import { smartCastInt } from '../lib/converters';
 import { BlockRecord } from './lib/interfaces';
+import { chatApi } from 'src/.config';
 const { ObjectId } = Types;
 
 @Injectable()
@@ -22,7 +24,12 @@ export class FeedbackService {
   constructor(
     @InjectModel('Feedback') private readonly feedbackModel: Model<Feedback>,
     @InjectModel('Flag') private flagModel: Model<Flag>,
+    private http: HttpService,
   ) {}
+
+  getHttp(url: string): Promise<AxiosResponse> {
+    return this.http.get(url).toPromise();
+  }
 
   async getByTargetUserOrKey(userRef = '', keyRef = '', otherCriteria = null) {
     const criteria = this.buildFilterCriteria(userRef, keyRef, otherCriteria);
@@ -377,6 +384,7 @@ export class FeedbackService {
       if (saved instanceof Model) {
         result.valid = true;
         result.blocked = true;
+        this.syncBlockWithChat(currUserID, otherUserID, true);
       }
     }
     return result;
@@ -398,9 +406,16 @@ export class FeedbackService {
       if (deleted.ok) {
         result.valid = true;
         result.blocked = current.to;
+        this.syncBlockWithChat(currUserID, otherUserID, false);
       }
     }
     return result;
+  }
+
+  async syncBlockWithChat(currUserID = '', otherUserID = '', startMode = true) {
+    const mode = startMode ? 'start' : 'end';
+    const url = [chatApi, 'set-block', currUserID, otherUserID, mode].join('/');
+    this.getHttp(url);
   }
 
   async getBlocksByUser(userID = '', mode = 'both'): Promise<BlockRecord[]> {

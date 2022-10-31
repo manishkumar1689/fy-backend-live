@@ -158,7 +158,10 @@ export class FeedbackController {
     @Param('msg') msg: string,
   ) {
     const key = 'chat_request';
-    const data: any = { valid: false, fcm: null };
+    const data: any = {
+      valid: false,
+      fcm: { valid: false, reason: 'unmatched', results: [] },
+    };
     if (isValidObjectId(from) && isValidObjectId(to)) {
       const infoFrom = await this.userService.getBasicById(from);
       if (
@@ -166,7 +169,7 @@ export class FeedbackController {
         Object.keys(infoFrom).includes('nickName')
       ) {
         const title = infoFrom.nickName;
-        const text = notEmptyString(msg, 2)
+        const text = notEmptyString(msg, 1)
           ? fromBase64(msg)
           : 'New chat message';
         const {
@@ -201,13 +204,17 @@ export class FeedbackController {
     nickName = '',
     profileImg = '',
   ) {
-    const { targetUser } = createFlagDTO;
-    const targetDeviceTokens = await this.userService.getUserDeviceTokens(
-      targetUser,
-    );
+    const { user, targetUser } = createFlagDTO;
+    const blockStatus = await this.feedbackService.isBlocked(user, targetUser);
+    const reason = blockStatus.blocked
+      ? 'Interaction blocked'
+      : 'missing device token(s)';
+    const targetDeviceTokens = blockStatus.blocked
+      ? []
+      : await this.userService.getUserDeviceTokens(targetUser);
     const fcm = {
       valid: false,
-      reason: 'missing device token(s)',
+      reason,
       results: [],
     };
 

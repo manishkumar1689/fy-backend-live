@@ -22,6 +22,8 @@ export const mongo = {
 //export const astroCalcApi = 'https://astroapi.findingyou.co';
 export const astroCalcApi = 'http://localhost:8087';
 
+export const chatApi = 'http://localhost:8091';
+
 export const redisOptions = {
   store: redisStore,
   host: 'localhost',
