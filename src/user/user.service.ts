@@ -768,6 +768,7 @@ export class UserService {
     const hasCurrentUser = currentUser instanceof Object;
     const userObj = hasCurrentUser ? currentUser.toObject() : {};
     const userData = new Map<string, any>();
+    userData.set('fullName', '');
     const dt = new Date();
     if (isNew) {
       userData.set('roles', ['active']);
@@ -861,6 +862,15 @@ export class UserService {
       }
     }
     if (isNew) {
+      const fn = userData.get('fullName');
+      const nn = userData.get('nickName');
+      const hasFullName = notEmptyString(fn, 2);
+      const hasNickName = notEmptyString(nn);
+      if (!hasFullName && hasNickName) {
+        userData.set('fullName', nn);
+      } else if (hasFullName && !hasNickName) {
+        userData.set('nickName', fn);
+      }
       userData.set('active', true);
       userData.set('createdAt', dt);
     }
