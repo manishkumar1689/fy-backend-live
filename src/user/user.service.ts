@@ -408,16 +408,18 @@ export class UserService {
             break;
           case 'fullName':
           case 'nickName':
-            filter.set(key, new RegExp(val, 'i'));
+            filter.set(key, new RegExp(decodeURIComponent(val), 'i'));
             break;
           case 'email':
           case 'identifier':
-            filter.set('identifier', new RegExp(val, 'i'));
+            filter.set('identifier', new RegExp(decodeURIComponent(val), 'i'));
             break;
           case 'usearch':
-            const rgx = new RegExp('\\b' + val, 'i');
+            const str = decodeURIComponent(val);
+            const rgx = new RegExp('\\b' + str, 'i');
+            const emSuffix = str.includes('@') ? '' : '.?@';
             const rgxEm = new RegExp(
-              '\\b' + val.replace('.', '\\.') + '.?@',
+              '\\b' + str.replace('.', '\\.') + emSuffix,
               'i',
             );
             filter.set('$or', [

@@ -113,7 +113,8 @@ export const maySkipValidation = (request: Request): boolean => {
   const alias = path.length > 1 ? path.substring(1) : path;
   const ipOverrides = fetchIpWhitelist();
   const mode =
-    ipOverrides.includes(ip) || pathWhitelist.includes(path) || pathWhitelist.includes(alias)
+    ipOverrides.includes(ip) ||
+    pathWhitelist.some(p => path.startsWith(p) || alias.startsWith(p))
       ? 'skip'
       : authMode.toString();
   switch (mode) {

@@ -554,7 +554,29 @@ export class UserController {
   async getBasicDetailsByIds(@Res() res, @Body() idSet: IdSetDTO) {
     const { uids, userID } = idSet;
     const data = await this.userService.getBasicByIds(uids, userID);
-    res.json(data);
+    return res.json(data);
+  }
+
+  /**
+   * Fetch basic user info with blocked status
+   */
+  @Post('info-by-ids')
+  async getInfoDetailsByIds(@Res() res, @Body() idSet: IdSetDTO) {
+    const { uids, userID } = idSet;
+    const data = await this.userService.getBasicByIds(uids, userID);
+
+    const blocks = await this.feedbackService.getBlocksByUser(userID);
+    const items =
+      data.length > 0
+        ? data.map(row => {
+            const blockStatus = blocks.find(b => b.user === row._id.toString());
+            const inBL = blockStatus instanceof Object;
+            const blockedBy = inBL ? blockStatus.mode === 'from' : false;
+            const hasBlocked = inBL ? blockStatus.mode === 'to' : false;
+            return { ...row, blockedBy, hasBlocked };
+          })
+        : [];
+    return res.json(items);
   }
 
   @Get('basic-by-id/:uid')
@@ -565,7 +587,7 @@ export class UserController {
 
     const result =
       user instanceof Object ? { valid: true, ...user } : { valid: false };
-    res.json(result);
+    return res.json(result);
   }
 
   /**
