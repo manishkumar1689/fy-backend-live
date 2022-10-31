@@ -16,7 +16,7 @@ import {
 } from '../lib/notifications';
 import { smartCastInt } from '../lib/converters';
 import { BlockRecord } from './lib/interfaces';
-import { chatApi } from 'src/.config';
+import { chatApi } from '../.config';
 const { ObjectId } = Types;
 
 @Injectable()
