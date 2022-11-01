@@ -418,14 +418,26 @@ export class FeedbackService {
     this.getHttp(url);
   }
 
-  async getBlocksByUser(userID = '', mode = 'both'): Promise<BlockRecord[]> {
+  async getBlocksByUser(
+    userID = '',
+    mode = 'both',
+    targetID = '',
+  ): Promise<BlockRecord[]> {
     const orConditions = [];
+    const hasTarget = isValidObjectId(targetID);
     const userObjId = ObjectId(userID);
+    const targetObjId = hasTarget ? ObjectId(targetID) : null;
     if (['both', 'all', 'to'].includes(mode)) {
-      orConditions.push({ user: userObjId });
+      const toConds = hasTarget
+        ? { user: userObjId, targetUser: targetObjId }
+        : { user: userObjId };
+      orConditions.push(toConds);
     }
     if (['both', 'all', 'from'].includes(mode)) {
-      orConditions.push({ targetUser: userObjId });
+      const fromConds = hasTarget
+        ? { targetUser: userObjId, user: targetObjId }
+        : { user: userObjId };
+      orConditions.push(fromConds);
     }
     const items = await this.flagModel.find({
       key: 'blocked',

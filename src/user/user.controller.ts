@@ -579,14 +579,32 @@ export class UserController {
     return res.json(items);
   }
 
-  @Get('basic-by-id/:uid')
-  async getBasicDetailsById(@Res() res, @Param('uid') uid: string) {
+  @Get('basic-by-id/:uid/:otherUid?')
+  async getBasicDetailsById(
+    @Res() res,
+    @Param('uid') uid: string,
+    @Param('otherUid') otherUid = null,
+  ) {
     const userID = isValidObjectId(uid) ? uid : '';
     const user =
       userID.length > 12 ? await this.userService.getBasicById(userID) : null;
-
-    const result =
+    const getBlockStatus =
+      notEmptyString(otherUid, 12) && isValidObjectId(otherUid);
+    const result: any =
       user instanceof Object ? { valid: true, ...user } : { valid: false };
+    if (getBlockStatus) {
+      const blocks = await this.feedbackService.getBlocksByUser(
+        otherUid,
+        'both',
+        userID,
+      );
+      result.hasBlocked = false;
+      result.blockedBy = false;
+      if (blocks.length > 0) {
+        result.hasBlocked = blocks.some(b => b.mode === 'to');
+        result.blockedBy = blocks.some(b => b.mode === 'from');
+      }
+    }
     return res.json(result);
   }
 

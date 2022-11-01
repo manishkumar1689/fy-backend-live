@@ -570,9 +570,9 @@ export class FeedbackController {
     if (isValidObjectId(from) && isValidObjectId(to)) {
       result = await this.feedbackService.blockOtherUser(from, to);
       if (result.valid) {
-        status = HttpStatus.NOT_FOUND;
-      } else {
         status = HttpStatus.OK;
+      } else {
+        status = HttpStatus.NOT_FOUND;
       }
     }
     return res.status(status).json(result);
