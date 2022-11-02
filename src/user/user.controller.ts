@@ -571,8 +571,12 @@ export class UserController {
         ? data.map(row => {
             const blockStatus = blocks.find(b => b.user === row._id.toString());
             const inBL = blockStatus instanceof Object;
-            const blockedBy = inBL ? blockStatus.mode === 'from' : false;
-            const hasBlocked = inBL ? blockStatus.mode === 'to' : false;
+            const blockedBy = inBL
+              ? blockStatus.mode === 'from' || blockStatus.mutual
+              : false;
+            const hasBlocked = inBL
+              ? blockStatus.mode === 'to' || blockStatus.mutual
+              : false;
             return { ...row, blockedBy, hasBlocked };
           })
         : [];

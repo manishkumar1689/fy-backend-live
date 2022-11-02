@@ -367,7 +367,7 @@ export class FeedbackService {
       blocked: current.blocked,
       byOtherUser: current.to,
     };
-    if (!current.blocked && result.valid) {
+    if (!current.from && result.valid) {
       const nowDt = new Date();
       const fieldData = {
         key: 'blocked',
@@ -436,7 +436,7 @@ export class FeedbackService {
     if (['both', 'all', 'from'].includes(mode)) {
       const fromConds = hasTarget
         ? { targetUser: userObjId, user: targetObjId }
-        : { user: userObjId };
+        : { targetUser: userObjId };
       orConditions.push(fromConds);
     }
     const items = await this.flagModel.find({
@@ -455,16 +455,24 @@ export class FeedbackService {
       if (item.user.toString() !== userID) {
         record.user = item.user.toString();
         record.mode = 'from';
-        record.mutual = items.some(row => row.user.toString() === userID);
+        record.mutual = items.some(
+          row =>
+            row.user.toString() === userID &&
+            row.targetUser.toString() === record.user,
+        );
       } else {
         record.user = item.targetUser.toString();
         record.mode = 'to';
-        record.mutual = items.some(row => row.targetUser.toString() === userID);
+        record.mutual = items.some(
+          row =>
+            row.user.toString() === record.user &&
+            row.targetUser.toString() === userID,
+        );
       }
       if (uids.includes(record.user) === false) {
         records.push(record);
+        uids.push(record.user);
       }
-      uids.push(record.user);
     }
     return records;
   }
