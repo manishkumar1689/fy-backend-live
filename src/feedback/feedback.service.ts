@@ -215,7 +215,11 @@ export class FeedbackService {
       : [];
   }
 
-  async saveFeedback(data: any = null, optionalText = false): Promise<string> {
+  async saveFeedback(
+    data: any = null,
+    optionalText = false,
+    defaultText = '-',
+  ): Promise<string> {
     if (data instanceof Object) {
       const dt = new Date();
       const {
@@ -228,7 +232,8 @@ export class FeedbackService {
         mediaItems,
       } = data;
       const hasText = notEmptyString(text);
-      const textContent = optionalText && !hasText ? '-' : hasText ? text : '';
+      const textContent =
+        optionalText && !hasText ? '-' : hasText ? text : defaultText;
       if (
         isValidObjectId(user) &&
         notEmptyString(key) &&

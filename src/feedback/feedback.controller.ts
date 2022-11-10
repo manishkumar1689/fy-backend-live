@@ -566,12 +566,19 @@ export class FeedbackController {
     const payload = { ...createFeedbackDTO, deviceDetails };
     const result: any = { valid: false, sent: false, blocked: false };
     if (isValidObjectId(createFeedbackDTO.user)) {
-      const fbId = await this.feedbackService.saveFeedback(payload, true);
+      const mayBlock =
+        blockMode && isValidObjectId(createFeedbackDTO.targetUser);
+      const defaultText = mayBlock ? '[blocked]' : '[reported]';
+      const fbId = await this.feedbackService.saveFeedback(
+        payload,
+        true,
+        defaultText,
+      );
       if (notEmptyString(fbId, 12)) {
         result.valid = true;
         result.sent = true;
       }
-      if (blockMode && isValidObjectId(createFeedbackDTO.targetUser)) {
+      if (mayBlock) {
         const blockResult = await this.feedbackService.blockOtherUser(
           payload.user,
           payload.targetUser,
