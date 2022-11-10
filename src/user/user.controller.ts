@@ -3323,12 +3323,13 @@ export class UserController {
   /*
    * mobile post feedback with optional attachment
    */
-  @Post('post-feedback/:key')
+  @Post('post-feedback/:key/:mode?')
   @UseInterceptors(FileInterceptor('file'))
   async postFeedback(
     @Res() res,
     @Body() payload,
     @Param('key') key,
+    @Param('mode') mode,
     @UploadedFile('file') file,
   ) {
     let result: any = { valid: false };
@@ -3350,6 +3351,7 @@ export class UserController {
       const fn = generateFileName(['feedback', userID].join('_'), originalname);
       const { fileType, mime } = matchFileTypeAndMime(originalname, mimetype);
       const title = key.replace(/[_-]/g, ' ');
+      const blockMode = mode === 'block';
       const fileData = {
         filename: fn,
         mime,
@@ -3396,6 +3398,13 @@ export class UserController {
       saveData.mediaItems = [fileData];
       const sendToTargetUser = hasTarget && ['user_report'].includes(key);
       const recipientUserId = sendToTargetUser ? payload.targetUser : '';
+      if (blockMode && isValidObjectId(payload.targetUser)) {
+        const blockResult = await this.feedbackService.blockOtherUser(
+          payload.user,
+          payload.targetUser,
+        );
+        result.blocked = blockResult.blocked;
+      }
       result = await this.sendFeedback(
         saveData as CreateFeedbackDTO,
         key,

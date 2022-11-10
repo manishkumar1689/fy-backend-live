@@ -544,10 +544,16 @@ export class FeedbackController {
       .json({ valid, result, mode: 'unfriend', fromId, toId });
   }
 
-  @Post('report')
-  async saveMessage(@Res() res, @Body() createFeedbackDTO: CreateFeedbackDTO) {
+  @Post('report/:mode?')
+  async saveMessage(
+    @Res() res,
+    @Param('mode') mode,
+    @Body() createFeedbackDTO: CreateFeedbackDTO,
+  ) {
     let { deviceDetails, key } = createFeedbackDTO;
     const hasDeviceDetails = notEmptyString(deviceDetails, 5);
+    const modeRef = notEmptyString(mode) ? mode.toLowerCase().trim() : '';
+    const blockMode = modeRef.startsWith('block');
     if (!hasDeviceDetails && res.req.headers instanceof Object) {
       if (res.req.headers['user-agent']) {
         deviceDetails = res.req.headers['user-agent'];
@@ -558,8 +564,22 @@ export class FeedbackController {
       key = 'message';
     }
     const payload = { ...createFeedbackDTO, deviceDetails };
-    const data = await this.feedbackService.saveFeedback(payload);
-    return res.json(data);
+    const result: any = { valid: false, sent: false, blocked: false };
+    if (isValidObjectId(createFeedbackDTO.user)) {
+      const fbId = await this.feedbackService.saveFeedback(payload);
+      if (notEmptyString(fbId, 12)) {
+        result.valid = true;
+        result.sent = true;
+      }
+      if (blockMode && isValidObjectId(createFeedbackDTO.targetUser)) {
+        const blockResult = await this.feedbackService.blockOtherUser(
+          payload.user,
+          payload.targetUser,
+        );
+        result.blocked = blockResult.blocked;
+      }
+    }
+    return res.json(result);
   }
 
   @Post('block')
