@@ -566,7 +566,7 @@ export class FeedbackController {
     const payload = { ...createFeedbackDTO, deviceDetails };
     const result: any = { valid: false, sent: false, blocked: false };
     if (isValidObjectId(createFeedbackDTO.user)) {
-      const fbId = await this.feedbackService.saveFeedback(payload);
+      const fbId = await this.feedbackService.saveFeedback(payload, true);
       if (notEmptyString(fbId, 12)) {
         result.valid = true;
         result.sent = true;

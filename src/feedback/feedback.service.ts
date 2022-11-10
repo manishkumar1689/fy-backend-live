@@ -215,7 +215,7 @@ export class FeedbackService {
       : [];
   }
 
-  async saveFeedback(data: any = null): Promise<string> {
+  async saveFeedback(data: any = null, optionalText = false): Promise<string> {
     if (data instanceof Object) {
       const dt = new Date();
       const {
@@ -227,16 +227,18 @@ export class FeedbackService {
         deviceDetails,
         mediaItems,
       } = data;
+      const hasText = notEmptyString(text);
+      const textContent = optionalText && !hasText ? '-' : hasText ? text : '';
       if (
         isValidObjectId(user) &&
         notEmptyString(key) &&
-        notEmptyString(text)
+        notEmptyString(textContent)
       ) {
         const edited: any = {
           user,
           key,
           reason,
-          text,
+          text: textContent,
           createdAt: dt,
           modifiedAt: dt,
         };
