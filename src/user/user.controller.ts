@@ -2878,19 +2878,22 @@ export class UserController {
     return res.status(status).json(result);
   }
 
-  @Get('blocks/:userID/:messages?')
-  async listBlocks(
-    @Res() res,
-    @Param('userID') userID,
-    @Param('messages') messages,
-  ) {
+  @Get('blocks/:userID/:mode?')
+  async listBlocks(@Res() res, @Param('userID') userID, @Param('mode') mode) {
     const items: BlockRecord[] = [];
-    const showMessages = smartCastInt(messages, 0) > 0;
-    let fbItems: any[] = [];
-    let valid = false;
+    const numMode = isNumeric(mode);
+    const refMode = notEmptyString(mode, 1) && !numMode ? mode : 'both';
+    const showMessages =
+      (numMode && smartCastInt(mode, 0) > 0) || mode === 'messages';
+    const result: Map<string, any> = new Map();
+    result.set('valid', false);
+    result.set('items', items);
     if (isValidObjectId(userID)) {
-      const blocks = await this.feedbackService.getBlocksByUser(userID);
-      valid = true;
+      const blocks = await this.feedbackService.getBlocksByUser(
+        userID,
+        refMode,
+      );
+      result.set('valid', true);
       if (blocks.length > 0) {
         for (const item of blocks) {
           const info = await this.userService.getCoreFields(item.user);
@@ -2898,17 +2901,19 @@ export class UserController {
             items.push({ ...item, info });
           }
         }
+        result.set('items', items);
       }
       if (showMessages) {
         const rows = await this.feedbackService.listAll(0, 1000, {
           user: userID,
         });
-        fbItems = await this.userService.mergeTargetUsersWithFeedbackItems(
+        const fbItems = await this.userService.mergeTargetUsersWithFeedbackItems(
           rows,
         );
+        result.set('messages', fbItems);
       }
     }
-    return res.json({ valid, items, messages: fbItems });
+    return res.json(Object.fromEntries(result));
   }
 
   /*
