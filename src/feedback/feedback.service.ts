@@ -430,7 +430,6 @@ export class FeedbackService {
     mode = 'both',
     targetID = '',
   ): Promise<BlockRecord[]> {
-    console.log(mode);
     const orConditions = [];
     const hasTarget = isValidObjectId(targetID);
     const userObjId = ObjectId(userID);

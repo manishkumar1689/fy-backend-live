@@ -1596,6 +1596,8 @@ export class AstrologicController {
     const gender = keys.includes('gender') ? query.gender : '';
     const name = keys.includes('name') ? query.name : 'N/A';
     const saveChart = keys.includes('save') && smartCastInt(query.save, 0) > 0;
+    const updateChart =
+      saveChart && keys.includes('cid') && isValidObjectId(query.cid);
     const showUserChart = keys.includes('uc')
       ? smartCastInt(query.uc, 0) > 0
       : false;
@@ -1632,9 +1634,13 @@ export class AstrologicController {
         const { name, fullName, type, lat, lng } = p;
         return { name, fullName, type, geo: { lat, lng } };
       });
-      const record = await this.astrologicService.createChart(
-        data as CreateChartDTO,
-      );
+      let record = null;
+      const cDto = data as CreateChartDTO;
+      if (updateChart) {
+        record = await this.astrologicService.updateChart(query.cid, cDto);
+      } else {
+        record = await this.astrologicService.createChart(cDto);
+      }
       if (record instanceof Model) {
         if (record._id) {
           data._id = record._id;
@@ -1682,7 +1688,13 @@ export class AstrologicController {
             otherChart,
             userChart,
           }
-        : { valid: true, saved, nickName, ...compatibility, chart: otherChart };
+        : {
+            valid: true,
+            saved,
+            nickName,
+            ...compatibility,
+            chart: otherChart,
+          };
       return res.status(status).json(result);
     } else {
       return res.status(status).json({ valid: false });
