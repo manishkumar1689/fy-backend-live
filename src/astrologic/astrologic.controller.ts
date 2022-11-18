@@ -1596,6 +1596,8 @@ export class AstrologicController {
     const gender = keys.includes('gender') ? query.gender : '';
     const name = keys.includes('name') ? query.name : 'N/A';
     const saveChart = keys.includes('save') && smartCastInt(query.save, 0) > 0;
+    const pob =
+      keys.includes('pob') && notEmptyString(query.pob, 1) ? query.pob : '';
     const updateChart =
       saveChart && keys.includes('cid') && isValidObjectId(query.cid);
     const showUserChart = keys.includes('uc')
@@ -1617,6 +1619,7 @@ export class AstrologicController {
     data.subject = {
       name,
       gender,
+      notes: pob,
       type: 'person',
       eventType: 'birth',
       roddenValue,
@@ -1684,6 +1687,7 @@ export class AstrologicController {
             valid: true,
             saved,
             nickName,
+            pob,
             ...compatibility,
             otherChart,
             userChart,
@@ -1692,6 +1696,7 @@ export class AstrologicController {
             valid: true,
             saved,
             nickName,
+            pob,
             ...compatibility,
             chart: otherChart,
           };
@@ -3989,7 +3994,8 @@ export class AstrologicController {
                 false,
               );
               const nickName = c.subject?.name;
-              data.items.push({ nickName, ...extraData });
+              const pob = c.subject?.notes;
+              data.items.push({ nickName, pob, ...extraData });
             }
           }
           data.valid = true;
