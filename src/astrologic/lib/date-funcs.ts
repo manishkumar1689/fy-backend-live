@@ -471,3 +471,7 @@ export const isoDateToMilliSecs = (dateRef = null): number => {
     ? new Date(dateRef).getTime()
     : 0;
 };
+
+export const fullISOString = (str = ''): string => {
+  return validISODateString(str) ? str.split('.').shift() + '.000Z' : '';
+};

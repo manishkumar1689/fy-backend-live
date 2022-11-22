@@ -8,7 +8,7 @@ import {
   getAyanamsa,
   fixedStarAsync,
 } from './sweph-async';
-import { calcJulDate, jdToDateTime } from './date-funcs';
+import { calcJulDate, fullISOString, jdToDateTime } from './date-funcs';
 import {
   calcDeclinationFromLngLatEcl,
   calcInclusiveTwelfths,
@@ -1820,7 +1820,7 @@ export const calcCompactChartData = async (
 
   const chartData = {
     jd,
-    datetime,
+    datetime: fullISOString(datetime),
     geo,
     grahas: grahas.map(gr => {
       gr.variants = variants
