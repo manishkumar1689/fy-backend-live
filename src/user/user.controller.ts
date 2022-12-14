@@ -2542,7 +2542,7 @@ export class UserController {
       result.categories = merged.categories;
       result.valid = result.answers.length > 0;
     }
-    return res.statsu(userStatus.status).json(result);
+    return res.status(userStatus.status).json(result);
   }
 
   /*
