@@ -1043,7 +1043,10 @@ export class UserController {
       .filter(entry => typeof entry[1] === 'number')
       .map(entryToLimit);
 
-    const repeatInterval = await this.settingService.swipeMemberRepeatInterval();
+    const repeatInterval = await this.settingService.swipeMemberRepeatInterval(
+      -1,
+      true,
+    );
     limits.push({
       key: 'members__repeat_interval',
       name: 'Swipe member repeat interval (minutes)',
