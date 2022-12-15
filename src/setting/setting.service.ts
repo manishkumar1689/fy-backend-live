@@ -462,7 +462,7 @@ export class SettingService {
   }
 
   async getFreeMemberLikeResetHours() {
-    const data = await this.getByKey('free_member_like_reset_limit');
+    const data = await this.getByKey('members__like_reset_hours');
     return typeof data.value === 'number' ? data.value : 12;
   }
 
