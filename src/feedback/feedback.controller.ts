@@ -287,6 +287,7 @@ export class FeedbackController {
         roles,
         intValue,
       );
+
       // the like Start timestamp is in the future and the action is like
       // set the limit to zero
       if (currStartTs > nowTs && intValue > 0) {
