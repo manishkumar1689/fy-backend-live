@@ -16,7 +16,6 @@ import { matchCurrentDashaLord } from '../models/dasha-set';
 import { PredictiveRuleSet } from '../../../setting/interfaces/predictive-rule-set.interface';
 import { julToDateParts } from '../julian-date';
 import { capitalize } from '../helpers';
-import { Console } from 'console';
 import { TransitionItem } from '../interfaces';
 
 const birdMap = { 1: 'vulture', 2: 'owl', 3: 'crow', 4: 'cock', 5: 'peacock' };

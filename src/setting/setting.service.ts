@@ -532,6 +532,7 @@ export class SettingService {
     const likeLimits = Object.entries(perms)
       .filter(entry => entry[0].endsWith(maxKey) || entry[0].endsWith(maxKey2))
       .map(entry => smartCastInt(entry[1], 0));
+    console.log(perms);
     let maxRating = value < 1 ? 1000000 : value === 1 ? 20 : 5;
     if (hasLimits && likeLimits.length > 0) {
       maxRating = Math.max(...likeLimits);

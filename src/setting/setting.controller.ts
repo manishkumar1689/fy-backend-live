@@ -91,6 +91,14 @@ export class SettingController {
         key,
         createSettingDTO,
       );
+      if (
+        key.includes('limits') ||
+        key.startsWith('members__') ||
+        key.includes('permission')
+      ) {
+        this.settingService.clearCacheByKey('permissions');
+      }
+
       if (notEmptyString(result.message)) {
         message = result.message;
         setting = result.setting;
