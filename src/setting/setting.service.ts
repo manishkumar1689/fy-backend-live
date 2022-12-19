@@ -482,6 +482,7 @@ export class SettingService {
         limitRow instanceof Object ? smartCastInt(limitRow.value, 0) : true;
       return [key, value];
     });
+
     return Object.fromEntries(entries);
   }
 
@@ -522,30 +523,50 @@ export class SettingService {
   }
 
   async getMaxRatingLimit(roles: string[] = [], value = 0) {
-    const maxKeyParts = ['swipe', mapLikeability(value, true)]
-      .join('_')
-      .split('|');
-    const maxKey = maxKeyParts.length > 0 ? maxKeyParts[0] : 'wxyz';
-    const maxKey2 = maxKeyParts.length > 1 ? maxKeyParts[1] : maxKey;
-    const hasLimits = notEmptyString(maxKey);
-    const perms = await this.getEnabledPermissions(roles);
-    const likeLimits = Object.entries(perms)
-      .filter(entry => entry[0].endsWith(maxKey) || entry[0].endsWith(maxKey2))
-      .map(entry => smartCastInt(entry[1], 0));
-    let maxRating = value < 1 ? 1000000 : value === 1 ? 20 : 5;
-    if (hasLimits && likeLimits.length > 0) {
-      maxRating = Math.max(...likeLimits);
+    if (value < 1) {
+      return 1000000000;
+    } else {
+      const maxKeyParts = ['swipe', mapLikeability(value, true)]
+        .join('_')
+        .split('|');
+
+      const maxKey = maxKeyParts.length > 0 ? maxKeyParts[0] : 'wxyz';
+      const maxKey2 = maxKeyParts.length > 1 ? maxKeyParts[1] : maxKey;
+      const hasLimits = notEmptyString(maxKey);
+      const perms = await this.getEnabledPermissions(roles);
+      const likeLimits = Object.entries(perms)
+        .filter(
+          entry => entry[0].endsWith(maxKey) || entry[0].endsWith(maxKey2),
+        )
+        .map(entry => smartCastInt(entry[1], 0));
+      let maxRating = value === 1 ? 20 : 5;
+      if (hasLimits && likeLimits.length > 0) {
+        maxRating = Math.max(...likeLimits);
+      }
+      return maxRating;
     }
-    return maxRating;
   }
 
   filterOverrides(permKeys: string[] = [], permData = null, roleKey = '') {
     if (permData instanceof Object) {
       const excludeKeys = ['all'];
-      const { roles, limits } = permData;
+      const { roles } = permData;
       const current = roles.find(r => r.key === roleKey);
       if (current instanceof Object) {
         const { overrides, permissions, appAccess, adminAccess } = current;
+        if (roleKey === 'active') {
+          // ensure these keys are always present
+          const coreKeys = [
+            'basic_swipe_like',
+            'basic_swipe_pass',
+            'basic_swipe_superstar',
+          ];
+          coreKeys.forEach(ck => {
+            if (permissions.includes(ck) === false) {
+              permissions.push(ck);
+            }
+          });
+        }
         if (permissions instanceof Array) {
           if (appAccess) {
             if (!permKeys.includes('app_access')) {

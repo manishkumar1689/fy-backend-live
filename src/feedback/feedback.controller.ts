@@ -283,11 +283,11 @@ export class FeedbackController {
         currStartTs,
       );
       // fetch the max limit for this swipe action associated with a user's current roles
+      // does not apply to passes
       let maxRating = await this.settingService.getMaxRatingLimit(
         roles,
         intValue,
       );
-
       // the like Start timestamp is in the future and the action is like
       // set the limit to zero
       if (currStartTs > nowTs && intValue > 0) {
@@ -310,7 +310,14 @@ export class FeedbackController {
           intValue = prevSwipe.value - 1;
         }
       }
-      data.remaining = maxRating > 0 ? maxRating - numSwipes : 0;
+      const applyMaxRating = maxRating < 100000;
+      // if rating limit is not applied, keep high value without decrementing
+      data.remaining =
+        maxRating > 0
+          ? applyMaxRating
+            ? maxRating - numSwipes
+            : maxRating
+          : 0;
       data.nextStartTs = currStartTs;
       data.secondsToWait =
         maxRating < 1 ? Math.ceil((currStartTs - nowTs - 50) / 1000) : 0;
@@ -381,7 +388,9 @@ export class FeedbackController {
         data.prevSwipe = prevSwipe;
         if (valid && prevSwipe.value !== intValue) {
           numSwipes++;
-          data.remaining--;
+          if (!isPass) {
+            data.remaining--;
+          }
           data.updated = true;
         }
         data.count = numSwipes;
