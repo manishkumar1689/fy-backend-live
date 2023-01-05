@@ -736,6 +736,8 @@ export class AstrologicController {
   }
 
   /*
+  #AstroUI / #testing
+
   Fetch progression longitudes for the Su, Ve and Ma
   along with the core graha longitudes, including the ascendant and descendant
   for the birth data.
@@ -937,6 +939,9 @@ export class AstrologicController {
     return res.status(HttpStatus.OK).json(data);
   }
 
+  /*
+    #testing
+  */
   @Get('p2-simple/:c1/:c2')
   async getProgressionSimple(@Res() res, @Param('c1') c1, @Param('c2') c2) {
     const data: any = {
@@ -977,6 +982,9 @@ export class AstrologicController {
     return res.status(HttpStatus.OK).json(data);
   }
 
+  /*
+    #astroui only
+  */
   @Get('sbc-vedhas/:chartRef/:loc/:dt?')
   async getSbcVedhas(
     @Res() res,
@@ -1032,6 +1040,9 @@ export class AstrologicController {
     return res.json(Object.fromEntries(result.entries()));
   }
 
+  /*
+    #astroui only
+  */
   @Get('kota-chakra/:chartRef/:loc/:dt?')
   async getKotaChakra(
     @Res() res,
@@ -1098,6 +1109,9 @@ export class AstrologicController {
     return res.json(Object.fromEntries(result.entries()));
   }
 
+  /*
+    #testing
+  */
   @Get('kota-chakra-compare/:c1/:c2?')
   async compareKotaChakra(
     @Res() res,
@@ -1167,6 +1181,9 @@ export class AstrologicController {
     return res.json(Object.fromEntries(result.entries()));
   }
 
+  /*
+    Astro UI only
+  */
   @Get('retro-scores/:chartRef')
   async getRetroScores(@Res() res, @Param('chartRef') chartRef) {
     let chartID = chartRef;
@@ -1200,7 +1217,9 @@ export class AstrologicController {
     }
     return res.json(Object.fromEntries( result.entries() ));
   } */
-
+  /*
+    Admin UI / testing
+  */
   @Get('next-p2/:chartID/:showISO?/:grahas?')
   async renderNextProgressionPositionsForChart(
     @Res() res,
@@ -1234,7 +1253,7 @@ export class AstrologicController {
   }
 
   /*
-    #mobile
+    #mobile ??
     #astrotesting
   */
   @Get('position-data/:loc?/:dt?/:user?/:ayanamsha?')
@@ -4528,6 +4547,9 @@ export class AstrologicController {
     return res.status(HttpStatus.OK).json({ start: dtUtc, end: endDt, grahas });
   }
 
+  /*
+    Astro UI
+  */
   @Get(
     'kaksha-transit-timeline/:chartID/:loc/:start?/:end?/:exclude?/:ayanamsha?',
   )
@@ -4572,6 +4594,9 @@ export class AstrologicController {
     });
   }
 
+  /*
+    Astro UI
+  */
   @Get('kaksha-transit-graph/:chartID/:loc/:start?/:end?/:ayanamsha?')
   async kakshaTimelineGraph(
     @Res() res,
@@ -4670,6 +4695,9 @@ export class AstrologicController {
     return res.status(HttpStatus.OK).json(data);
   }
 
+  /*
+    Astro UI
+  */
   @Get('bav-sign-timeline/:loc/:dt?')
   async fetchBavTimeline(
     @Res() res,
@@ -4723,6 +4751,9 @@ export class AstrologicController {
       .json({ items: graphData, valid: graphData.length > 0 });
   }
 
+  /*
+    Astro UI
+  */
   @Get('ascendant-timeline/:loc/:start?/:end?/:ayanamsha?')
   async fetchAscendantTimeline(
     @Res() res,
@@ -4994,6 +5025,9 @@ export class AstrologicController {
     return res.status(HttpStatus.OK).json(data);
   }
 
+  /*
+  development
+  */
   @Get('add-p2')
   async addP2Set(@Res() res, @Query() query) {
     const filter: Map<string, any> =

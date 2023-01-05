@@ -2532,6 +2532,9 @@ export class AstrologicService {
     return { progress, start, end, peak, retro };
   }
 
+  /*
+    Dveelopment
+  */
   async matchRetroValues(chart: ChartClass): Promise<KeyNumValue[]> {
     const keys = ['me', 've', 'ma', 'ju', 'sa'];
     const values: any[] = [];
@@ -2612,6 +2615,9 @@ export class AstrologicService {
     return numValues;
   }
 
+  /*
+    Development, maintenance and for special vakra scores
+  */
   async _fetchRelatedStations(
     key = '',
     jd: number,
@@ -2799,6 +2805,9 @@ export class AstrologicService {
     return results;
   }
 
+  /*
+    Astro UI
+  */
   async planetStations(
     num: number,
     datetime: string,
@@ -2819,6 +2828,9 @@ export class AstrologicService {
     return results;
   }
 
+  /*
+    Astro UI
+  */
   async _planetStations(
     num: number,
     datetime: string,
@@ -2885,6 +2897,9 @@ export class AstrologicService {
     return results;
   }
 
+  /*
+    Astro UI
+  */
   async fetchBavTimeline(
     geo: LngLat,
     startJd = 0,
@@ -2923,6 +2938,9 @@ export class AstrologicService {
     return grahas;
   }
 
+  /*
+    Astro UI
+  */
   async fetchKakshaTimeline(
     geo: LngLat,
     startJd = 0,
@@ -2972,6 +2990,9 @@ export class AstrologicService {
     return grahas;
   }
 
+  /*
+    Astro UI
+  */
   async fetchKakshaTimelineData(
     chartID = '',
     geo: GeoPos,
@@ -3070,6 +3091,10 @@ export class AstrologicService {
     return { rows, datetime: chartData.datetime, geo: chartData.geo };
   }
 
+  /*
+    Fetch current and natal transitions from AstroCalc
+    for Lucky Times. Requires post-processing by PanchaPakshi rule set.
+  */
   async fetchCurrentAndTransposedTransitions(
     positions: GrahaPos[],
     jd: number,

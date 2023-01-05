@@ -298,9 +298,9 @@ export class FeedbackController {
       const isPass = intValue <= 0;
       // for free members set pass value to 0 if the other has liked them
       /* if (isPass && !hasPaidRole && recipSwipe.value > 0) {
-      intValue = 0;
-      isPass = false;
-    } */
+        intValue = 0;
+        isPass = false;
+      } */
       const prevPass = isPass && hasPrevPass ? prevSwipe.value : 0;
       if (contextKey.includes('like') === false && intValue < 1 && isPass) {
         const isHardPass = intValue <= minRatingValue;
