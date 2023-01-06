@@ -2279,6 +2279,9 @@ export class AstrologicController {
     return res.json({ ...data, dtUtc });
   }
 
+  /**
+   * #astrotesting
+   */
   @Get('transpose-chart')
   async transposeChart(@Res() res, @Query() query) {
     const params = query instanceof Object ? query : {};
