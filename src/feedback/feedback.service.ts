@@ -11,6 +11,7 @@ import { Flag, SimpleFlag } from './interfaces/flag.interface';
 import {
   filterLikeabilityFlags,
   mapFlagItems,
+  mapLikeability,
   mapUserFlag,
   UserFlagSet,
 } from '../lib/notifications';
@@ -492,7 +493,6 @@ export class FeedbackService {
     mutualMode = 0,
   ) {
     const valueFilter = gte ? { $gte: refNum } : refNum;
-
     const dt = validISODateString(startDate)
       ? startDate
       : typeof startDate === 'number'
@@ -536,6 +536,7 @@ export class FeedbackService {
       });
       const mutualIds = mutualRows.map(r => r.targetUser.toString());
       // match and exclude ids of users that have been rejected (passed) 3 times or more
+
       const criteriaObj3 = {
         targetUser: { $in: rows.map(r => r.user) },
         user: userId,
@@ -558,6 +559,27 @@ export class FeedbackService {
     } else {
       return rows;
     }
+  }
+
+  async fetchLikeSortOrder(
+    userId = '',
+    otherIds: string[] = [],
+  ): Promise<{ id: string; dt: Date; value: string }[]> {
+    const criteria = {
+      key: 'likeability',
+      user: userId,
+      targetUser: {
+        $in: otherIds,
+      },
+    };
+    const rows = await this.flagModel.find(criteria).sort({ modifiedAt: -1 });
+    return rows.map(m => {
+      return {
+        id: m.targetUser.toString(),
+        dt: m.modifiedAt,
+        value: mapLikeability(m.value),
+      };
+    });
   }
 
   async countLikesGiven(userID = '', likeStartTs = 0) {

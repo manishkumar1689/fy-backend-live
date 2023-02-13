@@ -926,11 +926,30 @@ export class UserController {
     }
 
     if (isLikeContext) {
+      // sort matches by the last interaction from the current user
+      const fromSort = ['matched', 'match'].includes(context);
+      const sorted = await this.feedbackService.fetchLikeSortOrder(
+        userId,
+        items.map(lk => lk._id),
+      );
+      if (sorted.length > 0) {
+        for (const item of items) {
+          const sortItem = sorted.find(s => s.id === item._id.toString());
+          if (sortItem) {
+            item.likeability.from = {
+              value: sortItem.value,
+              modifiedAt: sortItem.dt,
+            };
+          }
+        }
+      }
       items.sort((a, b) => {
-        if (a.likeability.to.modifiedAt && b.likeability.to.modifiedAt) {
+        const refA = fromSort ? a.likeability.from : a.likeability.to;
+        const refB = fromSort ? b.likeability.from : b.likeability.to;
+        if (refA.modifiedAt && refB.modifiedAt) {
           return (
-            isoDateToMilliSecs(b.likeability.to.modifiedAt) -
-            isoDateToMilliSecs(a.likeability.to.modifiedAt)
+            isoDateToMilliSecs(refB.modifiedAt) -
+            isoDateToMilliSecs(refA.modifiedAt)
           );
         } else {
           return -100000;
@@ -942,6 +961,20 @@ export class UserController {
     return items;
   }
 
+  @Get('like-sort/:userID')
+  async getLikeSort(@Res() res, @Param('userID') userID) {
+    const likes = await this.feedbackService.fetchByLikeability(
+      userID,
+      '2021-01-01T00:00:00',
+    );
+
+    const sorted = await this.feedbackService.fetchLikeSortOrder(
+      userID,
+      likes.map(lk => lk.user),
+    );
+
+    return res.json({ likes, sorted });
+  }
   /*
     #mobile
     #admin

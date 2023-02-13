@@ -2533,7 +2533,7 @@ export class AstrologicService {
   }
 
   /*
-    Dveelopment
+    Development
   */
   async matchRetroValues(chart: ChartClass): Promise<KeyNumValue[]> {
     const keys = ['me', 've', 'ma', 'ju', 'sa'];

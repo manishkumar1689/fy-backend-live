@@ -545,17 +545,19 @@ export const shortenName = (str = '', maxLength = 25): string => {
   return txt;
 };
 
-
-
 export const toFirstName = (name: string): string => {
   if (notEmptyString(name, 3)) {
     const parts = name.split(' ');
     const first = parts[0];
-    return first.length > 1 ? first : parts.length > 1? parts.slice(0, 1).join(' ') : name;
+    return first.length > 1
+      ? first
+      : parts.length > 1
+      ? parts.slice(0, 1).join(' ')
+      : name;
   } else {
     return name;
   }
-}
+};
 
 export const generateNameSearchRegex = (str: string): string => {
   const replMap = [
