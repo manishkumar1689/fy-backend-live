@@ -28,7 +28,7 @@ const upagrahaData = {
     { num: 3, key: 'ya', body: 'ju', position: 0.5, sort: 5 },
     { num: 4, key: 'ar', body: 'me', position: 0.5, sort: 6 },
     { num: 5, key: 'gu', body: 'sa', position: 0, sort: 1 },
-    { num: 6, key: 'md', body: 'sa', position: 0, sort: 2 },
+    { num: 6, key: 'md', body: 'sa', position: 0.5, sort: 2 },
   ],
 };
 
