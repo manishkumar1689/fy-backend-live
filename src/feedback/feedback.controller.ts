@@ -293,6 +293,9 @@ export class FeedbackController {
       if (currStartTs > nowTs && intValue > 0) {
         maxRating = -1;
       }
+      if (contextKey.endsWith('back')) {
+        maxRating = 0;
+      }
       const hasPaidRole = roles.some(rk => rk.includes('member'));
       const hasPrevPass = prevSwipe.valid && prevSwipe.value < 1;
       const isPass = intValue <= 0;
