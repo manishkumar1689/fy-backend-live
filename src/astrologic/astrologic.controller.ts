@@ -1960,6 +1960,7 @@ export class AstrologicController {
     let { name, type, gender, eventType, roddenValue } = inData;
     const userRecord = await this.userService.getUser(user);
     // If user record is matched, proceed
+
     if (userRecord instanceof Object) {
       const dob =
         userRecord.dob instanceof Date ? utcDate(userRecord.dob) : null;
@@ -1967,7 +1968,6 @@ export class AstrologicController {
       const hasValidDatetime = validISODateString(datetime);
       const useDob = !hasValidDatetime && validISODateString(dobDtStr);
       const refDt = useDob ? dobDtStr : datetime;
-      // User must be active
       if (userRecord.active) {
         if (validISODateString(refDt) && isNumeric(lat) && isNumeric(lng)) {
           const geo = { lat, lng, alt };
@@ -2062,6 +2062,7 @@ export class AstrologicController {
               data.chart.parent = null;
             }
             let saved = null;
+            // User must be active
             if (save) {
               if (notEmptyString(chartID, 8)) {
                 saved = await this.astrologicService.updateChart(
@@ -2076,7 +2077,10 @@ export class AstrologicController {
               const { _id } = saved;
               const strId = _id instanceof Object ? _id.toString() : _id;
               if (notEmptyString(strId, 8)) {
-                data.chart = { _id: strId, ...data.chart };
+                data.chart = {
+                  _id: strId,
+                  ...data.chart,
+                };
                 data.valid = true;
               }
             }
@@ -4055,8 +4059,8 @@ export class AstrologicController {
     const isAdmin = this.userService.hasAdminRole(user);
     let status = validId
       ? hasUser
-        ? HttpStatus.NOT_FOUND
-        : HttpStatus.OK
+        ? HttpStatus.OK
+        : HttpStatus.NOT_FOUND
       : HttpStatus.NOT_ACCEPTABLE;
     if (user instanceof Object) {
       if (user.active) {
@@ -4074,6 +4078,7 @@ export class AstrologicController {
           data.items = charts;
           data.valid = true;
           data.message = 'OK';
+          status = HttpStatus.OK;
         } else {
           data.message = 'Inactive account';
           status = HttpStatus.NOT_ACCEPTABLE;

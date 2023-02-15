@@ -1031,7 +1031,6 @@ export class AstrologicService {
     const chart = await this.chartModel.findById(chartID);
     if (chart instanceof Object) {
       const adjustedDate = this.adjustDatetimeByServerTz(data);
-
       await this.chartModel
         .findByIdAndUpdate(
           chartID,
