@@ -1737,7 +1737,35 @@ const matchNaturalRelationship = (row = null, ruler = '') => {
   return natural;
 };
 
-const postProcessVariants = (variants: Map<string, any>[]) => {
+const recalcCharaKarakaNums = (bodies: any[]) => {
+  const withinSignBodies = bodies
+    .filter(
+      b =>
+        b instanceof Object && ((b.num >= 0 && b.num <= 6) || b.key === 'ra'),
+    )
+    .map(b => {
+      const withinSign = b.lng % 30;
+      const deg = b.key === 'ra' ? 30 - withinSign : withinSign;
+      return {
+        key: b.key,
+        deg,
+      };
+    });
+  // highest first
+  withinSignBodies.sort((a, b) => b.deg - a.deg);
+  const mp: Map<string, number> = new Map();
+  withinSignBodies.forEach((b, index) => {
+    const num = index + 1;
+    mp.set(b.key, num);
+  });
+  return mp;
+};
+
+const postProcessVariants = (
+  variants: Map<string, any>[],
+  bodies: any[] = [],
+) => {
+  const ckMap = recalcCharaKarakaNums(bodies);
   for (const v of variants) {
     const gk = v.get('key');
     const gRow = grahaValues.find(row => row.key == gk);
@@ -1758,6 +1786,11 @@ const postProcessVariants = (variants: Map<string, any>[]) => {
               natRel,
             );
             v.set('relationship', relationship.compound);
+            const ckVal = ckMap.get(gk);
+            if (ckVal) {
+              v.set('charaKaraka', ckVal);
+              console.log(gk, ckVal);
+            }
           }
         }
       }
@@ -1855,7 +1888,7 @@ export const calcCompactChartData = async (
             variants.push(variant);
           });
           // add relationships
-          postProcessVariants(variants);
+          postProcessVariants(variants, av.grahas);
           if (addExtraSets) {
             sphutaSet.push({ num: aya.value, items: av.sphutas });
             objectSets.push({ num: aya.value, items: av.objects });
