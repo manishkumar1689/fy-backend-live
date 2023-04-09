@@ -13,6 +13,7 @@ import {
   calcDeclinationFromLngLatEcl,
   calcInclusiveTwelfths,
   calcRectAscension,
+  mapSignToHouse,
   subtractLng360,
 } from './math-funcs';
 import {
@@ -70,7 +71,7 @@ import {
   NumValueSet,
   ITime,
 } from './models/chart';
-import { calcDist360, capitalize } from './helpers';
+import { calcDist360, capitalize, degToSign, nakshatra27 } from './helpers';
 import houseTypeData from './settings/house-type-data';
 import { sampleBaseObjects } from './custom-transits';
 import { GeoLoc } from './models/geo-loc';
@@ -78,6 +79,7 @@ import { calcTransposedGrahaTransitions, GrahaPos } from './point-transitions';
 import { KeyLng, SynastryAspectMatch } from './interfaces';
 import { keyValuesToSimpleObject } from '../../lib/converters';
 import { matchSynastryOrbRange } from './calc-orbs';
+import { mapRelationships } from './map-relationships';
 
 swisseph.swe_set_ephe_path(ephemerisPath);
 
@@ -1660,19 +1662,21 @@ const calcCompactVariantSet = (
   };
 };
 
-const mapToVariantMap = (gr: any, ayanamsaNum: number) => {
+const mapToVariantMap = (gr: any, ayanamsaNum: number, houses = []) => {
   const variant: Map<string, any> = new Map();
   if (gr instanceof Object) {
     variant.set('num', ayanamsaNum);
     variant.set('key', gr.key);
-    variant.set('sign', gr.sign);
-    variant.set('house', gr.house);
+    const sign = degToSign(gr.lng);
+    variant.set('sign', sign);
+    const hn = houses.length > 0 ? mapSignToHouse(sign, houses) : gr.house;
+    variant.set('house', hn);
     const compRel =
       gr.relationship instanceof Object
         ? gr.relationship.compound
         : gr.relationship;
     variant.set('relationship', compRel);
-    variant.set('nakshatra', gr.nakshatra.num);
+    variant.set('nakshatra', nakshatra27(gr.lng));
     variant.set('charaKaraka', gr.charaKaraka);
   }
   return variant;
@@ -1711,6 +1715,54 @@ const mapUpagraha = obj => {
     key,
     value: upagraha,
   };
+};
+
+const matchNaturalRelationship = (row = null, ruler = '') => {
+  let natural = '';
+  if (
+    ruler.length > 1 &&
+    row instanceof Object &&
+    row.friends instanceof Array &&
+    row.neutral instanceof Array &&
+    row.enemies instanceof Array
+  ) {
+    if (row.friends.includes(ruler)) {
+      natural = 'friend';
+    } else if (row.neutral.includes(ruler)) {
+      natural = 'neutral';
+    } else if (row.enemies.includes(ruler)) {
+      natural = 'enemy';
+    }
+  }
+  return natural;
+};
+
+const postProcessVariants = (variants: Map<string, any>[]) => {
+  for (const v of variants) {
+    const gk = v.get('key');
+    const gRow = grahaValues.find(row => row.key == gk);
+    if (gRow) {
+      const sign = v.get('sign');
+      if (gRow.ownSign instanceof Array) {
+        const isOwnSign = gRow.ownSign.includes(sign);
+        const ruler = grahaValues.find(b => b.ownSign.includes(sign));
+        if (ruler) {
+          const rulerV = variants.find(v2 => v2.get('key') === ruler.key);
+          if (rulerV) {
+            const rulerSign = rulerV.get('sign');
+            const natRel = matchNaturalRelationship(gRow, ruler.key);
+            const relationship = mapRelationships(
+              sign,
+              rulerSign,
+              isOwnSign,
+              natRel,
+            );
+            v.set('relationship', relationship.compound);
+          }
+        }
+      }
+    }
+  }
 };
 
 export const calcCompactChartData = async (
@@ -1795,10 +1847,15 @@ export const calcCompactChartData = async (
             sunAtSunRise,
             fetchFull,
           );
+          const hs = [
+            Math.floor(subtractLng360(ascendant, aya.value) / 30) * 30,
+          ];
           av.grahas.forEach(gr => {
-            const variant = mapToVariantMap(gr, aya.value);
+            const variant = mapToVariantMap(gr, aya.value, hs);
             variants.push(variant);
           });
+          // add relationships
+          postProcessVariants(variants);
           if (addExtraSets) {
             sphutaSet.push({ num: aya.value, items: av.sphutas });
             objectSets.push({ num: aya.value, items: av.objects });
