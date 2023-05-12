@@ -455,8 +455,6 @@ export class UserController {
           ? HttpStatus.OK
           : HttpStatus.NOT_ACCEPTABLE
         : HttpStatus.NOT_FOUND;
-
-      console.log(keys, status, user, reasonKey);
     }
     const baseResult = {
       message: msg,
