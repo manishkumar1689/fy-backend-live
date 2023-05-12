@@ -430,17 +430,20 @@ export class UserController {
     let msg = 'invalid payload';
     let status = HttpStatus.NOT_ACCEPTABLE;
     let reason = 'invalid_input';
-    let valid = false;
+    let isValid = false;
     let exists = false;
     if (filteredEntries.length === 2) {
-      valid = true;
       const filteredDTO = Object.fromEntries(filteredEntries) as CreateUserDTO;
       const {
         user,
         keys,
         message,
         reasonKey,
+        valid,
       } = await this.userService.updateUser(userID, filteredDTO, roles);
+      if (valid) {
+        isValid = true;
+      }
       msg = message;
       reason = reasonKey;
       const hasUser = user instanceof Object;
@@ -448,15 +451,17 @@ export class UserController {
         exists = true;
       }
       status = hasUser
-        ? keys.length > 0
+        ? keys.length > 0 && valid
           ? HttpStatus.OK
           : HttpStatus.NOT_ACCEPTABLE
         : HttpStatus.NOT_FOUND;
+
+      console.log(keys, status, user, reasonKey);
     }
     const baseResult = {
       message: msg,
       reason,
-      valid,
+      valid: isValid,
       exists,
     };
     return res.status(status).json(baseResult);
@@ -2206,7 +2211,8 @@ export class UserController {
     if (digitMode) {
       user = await this.userService.findOneByEmail(email);
       if (user instanceof Object) {
-        const tokenMatches = match6DigitsToken(user.token, hash);
+        const tokenStr = notEmptyString(user.token) ? user.token : '';
+        const tokenMatches = match6DigitsToken(tokenStr, hash);
         if (tokenMatches) {
           idStr = [user._id, user.token].join('__');
         }
@@ -2273,6 +2279,7 @@ export class UserController {
     const userData = new Map<string, any>();
     let valid = false;
     let editedUser = user;
+    const hasUser = user instanceof Object;
     if (!user) {
       userData.set('msg', 'User not found');
       userData.set('key', 'not-found');
@@ -2305,8 +2312,13 @@ export class UserController {
         ]);
       }
     }
+    const status = valid
+      ? HttpStatus.OK
+      : hasUser
+      ? HttpStatus.NOT_ACCEPTABLE
+      : HttpStatus.NOT_FOUND;
     userData.set('valid', valid);
-    return res.status(HttpStatus.OK).json(hashMapToObject(userData));
+    return res.status(status).json(hashMapToObject(userData));
   }
 
   /*
@@ -2318,9 +2330,9 @@ export class UserController {
     data.set('valid', false);
     if (user) {
       if (notEmptyString(user.token, 6)) {
-        const resetLink = '/reset/' + toBase64(userID + '__' + user.token);
-        //data.set('token', user.token);
-        const resetNumber = tokenTo6Digits(user.token);
+        const tokenStr = notEmptyString(user.token) ? user.token : '';
+        const resetLink = '/reset/' + toBase64(userID + '__' + tokenStr);
+        const resetNumber = tokenTo6Digits(tokenStr);
         data.set('webMode', webMode);
         if (webMode) {
           data.set('link', resetLink);

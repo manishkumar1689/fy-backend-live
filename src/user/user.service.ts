@@ -892,6 +892,7 @@ export class UserService {
     keys: string[];
     message: string;
     reasonKey: string;
+    valid: boolean;
   }> {
     const user =
       notEmptyString(userID) && isValidObjectId(userID)
@@ -905,11 +906,10 @@ export class UserService {
     if (user instanceof Model) {
       message = 'User has been updated successfully';
       const hasPassword = notEmptyString(createUserDTO.password);
-      let hasOldPassword = false;
+      const hasOldPassword = notEmptyString(createUserDTO.oldPassword, 6);
       const hasCurrentPassword = notEmptyString(user.password);
       let mayEditPassword = false;
       if (hasPassword && hasCurrentPassword) {
-        hasOldPassword = notEmptyString(createUserDTO.oldPassword, 6);
         if (hasOldPassword) {
           mayEditPassword = bcrypt.compareSync(
             createUserDTO.oldPassword,
@@ -927,6 +927,8 @@ export class UserService {
             reasonKey = 'not_authorised';
           }
         }
+      } else if (hasOldPassword) {
+        reasonKey = 'unmatched_old_password';
       }
       if (hasPassword && !mayEditPassword) {
         if (user.mode !== 'local') {
@@ -987,9 +989,12 @@ export class UserService {
       keys: Object.keys(userObj).filter(k => {
         return k === 'status' ? userObj[k].length > 0 : true;
       }),
-      user: valid ? this.removeHiddenFields(updatedUser) : null,
+      user: valid
+        ? this.removeHiddenFields(updatedUser)
+        : this.removeHiddenFields(userObj),
       message,
       reasonKey,
+      valid,
     };
   }
 
@@ -1837,7 +1842,7 @@ export class UserService {
     const categoryEntries = Object.entries(analysis)
       .map(([key, value]) => {
         let polarity = spectra.find(pair => pair.includes(key.toUpperCase()));
-        const segment = value <= 20 ? 'ave' : 'high';
+        const segment = smartCastInt(value, 0) <= 20 ? 'ave' : 'high';
         let text = '';
         if (notEmptyString(polarity)) {
           const snKey = ['_', 'sub', polarity, key, segment]
