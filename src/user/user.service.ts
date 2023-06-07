@@ -10,6 +10,7 @@ import {
   extractObject,
   extractSimplified,
   extractDocId,
+  isObjectWith,
 } from '../lib/entities';
 import * as bcrypt from 'bcrypt';
 import { generateHash } from '../lib/hash';
@@ -459,7 +460,7 @@ export class UserService {
     const filter = new Map<string, any>();
     const prefAndConditions: any[] = [];
     let notSkipHideFromExplore = true;
-    let includeDemo = false;
+    let demoMode = 0;
     if (criteria instanceof Object) {
       const keys = Object.keys(criteria);
       for (const key of keys) {
@@ -523,7 +524,17 @@ export class UserService {
             notSkipHideFromExplore = smartCastInt(val, 0) < 1;
             break;
           case 'demo':
-            includeDemo = smartCastInt(val, 0) > 0;
+            demoMode = smartCastInt(val, 0);
+            break;
+          case 'region':
+            const vals = notEmptyString(val)
+              ? val.split(',')
+              : val instanceof Array
+              ? val
+              : [];
+            if (vals.length > 0) {
+              filter.set('preferences.value', { $in: vals });
+            }
             break;
         }
       }
@@ -544,11 +555,22 @@ export class UserService {
       );
     }
     filter.set('active', true);
-    const excludeRoles = ['superadmin', 'admin', 'blocked', 'editor'];
-    if (!includeDemo) {
-      excludeRoles.push('demo');
+    let roleKeys = ['superadmin', 'admin', 'blocked', 'editor'];
+    let excludeRoles = true;
+    switch (demoMode) {
+      case 0:
+        roleKeys.push('demo');
+        break;
+      case 1:
+        roleKeys = ['demo'];
+        excludeRoles = false;
+        break;
     }
-    filter.set('roles', { $nin: excludeRoles });
+    if (demoMode > 0) {
+      filter.delete('$and');
+    }
+    const roleFilter = excludeRoles ? { $nin: roleKeys } : { $in: roleKeys };
+    filter.set('roles', roleFilter);
     if (excludedIds.length > 0) {
       if (!filter.has('_id')) {
         filter.set('_id', { $nin: excludedIds.map(_id => new ObjectId(_id)) });
@@ -1431,8 +1453,15 @@ export class UserService {
       filteredForUser,
     );
     let nearStage = null;
+
     if (Object.keys(criteria).includes('near')) {
-      const geoMatch = this.buildNearQuery(criteria.near);
+      const demoVal = isObjectWith(criteria, ['demo'])
+        ? smartCastInt(criteria.demo, 0)
+        : 0;
+      const demoOverride = smartCastInt(demoVal, 0) === 1;
+      const geoMatch = demoOverride
+        ? {}
+        : this.buildNearQuery(criteria.near, demoOverride);
       if (geoMatch instanceof Object) {
         const { $near } = geoMatch;
         if ($near instanceof Object) {
@@ -2283,7 +2312,7 @@ export class UserService {
     return users;
   }
 
-  buildNearQuery(coordsStr = '') {
+  buildNearQuery(coordsStr = '', demoOverride = true) {
     if (
       notEmptyString(coordsStr) &&
       /^-?\d+(\.\d+)?,-?\d+(\.\d+)?(\,\d+(\.\d+)?)?$/.test(coordsStr)
@@ -2292,7 +2321,11 @@ export class UserService {
         .split(',')
         .filter(isNumeric)
         .map(str => parseFloat(str));
-      const distance = isNumeric(km) && km > 0 ? km * 1000 : 100000;
+      let distance = isNumeric(km) && km > 0 ? km * 1000 : 100000;
+      const minDemoDistance = 2500 * 1000;
+      if (demoOverride && minDemoDistance) {
+        distance = minDemoDistance;
+      }
       return {
         $near: {
           $geometry: { type: 'Point', coordinates: [lng, lat] },
