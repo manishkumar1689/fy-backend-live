@@ -459,6 +459,7 @@ export class UserService {
     const filter = new Map<string, any>();
     const prefAndConditions: any[] = [];
     let notSkipHideFromExplore = true;
+    let includeDemo = false;
     if (criteria instanceof Object) {
       const keys = Object.keys(criteria);
       for (const key of keys) {
@@ -521,6 +522,9 @@ export class UserService {
           case 'hidden':
             notSkipHideFromExplore = smartCastInt(val, 0) < 1;
             break;
+          case 'demo':
+            includeDemo = smartCastInt(val, 0) > 0;
+            break;
         }
       }
     }
@@ -540,7 +544,11 @@ export class UserService {
       );
     }
     filter.set('active', true);
-    filter.set('roles', { $nin: ['superadmin', 'admin', 'blocked', 'editor'] });
+    const excludeRoles = ['superadmin', 'admin', 'blocked', 'editor'];
+    if (!includeDemo) {
+      excludeRoles.push('demo');
+    }
+    filter.set('roles', { $nin: excludeRoles });
     if (excludedIds.length > 0) {
       if (!filter.has('_id')) {
         filter.set('_id', { $nin: excludedIds.map(_id => new ObjectId(_id)) });
