@@ -31,7 +31,7 @@ export const ChartSchema = new mongoose.Schema({
   // helps decide whether to keep a chart record, member charts only contain one ayanamsha variant
   status: {
     type: String,
-    enum: ['user', 'member', 'reference', 'keep', 'test'],
+    enum: ['user', 'member', 'reference', 'keep', 'test', 'demo'],
     required: false,
   },
   // The _id of the related birth chart if the eventType is anything other than birth
