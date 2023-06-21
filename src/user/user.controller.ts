@@ -745,7 +745,7 @@ export class UserController {
             : [];
         hasFilterIds = true;
 
-        if (startOffset > 0) {
+        if (startOffset >= 0) {
           const inclusive = smartCastInt(query.incl, 0) > 0;
           arrayHead(filterIds, startOffset, inclusive);
         }

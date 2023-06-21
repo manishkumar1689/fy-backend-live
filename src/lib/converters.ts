@@ -306,15 +306,10 @@ export const extractSnippetTextByLang = (
   return text;
 };
 
-export const arrayHead = (
-  items: any[],
-  startOffset = 0,
-  inclusive = true,
-): any[] => {
+export const arrayHead = (items: any[], startOffset = 0, inclusive = true) => {
   const numItems = items.length;
   const startIndex = startOffset < numItems ? 0 - startOffset : 0;
-  const numDeleted = startOffset < numItems ? startOffset : numItems;
-  const endIndex = inclusive ? numDeleted : numDeleted - 1;
-  items.splice(startIndex, numDeleted);
-  return items;
+  const lastIndex = startOffset < numItems ? startOffset : numItems;
+  const endIndex = inclusive ? lastIndex : lastIndex + 1;
+  items.splice(startIndex, endIndex);
 };

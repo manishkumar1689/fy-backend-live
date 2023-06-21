@@ -1789,7 +1789,6 @@ const postProcessVariants = (
             const ckVal = ckMap.get(gk);
             if (ckVal) {
               v.set('charaKaraka', ckVal);
-              console.log(gk, ckVal);
             }
           }
         }
