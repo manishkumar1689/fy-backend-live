@@ -662,8 +662,8 @@ export class UserController {
     fullChart = false,
   ) {
     const query: any = queryRef instanceof Object ? queryRef : {};
-    const startInt = smartCastInt(start, 0);
-    const limitInt = smartCastInt(limit, 100);
+    let startInt = smartCastInt(start, 0);
+    let limitInt = smartCastInt(limit, 100);
     let simpleMode = 'basic';
     let ayanamshaKey = 'true_citra';
     const queryKeys = Object.keys(query);
@@ -684,8 +684,12 @@ export class UserController {
     // only applies to liked, superliked and matched listings
     const startOffset =
       queryKeys.includes('start') && isNumeric(query.start)
-        ? smartCastInt(query.start)
-        : 0;
+        ? smartCastInt(query.start, -1)
+        : -1;
+    if (startOffset >= 0) {
+      startInt = 0;
+      limitInt = 400;
+    }
     const hasContext = hasUser && notEmptyString(context, 2);
     // assign parameters by context
     const params = hasContext ? filterLikeabilityContext(context) : query;
@@ -742,7 +746,8 @@ export class UserController {
         hasFilterIds = true;
 
         if (startOffset > 0) {
-          arrayHead(filterIds, startOffset);
+          const inclusive = smartCastInt(query.incl, 0) > 0;
+          arrayHead(filterIds, startOffset, inclusive);
         }
       }
     }
