@@ -951,9 +951,20 @@ export class UserController {
           }
         }
       }
+      const relSort = (ref1, ref2) => {
+        return isoDateToMilliSecs(ref1.modifiedAt) >
+          isoDateToMilliSecs(ref2.modifiedAt)
+          ? ref1
+          : ref2;
+      };
       items.sort((a, b) => {
-        const refA = fromSort ? a.likeability.from : a.likeability.to;
-        const refB = fromSort ? b.likeability.from : b.likeability.to;
+        const refA = fromSort
+          ? relSort(a.likeability.to, a.likeability.from)
+          : a.likeability.to;
+        const refB = fromSort
+          ? relSort(b.likeability.to, b.likeability.from)
+          : b.likeability.to;
+
         if (refA.modifiedAt && refB.modifiedAt) {
           return (
             isoDateToMilliSecs(refB.modifiedAt) -
