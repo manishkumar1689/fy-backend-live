@@ -688,7 +688,7 @@ export class UserController {
         : -1;
     if (startOffset >= 0) {
       startInt = 0;
-      limitInt = 400;
+      limitInt = 500;
     }
     const hasContext = hasUser && notEmptyString(context, 2);
     // assign parameters by context
@@ -1487,8 +1487,12 @@ export class UserController {
       valid = user.active;
       exists = true;
       if (!valid) {
-        userData.set('msg', 'Inactive account');
-        userData.set('key', 'inactive');
+        const roleKeys = user.roles instanceof Array ? user.roles : [];
+        const isBlocked = roleKeys.includes('blocked');
+        const key = isBlocked ? 'blocked' : 'inactive';
+        const msg = isBlocked ? 'blocked account' : 'inactive account';
+        userData.set('msg', msg);
+        userData.set('key', key);
       }
       if (user.password) {
         if (valid) {

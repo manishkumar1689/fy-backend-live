@@ -536,7 +536,6 @@ export class FeedbackService {
       });
       const mutualIds = mutualRows.map(r => r.targetUser.toString());
       // match and exclude ids of users that have been rejected (passed) 3 times or more
-
       const criteriaObj3 = {
         targetUser: { $in: rows.map(r => r.user) },
         user: userId,
@@ -549,13 +548,27 @@ export class FeedbackService {
         rejectedRows.length > 0
           ? rejectedRows.map(r => r.targetUser.toString())
           : [];
-      return rows
+      const frs = rows
         .filter(r => rejectedIds.includes(r.user.toString()) === false)
         .map(r => {
           const isMutual = mutualIds.includes(r.user.toString());
-          return { ...r.toObject(), isMutual };
+          const obj = r.toObject();
+          let modifiedAt = obj.modifiedAt;
+          if (isMutual && modifiedAt instanceof Date) {
+            const mRow = mutualRows.find(
+              r => r.targetUser.toString() === obj.user.toString(),
+            );
+            if (mRow instanceof Object && mRow.modifiedAt instanceof Date) {
+              if (modifiedAt.getTime() < mRow.modifiedAt.getTime()) {
+                modifiedAt = mRow.modifiedAt;
+              }
+            }
+          }
+          return { ...obj, modifiedAt, isMutual };
         })
         .filter(r => r.isMutual === mutualMode > 0);
+      frs.sort((a, b) => b.modifiedAt.getTime() - a.modifiedAt.getTime());
+      return frs;
     } else {
       return rows;
     }
