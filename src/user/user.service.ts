@@ -461,6 +461,7 @@ export class UserService {
     const prefAndConditions: any[] = [];
     let notSkipHideFromExplore = true;
     let demoMode = 0;
+    let hasFilterIds = false;
     if (criteria instanceof Object) {
       const keys = Object.keys(criteria);
       for (const key of keys) {
@@ -513,11 +514,13 @@ export class UserService {
             break;
           case 'ids':
             if (val instanceof Array) {
+              const filteredIds = val.filter(
+                id => excludedIds.some(exId => exId === id) === false,
+              );
               filter.set('_id', {
-                $in: val.filter(
-                  id => excludedIds.some(exId => exId === id) === false,
-                ),
+                $in: filteredIds,
               });
+              hasFilterIds = filteredIds.length > 0;
             }
             break;
           case 'hidden':
@@ -575,6 +578,11 @@ export class UserService {
       if (!filter.has('_id')) {
         filter.set('_id', { $nin: excludedIds.map(_id => new ObjectId(_id)) });
       }
+    }
+    // reduce role exclusions to overcome instances where matched users have acquired to new role keys
+    // in the meantime when sorting by filterIds
+    if (hasFilterIds && filter.has('roles') && excludeRoles) {
+      filter.set('roles', { $nin: ['superadmin', 'admin', 'editor'] });
     }
     return hashMapToObject(filter);
   };

@@ -852,12 +852,14 @@ export class UserController {
       notFlags = notEmptyString(notFlagStr) ? notFlagStr.split(',') : [];
       trueFlags = notEmptyString(trueFlagStr) ? trueFlagStr.split(',') : [];
     }
+    const matchMode = ['matched', 'match'].includes(context);
     if (context === 'liked') {
       trueFlags = ['liked1'];
     } else if (context === 'superliked') {
       trueFlags = ['liked2'];
     }
-    const preFetchFlags = notFlags.length > 0 || trueFlags.length > 0;
+    const preFetchFlags =
+      (notFlags.length > 0 || trueFlags.length > 0) && !matchMode;
     // fetch inclusions and exclusions by context
     const {
       userFlags,
