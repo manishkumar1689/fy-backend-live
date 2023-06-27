@@ -1398,6 +1398,7 @@ export class UserService {
     userID: string,
     deviceToken = '',
     geo = null,
+    placenames: any[] = [],
   ): Promise<string> {
     const login = new Date().toISOString();
     const hasDeviceToken = notEmptyString(deviceToken, 5);
@@ -1422,6 +1423,9 @@ export class UserService {
       if (!nullVal) {
         edited.set('geo', geo);
         edited.set('coords', [geo.lng, geo.lat]);
+        if (placenames instanceof Array && placenames.length > 0) {
+          edited.set('placenames', placenames);
+        }
       }
     }
     const editedObj = Object.fromEntries(edited.entries());

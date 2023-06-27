@@ -151,6 +151,8 @@ import {
   processTransitionData,
 } from '../astrologic/lib/calc-5p';
 import { BlockRecord } from '../feedback/lib/interfaces';
+import { mapGeoPlacenames } from '../astrologic/lib/mappers';
+import { LngLat } from '../astrologic/lib/interfaces';
 
 @Controller('user')
 export class UserController {
@@ -1529,10 +1531,14 @@ export class UserController {
 
         const userID = extractDocId(user);
         const { deviceToken, geo } = loginDTO;
+        const geoKeys = geo instanceof Object ? Object.keys(geo) : [];
+        const hasGeo = geoKeys.includes('lat') && geoKeys.includes('lng');
+        const placenames = hasGeo ? await this.matchPlacenames(geo) : [];
         const loginDt = await this.userService.registerLogin(
           userID,
           deviceToken,
           geo,
+          placenames,
         );
         userData.set('login', loginDt);
         if (notEmptyString(deviceToken, 5)) {
@@ -1582,6 +1588,18 @@ export class UserController {
     userData.set('exists', exists);
     userData.set('valid', valid);
     return hashMapToObject(userData);
+  }
+
+  async matchPlacenames(geo: LngLat, localityRef = '') {
+    const geoData = await this.geoService.fetchGeoData(geo.lat, geo.lng);
+    let placenames = [];
+    if (geoData instanceof Object) {
+      const { toponyms } = geoData;
+      if (toponyms instanceof Array && toponyms.length > 0) {
+        placenames = mapGeoPlacenames(toponyms, geo, localityRef);
+      }
+    }
+    return placenames;
   }
 
   /*
