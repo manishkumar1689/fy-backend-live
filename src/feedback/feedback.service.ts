@@ -501,7 +501,7 @@ export class FeedbackService {
     const criteriaObj = {
       key: 'likeability',
       value: valueFilter,
-      modifiedAt: { $gte: dt },
+      modifiedAt: { $gte: new Date(dt) },
     };
     const criteriaObj1 = { ...criteriaObj, targetUser: userId };
     const rows = await this.flagModel

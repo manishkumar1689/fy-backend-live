@@ -725,6 +725,7 @@ export class UserController {
           paramKeys.includes('unrated') &&
           smartCastInt(params.unrated, 0) > 0;
         const mutualMode = mutual ? 1 : unrated ? -1 : 0;
+
         const flags = await this.feedbackService.fetchByLikeability(
           query.user,
           startDate,
@@ -746,7 +747,6 @@ export class UserController {
                 .map(fl => fl.user)
             : [];
         hasFilterIds = true;
-
         if (startOffset >= 0) {
           const inclusive = smartCastInt(query.incl, 1) > 0;
           arrayHead(filterIds, startOffset, inclusive);
@@ -888,6 +888,16 @@ export class UserController {
     if (hasUser) {
       excludedIds.push(userId);
     }
+    if (startOffset < 0) {
+      if (queryParams.ids instanceof Array) {
+        const numIds = queryParams.ids.length;
+        if (numIds > limitInt) {
+          const targetEndOffset = startOffset + limitInt;
+          const endOffset = targetEndOffset > numIds ? numIds : targetEndOffset;
+          queryParams.ids = queryParams.ids.slice(startInt, endOffset + 1);
+        }
+      }
+    }
     const users = await this.userService.members(
       startInt,
       limitInt,
@@ -936,7 +946,6 @@ export class UserController {
         }
       }
     }
-
     if (isLikeContext) {
       // sort matches by the last interaction from the current user
       const fromSort = ['matched', 'match'].includes(context);
