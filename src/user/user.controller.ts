@@ -888,6 +888,7 @@ export class UserController {
     if (hasUser) {
       excludedIds.push(userId);
     }
+    // limit ids when applying pagination to ensure likes / matches are sorted by last liked
     if (startOffset < 0) {
       if (queryParams.ids instanceof Array) {
         const numIds = queryParams.ids.length;
