@@ -260,6 +260,7 @@ export class FeedbackController {
       valid: false,
       updated: false,
       value: intValue,
+      key: userStatus.key,
     };
     if (userStatus.active) {
       const minRatingValue = await this.settingService.minPassValue();

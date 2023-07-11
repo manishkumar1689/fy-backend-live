@@ -66,6 +66,7 @@ import {
   removeIds,
 } from '../lib/mappers';
 import { SurveyResults } from './interfaces/survey-results.interface';
+import { Status } from './interfaces/status.interface';
 
 const userEditPaths = [
   'fullName',
@@ -1148,6 +1149,22 @@ export class UserService {
     return updatedUser;
   }
 
+  addNewStatus(statusItems: Status[] = [], statusKey = '', days = 0): Status[] {
+    const currDt = new Date();
+    const numDays = days < 1 ? 366 : days;
+    const endMs = currDt.getTime() + numDays * 24 * 60 * 60 * 10000;
+    const expiryDate = new Date(endMs);
+    const newStatus = {
+      role: statusKey,
+      current: true,
+      payments: [],
+      createdAt: currDt,
+      expiresAt: expiryDate,
+      modifiedAt: currDt,
+    } as Status;
+    return [...statusItems, newStatus];
+  }
+
   async updateStatus(
     userID,
     statusKey: string,
@@ -1690,13 +1707,14 @@ export class UserService {
     exists: boolean;
     validId: boolean;
     status: number;
+    key: string;
   }> {
     let user = null;
     const validId = isValidObjectId(userID);
     if (validId) {
       user = await this.userModel
         .findOne({ _id: userID })
-        .select({ active: 1 });
+        .select({ active: 1, roles: 1 });
     }
     const exists = user instanceof Object;
     const active = exists && user.active;
@@ -1707,11 +1725,21 @@ export class UserService {
       : !validId
       ? HttpStatus.NOT_ACCEPTABLE
       : HttpStatus.NOT_FOUND;
+    const roles = exists && user.roles instanceof Array ? user.roles : [];
+    const isBlocked = exists && roles.includes('blocked');
+    const key = isBlocked
+      ? 'blocked'
+      : exists
+      ? active
+        ? 'ok'
+        : 'inactive'
+      : 'not_found';
     return {
       exists,
       active,
       validId,
       status,
+      key,
     };
   }
 
