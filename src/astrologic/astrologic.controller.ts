@@ -1623,7 +1623,6 @@ export class AstrologicController {
       ? smartCastInt(query.uc, 0) > 0
       : false;
     const showP2 = keys.includes('p2') ? smartCastInt(query.p2, 0) > 0 : false;
-    let status = HttpStatus.NOT_ACCEPTABLE;
     //const dtUtc = applyTzOffsetToDateString(refDt, geoInfo.offset);
     // refDT in local time will be converted to UTC
     const data = await this.fetchCompactChart(
@@ -1674,9 +1673,13 @@ export class AstrologicController {
     addExtraPanchangaNumValuesFromClass(data, c2, 'true_citra');
     let userChart = null;
     let c1 = new Chart();
-    if (notEmptyString(userID, 16)) {
-      const userStatus = await this.userService.memberActive(userID);
-      status = userStatus.status;
+    const userStatus = await this.userService.memberActive(userID);
+    let status = userStatus.status;
+    const acceptable = notEmptyString(userID, 16);
+    if (acceptable) {
+      status = HttpStatus.NOT_ACCEPTABLE;
+    }
+    if (acceptable && userStatus.active) {
       if (userStatus.active) {
         const chartRecord = await this.astrologicService.getUserBirthChart(
           userID,
@@ -1704,6 +1707,7 @@ export class AstrologicController {
       const result = showUserChart
         ? {
             valid: true,
+            key: userStatus.key,
             saved,
             nickName,
             pob,
@@ -1713,6 +1717,7 @@ export class AstrologicController {
           }
         : {
             valid: true,
+            key: userStatus.key,
             saved,
             nickName,
             pob,
@@ -1721,7 +1726,7 @@ export class AstrologicController {
           };
       return res.status(status).json(result);
     } else {
-      return res.status(status).json({ valid: false });
+      return res.status(status).json({ valid: false, key: userStatus.key });
     }
   }
 
@@ -1806,13 +1811,16 @@ export class AstrologicController {
     const ayaKey = notEmptyString(ayanamsha, 5) ? ayanamsha : 'true_citra';
     const simpleMode = notEmptyString(mode, 3) ? mode : 'basic';
     const userStatus = await this.userService.memberActive(inData.user);
-    const data = await this.saveChartData(
-      { ...inData, status: 'member' },
-      true,
-      chartID,
-      'true_citra',
-      false,
-    );
+    let data: any = { valid: false, shortTz: '' };
+    if (userStatus.active) {
+      data = await this.saveChartData(
+        { ...inData, status: 'member' },
+        true,
+        chartID,
+        'true_citra',
+        false,
+      );
+    }
     const { valid, shortTz } = data;
     const chart = valid ? simplifyChart(data.chart, ayaKey, simpleMode) : {};
     // only add calculated moonNak and vara if valid object returned and ayaKey is true_citra
@@ -1822,7 +1830,9 @@ export class AstrologicController {
     if (userStatus.exists && !valid) {
       userStatus.status = HttpStatus.NOT_ACCEPTABLE;
     }
-    return res.status(userStatus.status).json({ valid, shortTz, chart });
+    return res
+      .status(userStatus.status)
+      .json({ valid, shortTz, chart, key: userStatus.key });
   }
 
   /*
