@@ -1676,7 +1676,7 @@ export class AstrologicController {
     const userStatus = await this.userService.memberActive(userID);
     let status = userStatus.status;
     const acceptable = notEmptyString(userID, 16);
-    if (acceptable) {
+    if (!acceptable) {
       status = HttpStatus.NOT_ACCEPTABLE;
     }
     if (acceptable && userStatus.active) {
