@@ -282,19 +282,21 @@ export const processTransitionData = (
 ) => {
   const transitions: TransitionItem[] = [];
   if (trData instanceof Object) {
-    if (trData.currentTransitions instanceof Array) {
+    if (trData.current instanceof Array) {
       addAllTransitionItemsWithinRange(
         transitions,
-        trData.currentTransitions,
+        // trData.currentTransitions,
+        trData.current,
         midNightJd,
         endJd,
         false,
       );
     }
-    if (trData.transposedTransitions instanceof Array) {
+    if (trData.transposed instanceof Array) {
       addAllTransitionItemsWithinRange(
         transitions,
-        trData.transposedTransitions,
+        //trData.transposedTransitions,
+        trData.transposed,
         midNightJd,
         endJd,
         true,

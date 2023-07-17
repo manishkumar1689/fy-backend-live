@@ -3113,7 +3113,7 @@ export class AstrologicService {
         : geo instanceof Object
         ? geo
         : { lat: 0, lng: 0 };
-    const uri = [astroCalcApi, 'transposed-transition-sets'].join('/');
+    const uri = [astroCalcApi, 'transposed-rise-sets'].join('/');
     const payload = {
       jd,
       geo: geo1,
