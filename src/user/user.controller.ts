@@ -648,7 +648,9 @@ export class UserController {
     const items = userStatus.active
       ? await this.fetchMembers(start, limit, query)
       : [];
-    return res.status(userStatus.status).json(items);
+    const valid = userStatus.active;
+    const key = userStatus.key;
+    return res.status(userStatus.status).json({ valid, key, items });
   }
 
   @Get('member-active/:userID')
@@ -1848,6 +1850,7 @@ export class UserController {
     rsMap.set('dtUtc', dtUtc);
     rsMap.set('exists', false);
     rsMap.set('active', false);
+    rsMap.set('key', 'invalid');
     const ayanamsaKey =
       paramKeys.includes('aya') &&
       notEmptyString(params.aya, 5) &&
@@ -1864,6 +1867,7 @@ export class UserController {
       if (chartData instanceof Model) {
         rsMap.set('exists', true);
         const userStatus = await this.userService.memberActive(chartData.user);
+        rsMap.set('key', userStatus.key);
         if (userStatus.active) {
           rsMap.set('active', true);
         } else {
@@ -2605,7 +2609,13 @@ export class UserController {
         ? lang
         : 'en';
     const { exists } = userStatus;
-    const result: any = { valid: false, answers: [], analysis: {}, exists };
+    const result: any = {
+      valid: false,
+      answers: [],
+      analysis: {},
+      exists,
+      key: 'invalid',
+    };
     const { surveys } = await this.settingService.getSurveyData();
 
     const optType =
@@ -2646,6 +2656,7 @@ export class UserController {
       result.letters = merged.letters;
       result.categories = merged.categories;
       result.valid = result.answers.length > 0;
+      result.key = userStatus.key;
     }
     return res.status(userStatus.status).json(result);
   }
@@ -2662,8 +2673,13 @@ export class UserController {
   ) {
     const { value } = preferenceDTO;
     const userStatus = await this.userService.memberActive(userID);
-    const result: any = { valid: false, user: null, msg: 'invalid' };
-    if (notEmptyString(value, 3)) {
+    const result: any = {
+      valid: false,
+      user: null,
+      msg: 'invalid',
+      key: userStatus.key,
+    };
+    if (notEmptyString(value, 3) && userStatus.active) {
       const correctedValue = value
         .toUpperCase()
         .replace(/[^A-Z]/, '')
@@ -3178,7 +3194,9 @@ export class UserController {
     };
     let status = HttpStatus.NOT_ACCEPTABLE;
     let remaining = 0;
-    if (file instanceof Object) {
+    const userStatus = await this.userService.memberActive(userID);
+    data.key = userStatus.key;
+    if (file instanceof Object && userStatus.active) {
       const uploadAuth = await this.maxUploadByUser(userID);
       if (!uploadAuth.valid) {
         data.message = 'unmatched user';
@@ -3233,6 +3251,7 @@ export class UserController {
         } else {
           data.message = 'File upload failed';
         }
+        data.key = userStatus.key;
       }
     }
     return res.status(status).json(data);
