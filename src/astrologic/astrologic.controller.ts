@@ -3988,7 +3988,12 @@ export class AstrologicController {
     @Param('start') start = '0',
     @Param('limit') limit = '100',
   ) {
-    const data = { valid: false, items: [], message: 'invalid user ID' };
+    const data = {
+      valid: false,
+      items: [],
+      message: 'invalid user ID',
+      key: 'invalid',
+    };
     const validIdentifier = isValidObjectId(userID);
     let status = validIdentifier
       ? HttpStatus.NOT_FOUND
@@ -4002,6 +4007,7 @@ export class AstrologicController {
         const chartObj = await this.astrologicService.getUserBirthChart(userID);
         let refChart = null;
         let hasRefChart = false;
+        data.key = 'ok';
         if (chartObj instanceof Model) {
           refChart = new Chart(chartObj.toObject());
           refChart.setAyanamshaItemByKey('true_citra');
@@ -4043,8 +4049,15 @@ export class AstrologicController {
         }
       } else {
         data.message = 'Inactive account';
+        if (user.roles.includes('blocked')) {
+          data.key = 'blocked';
+        } else {
+          data.key = 'inactive';
+        }
         status = HttpStatus.UNAUTHORIZED;
       }
+    } else {
+      data.key = 'not_found';
     }
     return res.status(status).json(data);
   }
@@ -4268,12 +4281,18 @@ export class AstrologicController {
     @Param('userID') userID: string,
     @Param('chartID') chartID: string,
   ) {
-    const data: any = { valid: false, message: 'invalid user ID', id: '' };
+    const data: any = {
+      valid: false,
+      message: 'invalid user ID',
+      id: '',
+      key: 'not_found',
+    };
     const user = await this.userService.getUser(userID);
     let status = HttpStatus.OK;
     if (user instanceof Object) {
       if (user.active) {
         const chart = await this.astrologicService.getChart(chartID);
+        data.key = 'ok';
         if (chart instanceof Object) {
           if (
             chart.user.toString() === userID ||
@@ -4293,7 +4312,12 @@ export class AstrologicController {
         }
       } else {
         data.message = 'Inactive account';
-        status = HttpStatus.NOT_ACCEPTABLE;
+        status = HttpStatus.UNAUTHORIZED;
+        if (user.roles.includes('blocked')) {
+          data.key = 'blocked';
+        } else {
+          data.key = 'inactive';
+        }
       }
     }
     return res.status(status).json(data);

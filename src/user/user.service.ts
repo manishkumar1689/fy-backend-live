@@ -1567,11 +1567,13 @@ export class UserService {
       valid: false,
       exists: false,
       active: false,
+      key: 'invalid',
     };
     if (notEmptyString(userID, 16) && preference instanceof Object) {
       const sd = await this.savePreferences(userID, [preference]);
       data.active = sd.active;
       data.exists = sd.active;
+      data.key = sd.key;
       if (sd.valid) {
         if (feedbackItems.length > 2) {
           const surveys = await this.matchSurveyData(
@@ -1605,6 +1607,7 @@ export class UserService {
       valid: false,
       active: false,
       exists: false,
+      key: 'invalid',
     };
     if (user instanceof Object && prefItems instanceof Array) {
       const prefs = this.mergePreferences(
@@ -1615,87 +1618,106 @@ export class UserService {
       );
       data.exists = true;
       data.active = user.active;
-      const dt = new Date();
-      const editMap: Map<string, any> = new Map();
-      editMap.set('preferences', prefs);
-      editMap.set('modifiedAt', dt);
-      const userOpts = prefItems.filter(
-        pr => pr instanceof Object && pr.type === 'user',
-      );
-      if (userOpts.length > 0) {
-        userOpts.forEach(row => {
-          const { key, value } = row;
-          const dataType = typeof value;
-          if (key === 'gender' && dataType === 'string') {
-            editMap.set('gender', value);
-          } else if (key === 'geo' && dataType === 'object') {
-            const { lat, lng, altVal } = value;
-            if (
-              isNumeric(lat) &&
-              isNumeric(lng) &&
-              inRange(lng, [-180, 180]) &&
-              inRange(lat, [-90, 90])
-            ) {
-              const alt = smartCastFloat(altVal, 10);
-              editMap.set('geo', { lat, lng, alt });
-              editMap.set('coords', [lng, lat]);
-            }
-          } else if (stringFields.includes(key)) {
-            editMap.set(key, value);
-          } else if (dtFields.includes(key)) {
-            if (validISODateString(value)) {
-              editMap.set(key, value);
-            }
-          }
-        });
+      if (data.active) {
+        data.key = 'ok';
+      } else {
+        if (user.roles.includes('blocked')) {
+          data.key = 'blocked';
+        } else {
+          data.key = 'inactive';
+        }
       }
-      const profileItem = prefItems.find(
-        pr => pr instanceof Object && profileTextTypes.includes(pr.type),
-      );
-      if (profileItem instanceof Object) {
-        const profileType = ['private', 'protected'].includes(profileItem.type)
-          ? profileItem.type
-          : 'public';
-        const pubProfile = {
-          type: profileType,
-          text: profileItem.value,
-        } as ProfileDTO;
-        const userObj = user.toObject();
-        const profiles =
-          userObj.profiles instanceof Array ? userObj.profiles : [];
-        const currProfileIndex = profiles.findIndex(
-          pr => pr.type === profileType,
+      if (data.active) {
+        const dt = new Date();
+        const editMap: Map<string, any> = new Map();
+        editMap.set('preferences', prefs);
+        editMap.set('modifiedAt', dt);
+        const userOpts = prefItems.filter(
+          pr => pr instanceof Object && pr.type === 'user',
         );
-        const currProfile =
-          currProfileIndex < 0 ? null : profiles[currProfileIndex];
-        const profile = this.updateProfile(pubProfile, currProfile, dt);
-        if (currProfileIndex < 0) {
-          profiles.unshift(profile);
-        } else {
-          profiles[currProfileIndex] = profile;
+        if (userOpts.length > 0) {
+          userOpts.forEach(row => {
+            const { key, value } = row;
+            const dataType = typeof value;
+            if (key === 'gender' && dataType === 'string') {
+              editMap.set('gender', value);
+            } else if (key === 'geo' && dataType === 'object') {
+              const { lat, lng, altVal } = value;
+              if (
+                isNumeric(lat) &&
+                isNumeric(lng) &&
+                inRange(lng, [-180, 180]) &&
+                inRange(lat, [-90, 90])
+              ) {
+                const alt = smartCastFloat(altVal, 10);
+                editMap.set('geo', { lat, lng, alt });
+                editMap.set('coords', [lng, lat]);
+              }
+            } else if (stringFields.includes(key)) {
+              editMap.set(key, value);
+            } else if (dtFields.includes(key)) {
+              if (validISODateString(value)) {
+                editMap.set(key, value);
+              }
+            }
+          });
         }
-        editMap.set('profiles', profiles);
-      }
-      const edited = Object.fromEntries(editMap.entries());
-      if (prefItems.length === 1 && prefItems[0].key === 'jungian_type') {
-        const surveyData = user.surveys instanceof Array ? user.surveys : [];
-        const ci = surveyData.findIndex(s => s.type === 'jungian');
-        const newItem = {
-          type: 'jungian',
-          values: assignJungianDomainValues(prefItems[0].value),
-        } as SurveyResults;
-        if (ci < 0) {
-          surveyData.push(newItem);
-        } else {
-          surveyData[ci] = newItem;
+        const profileItem = prefItems.find(
+          pr => pr instanceof Object && profileTextTypes.includes(pr.type),
+        );
+        if (profileItem instanceof Object) {
+          const profileType = ['private', 'protected'].includes(
+            profileItem.type,
+          )
+            ? profileItem.type
+            : 'public';
+          const pubProfile = {
+            type: profileType,
+            text: profileItem.value,
+          } as ProfileDTO;
+          const userObj = user.toObject();
+          const profiles =
+            userObj.profiles instanceof Array ? userObj.profiles : [];
+          const currProfileIndex = profiles.findIndex(
+            pr => pr.type === profileType,
+          );
+          const currProfile =
+            currProfileIndex < 0 ? null : profiles[currProfileIndex];
+          const profile = this.updateProfile(pubProfile, currProfile, dt);
+          if (currProfileIndex < 0) {
+            profiles.unshift(profile);
+          } else {
+            profiles[currProfileIndex] = profile;
+          }
+          editMap.set('profiles', profiles);
         }
-        edited.surveys = surveyData;
+        const edited = Object.fromEntries(editMap.entries());
+        if (prefItems.length === 1 && prefItems[0].key === 'jungian_type') {
+          const surveyData = user.surveys instanceof Array ? user.surveys : [];
+          const ci = surveyData.findIndex(s => s.type === 'jungian');
+          const newItem = {
+            type: 'jungian',
+            values: assignJungianDomainValues(prefItems[0].value),
+          } as SurveyResults;
+          if (ci < 0) {
+            surveyData.push(newItem);
+          } else {
+            surveyData[ci] = newItem;
+          }
+          edited.surveys = surveyData;
+        }
+        const savedUser = await this.userModel.findByIdAndUpdate(
+          userID,
+          edited,
+          {
+            new: true,
+          },
+        );
+        data.user = this.removeHiddenFields(savedUser);
       }
-      const savedUser = await this.userModel.findByIdAndUpdate(userID, edited, {
-        new: true,
-      });
-      data.user = this.removeHiddenFields(savedUser);
       data.valid = data.user instanceof Object;
+    } else {
+      data.key = 'not_found';
     }
     return data;
   }

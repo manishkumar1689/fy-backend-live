@@ -3009,7 +3009,9 @@ export class UserController {
     const result: Map<string, any> = new Map();
     result.set('valid', false);
     result.set('items', items);
-    if (isValidObjectId(userID)) {
+    const userStatus = await this.userService.memberActive(userID);
+    result.set('key', userStatus.key);
+    if (isValidObjectId(userID && userStatus.active)) {
       const blocks = await this.feedbackService.getBlocksByUser(
         userID,
         refMode,
