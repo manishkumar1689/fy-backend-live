@@ -402,27 +402,29 @@ export class UserController {
       reasonKey,
     } = await this.userService.updateUser(userID, createUserDTO, roles);
     const hasUser = user instanceof Object;
-
-    const userRoles = hasUser && user.roles instanceof Array ? user.roles : [];
-    const userActive = hasUser ? user.active : false;
-    const isBlocked = userRoles.includes('blocked');
-    let status = HttpStatus.NOT_FOUND;
-    let key = 'not_found';
-    if (userActive) {
-      if (keys.length > 0) {
-        status = HttpStatus.OK;
-      }
-      key = 'ok';
-    } else if (hasUser) {
-      status = HttpStatus.UNAUTHORIZED;
-      key = isBlocked ? 'blocked' : 'inactive';
+    let status = HttpStatus.NOT_ACCEPTABLE;
+    const key = reasonKey;
+    switch (key) {
+      case 'blocked':
+      case 'inactive':
+        status = HttpStatus.UNAUTHORIZED;
+        break;
+      case 'not_found':
+        status = HttpStatus.NOT_FOUND;
+        break;
+      default:
+        if (hasUser) {
+          status = keys.length > 0 ? HttpStatus.OK : HttpStatus.NOT_ACCEPTABLE;
+        } else {
+          status = HttpStatus.NOT_FOUND;
+        }
+        break;
     }
     return res.status(status).json({
       message,
       user,
       editedKeys: keys,
       key,
-      reasonKey,
     });
   }
 

@@ -816,6 +816,7 @@ export class UserService {
       userData.set('roles', ['active']);
     } else if (hasCurrentUser) {
       userData.set('status', userObj.status);
+      userData.set('fullName', userObj.fullName);
     }
     Object.entries(inData).forEach(entry => {
       const [key, val] = entry;
@@ -943,9 +944,19 @@ export class UserService {
     let updatedUser = {};
     let userObj: any = {};
     let message = 'User cannot be matched';
-    let reasonKey = 'unmatched_user';
+    let reasonKey = 'not_found';
     let valid = false;
-    if (user instanceof Model) {
+    const hasAdmin = notEmptyString(createUserDTO.admin, 12);
+    const isAdmin = hasAdmin
+      ? await this.isAdminUser(createUserDTO.admin)
+      : false;
+    const hasUser = user instanceof Model;
+    const mayEdit = hasUser ? user.active : isAdmin;
+    if (hasUser && !user.active) {
+      message = 'user is inactive';
+      reasonKey = user.roles.includes('blocked') ? 'blocked' : 'inactive';
+    }
+    if (mayEdit) {
       message = 'User has been updated successfully';
       const hasPassword = notEmptyString(createUserDTO.password);
       const hasOldPassword = notEmptyString(createUserDTO.oldPassword, 6);
@@ -961,10 +972,7 @@ export class UserService {
             reasonKey = 'unmatched_old_password';
           }
         } else {
-          const hasAdmin = notEmptyString(createUserDTO.admin, 12);
-          mayEditPassword = hasAdmin
-            ? await this.isAdminUser(createUserDTO.admin)
-            : false;
+          mayEditPassword = isAdmin;
           if (!mayEditPassword) {
             reasonKey = 'not_authorised';
           }
