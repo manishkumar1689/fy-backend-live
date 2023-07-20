@@ -3352,8 +3352,15 @@ export class UserController {
     @Param('key') key: string,
     @Body() payload: CreateFeedbackDTO,
   ) {
-    const result = await this.sendFeedback(payload, key);
-    return res.json(result);
+    const userStatus = await this.userService.memberActive(payload.user);
+    if (userStatus.active) {
+      const result = await this.sendFeedback(payload, key);
+      return res.json({ ...result, key: 'ok' });
+    } else {
+      return res
+        .status(userStatus.status)
+        .json({ valid: false, key: userStatus.key });
+    }
   }
 
   async sendFeedback(
