@@ -251,17 +251,20 @@ export class UserService {
     return users;
   }
 
-  async getBasicById(uid: string, fields = []) {
+  async getBasicById(uid: string, fields = [], activeOnly = true) {
     const fieldList =
       fields.length > 0
         ? fields.join(' ')
         : '_id active nickName dob geo gender roles profiles preferences surveys deviceTokens';
-    const items = await this.userModel
-      .find({
-        _id: uid,
-        active: true,
-      })
-      .select(fieldList);
+    const criteria = activeOnly
+      ? {
+          _id: uid,
+          active: true,
+        }
+      : {
+          _id: uid,
+        };
+    const items = await this.userModel.find(criteria).select(fieldList);
     let user = null;
     if (items.length > 0) {
       const users = fields.length > 0 ? items : items.map(this.mapBasicUser);

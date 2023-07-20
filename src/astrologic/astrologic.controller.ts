@@ -1827,7 +1827,7 @@ export class AstrologicController {
     if (valid && ayaKey === 'true_citra') {
       addExtraPanchangaNumValues(data.chart, ayaKey);
     }
-    if (userStatus.exists && !valid) {
+    if (userStatus.active && !valid) {
       userStatus.status = HttpStatus.NOT_ACCEPTABLE;
     }
     return res

@@ -395,22 +395,34 @@ export class UserController {
     @Body() createUserDTO: CreateUserDTO,
   ) {
     const roles = await this.getRoles();
-    const { user, keys, message } = await this.userService.updateUser(
-      userID,
-      createUserDTO,
-      roles,
-    );
+    const {
+      user,
+      keys,
+      message,
+      reasonKey,
+    } = await this.userService.updateUser(userID, createUserDTO, roles);
     const hasUser = user instanceof Object;
-    const status = hasUser
-      ? keys.length > 0
-        ? HttpStatus.OK
-        : HttpStatus.NOT_ACCEPTABLE
-      : HttpStatus.NOT_FOUND;
 
+    const userRoles = hasUser && user.roles instanceof Array ? user.roles : [];
+    const userActive = hasUser ? user.active : false;
+    const isBlocked = userRoles.includes('blocked');
+    let status = HttpStatus.NOT_FOUND;
+    let key = 'not_found';
+    if (userActive) {
+      if (keys.length > 0) {
+        status = HttpStatus.OK;
+      }
+      key = 'ok';
+    } else if (hasUser) {
+      status = HttpStatus.UNAUTHORIZED;
+      key = isBlocked ? 'blocked' : 'inactive';
+    }
     return res.status(status).json({
       message,
       user,
       editedKeys: keys,
+      key,
+      reasonKey,
     });
   }
 
@@ -596,11 +608,16 @@ export class UserController {
   ) {
     const userID = isValidObjectId(uid) ? uid : '';
     const user =
-      userID.length > 12 ? await this.userService.getBasicById(userID) : null;
+      userID.length > 12
+        ? await this.userService.getBasicById(userID, [], false)
+        : null;
     const getBlockStatus =
       notEmptyString(otherUid, 12) && isValidObjectId(otherUid);
+    const hasUser = user instanceof Object;
     const result: any =
-      user instanceof Object ? { valid: true, ...user } : { valid: false };
+      hasUser && user.active
+        ? { valid: true, ...user }
+        : { valid: false, key: 'not_found' };
     if (getBlockStatus) {
       const blocks = await this.feedbackService.getBlocksByUser(
         otherUid,
@@ -612,6 +629,14 @@ export class UserController {
       if (blocks.length > 0) {
         result.hasBlocked = blocks.some(b => b.mode === 'to');
         result.blockedBy = blocks.some(b => b.mode === 'from');
+      }
+    }
+    if (hasUser) {
+      if (user.active) {
+        result.key = 'ok';
+      } else {
+        const roleKeys = user.roles instanceof Array ? user.roles : [];
+        result.key = roleKeys.includes('blocked') ? 'blocked' : 'inactive';
       }
     }
     return res.json(result);
@@ -3036,7 +3061,7 @@ export class UserController {
         result.set('messages', fbItems);
       }
     }
-    return res.json(Object.fromEntries(result));
+    return res.status(userStatus.status).json(Object.fromEntries(result));
   }
 
   /*
