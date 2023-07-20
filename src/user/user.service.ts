@@ -951,7 +951,7 @@ export class UserService {
       ? await this.isAdminUser(createUserDTO.admin)
       : false;
     const hasUser = user instanceof Model;
-    const mayEdit = hasUser ? user.active : isAdmin;
+    const mayEdit = hasUser ? user.active || isAdmin : false;
     if (hasUser && !user.active) {
       message = 'user is inactive';
       reasonKey = user.roles.includes('blocked') ? 'blocked' : 'inactive';
@@ -961,7 +961,7 @@ export class UserService {
       const hasPassword = notEmptyString(createUserDTO.password);
       const hasOldPassword = notEmptyString(createUserDTO.oldPassword, 6);
       const hasCurrentPassword = notEmptyString(user.password);
-      let mayEditPassword = false;
+      let mayEditPassword = isAdmin;
       if (hasPassword && hasCurrentPassword) {
         if (hasOldPassword) {
           mayEditPassword = bcrypt.compareSync(
@@ -993,6 +993,7 @@ export class UserService {
         }
         valid = false;
       }
+      console.log({ mayEditPassword });
       userObj = this.transformUserDTO(
         createUserDTO,
         false,

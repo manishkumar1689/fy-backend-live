@@ -449,7 +449,7 @@ export class UserController {
     let isValid = false;
     let exists = false;
     let hasUser = false;
-    let key = 'inactive';
+    let key = 'invalid';
     if (filteredEntries.length === 2) {
       const filteredDTO = Object.fromEntries(filteredEntries) as CreateUserDTO;
       const {
@@ -468,11 +468,6 @@ export class UserController {
       if (hasUser) {
         exists = true;
       }
-      status = hasUser
-        ? keys.length > 0 && valid
-          ? HttpStatus.OK
-          : HttpStatus.NOT_ACCEPTABLE
-        : HttpStatus.NOT_FOUND;
       key = reasonKey;
     }
     switch (key) {
