@@ -448,6 +448,8 @@ export class UserController {
     let reason = 'invalid_input';
     let isValid = false;
     let exists = false;
+    let hasUser = false;
+    let key = 'inactive';
     if (filteredEntries.length === 2) {
       const filteredDTO = Object.fromEntries(filteredEntries) as CreateUserDTO;
       const {
@@ -462,7 +464,7 @@ export class UserController {
       }
       msg = message;
       reason = reasonKey;
-      const hasUser = user instanceof Object;
+      hasUser = user instanceof Object;
       if (hasUser) {
         exists = true;
       }
@@ -471,12 +473,30 @@ export class UserController {
           ? HttpStatus.OK
           : HttpStatus.NOT_ACCEPTABLE
         : HttpStatus.NOT_FOUND;
+      key = reasonKey;
+    }
+    switch (key) {
+      case 'blocked':
+      case 'inactive':
+        status = HttpStatus.UNAUTHORIZED;
+        break;
+      case 'not_found':
+        status = HttpStatus.NOT_FOUND;
+        break;
+      default:
+        if (hasUser) {
+          status = isValid ? HttpStatus.OK : HttpStatus.NOT_ACCEPTABLE;
+        } else {
+          status = HttpStatus.NOT_FOUND;
+        }
+        break;
     }
     const baseResult = {
       message: msg,
       reason,
       valid: isValid,
       exists,
+      key,
     };
     return res.status(status).json(baseResult);
   }
