@@ -3239,6 +3239,9 @@ export class UserController {
     const userStatus = await this.userService.memberActive(userID);
     let status = userStatus.status;
     data.key = userStatus.key;
+    if (!userStatus.active) {
+      data.message = 'not authorised';
+    }
     if (file instanceof Object && userStatus.active) {
       const uploadAuth = await this.maxUploadByUser(userID);
       if (!uploadAuth.valid) {
