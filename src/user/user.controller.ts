@@ -1909,11 +1909,10 @@ export class UserController {
       if (chartData instanceof Model) {
         rsMap.set('exists', true);
         const userStatus = await this.userService.memberActive(chartData.user);
+        status = userStatus.status;
         rsMap.set('key', userStatus.key);
         if (userStatus.active) {
           rsMap.set('active', true);
-        } else {
-          status = HttpStatus.UNAUTHORIZED;
         }
         if (userStatus.active) {
           const cDataObj = chartData.toObject();
@@ -2007,6 +2006,7 @@ export class UserController {
       'valid',
       'exists',
       'active',
+      'key',
       'dtUtc',
       'unix',
       'ayanamshas',
