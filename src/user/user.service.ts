@@ -138,6 +138,7 @@ export class UserService {
     const {
       _id,
       nickName,
+      active,
       dob,
       gender,
       geo,
@@ -213,6 +214,7 @@ export class UserService {
         : [];
     return {
       _id,
+      active,
       nickName,
       roles,
       geo: geoObj,
@@ -993,7 +995,6 @@ export class UserService {
         }
         valid = false;
       }
-      console.log({ mayEditPassword });
       userObj = this.transformUserDTO(
         createUserDTO,
         false,
