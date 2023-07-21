@@ -3235,9 +3235,9 @@ export class UserController {
       message: 'no file data',
       remaining: 0,
     };
-    let status = HttpStatus.NOT_ACCEPTABLE;
     let remaining = 0;
     const userStatus = await this.userService.memberActive(userID);
+    let status = userStatus.status;
     data.key = userStatus.key;
     if (file instanceof Object && userStatus.active) {
       const uploadAuth = await this.maxUploadByUser(userID);
@@ -3254,6 +3254,7 @@ export class UserController {
         const { originalname, mimetype, size, buffer } = file;
         const fn = generateFileName(userID, originalname);
         const { fileType, mime } = matchFileTypeAndMime(originalname, mimetype);
+        status = HttpStatus.NOT_ACCEPTABLE;
         const fileData = {
           filename: fn,
           mime,
@@ -3294,7 +3295,6 @@ export class UserController {
         } else {
           data.message = 'File upload failed';
         }
-        data.key = userStatus.key;
       }
     }
     return res.status(status).json(data);
