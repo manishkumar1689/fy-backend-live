@@ -454,7 +454,6 @@ export class UserController {
       const filteredDTO = Object.fromEntries(filteredEntries) as CreateUserDTO;
       const {
         user,
-        keys,
         message,
         reasonKey,
         valid,
@@ -3315,34 +3314,39 @@ export class UserController {
       item: null,
       user: null,
       fileDeleted: false,
+      key: 'invalid',
     };
 
-    let status = HttpStatus.NOT_FOUND;
-    const result = await this.userService.deleteMediaItemByRef(
-      userID,
-      mediaRef,
-    );
-    if (result.user instanceof Object) {
-      data.user = result.user;
+    const userStatus = await this.userService.memberActive(userID);
+    let status = userStatus.status;
+    data.key = userStatus.key;
+    if (userStatus.active) {
+      const result = await this.userService.deleteMediaItemByRef(
+        userID,
+        mediaRef,
+      );
       status = HttpStatus.NOT_ACCEPTABLE;
-    }
-    if (result.deleted) {
-      if (result.item instanceof Object) {
-        data.item = result.item;
-        data.valid = true;
-        status = HttpStatus.OK;
-        if (data.item.source === 'local') {
-          data.fileDeleted = deleteFile(data.item.filename, 'media');
-          if (data.item.variants.length > 0) {
-            data.item.variants.forEach(suffix => {
-              const parts = data.item.filename.split('.');
-              const extension = parts.pop();
-              const variantFn = [
-                [parts.join('.'), suffix].join('-'),
-                extension,
-              ].join('.');
-              deleteFile(variantFn, 'media');
-            });
+      if (result.user instanceof Object) {
+        data.user = result.user;
+      }
+      if (result.deleted) {
+        if (result.item instanceof Object) {
+          data.item = result.item;
+          data.valid = true;
+          status = HttpStatus.OK;
+          if (data.item.source === 'local') {
+            data.fileDeleted = deleteFile(data.item.filename, 'media');
+            if (data.item.variants.length > 0) {
+              data.item.variants.forEach(suffix => {
+                const parts = data.item.filename.split('.');
+                const extension = parts.pop();
+                const variantFn = [
+                  [parts.join('.'), suffix].join('-'),
+                  extension,
+                ].join('.');
+                deleteFile(variantFn, 'media');
+              });
+            }
           }
         }
       }
