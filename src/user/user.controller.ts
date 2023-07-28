@@ -3052,7 +3052,7 @@ export class UserController {
     result.set('items', items);
     const userStatus = await this.userService.memberActive(userID);
     result.set('key', userStatus.key);
-    if (isValidObjectId(userID && userStatus.active)) {
+    if (userStatus.active) {
       const blocks = await this.feedbackService.getBlocksByUser(
         userID,
         refMode,
