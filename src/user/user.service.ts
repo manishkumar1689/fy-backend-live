@@ -468,6 +468,7 @@ export class UserService {
     let notSkipHideFromExplore = true;
     let demoMode = 0;
     let hasFilterIds = false;
+    let hasStartOffset = false;
     if (criteria instanceof Object) {
       const keys = Object.keys(criteria);
       for (const key of keys) {
@@ -545,6 +546,11 @@ export class UserService {
               filter.set('preferences.value', { $in: vals });
             }
             break;
+          case 'start':
+            if (isNumeric(val)) {
+              hasStartOffset = smartCastInt(val, -1) >= 0;
+            }
+            break;
         }
       }
     }
@@ -588,7 +594,15 @@ export class UserService {
     // reduce role exclusions to overcome instances where matched users have acquired to new role keys
     // in the meantime when sorting by filterIds
     if (hasFilterIds && filter.has('roles') && excludeRoles) {
-      filter.set('roles', { $nin: ['superadmin', 'admin', 'editor'] });
+      if (hasFilterIds && filter.has('roles') && excludeRoles) {
+        if (hasStartOffset) {
+          filter.set('roles', { $nin: ['blocked'] });
+        } else {
+          filter.set('roles', {
+            $nin: ['superadmin', 'admin', 'editor', 'blocked'],
+          });
+        }
+      }
     }
     return hashMapToObject(filter);
   };
