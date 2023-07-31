@@ -96,6 +96,21 @@ const userSelectPaths = [
   'modifiedAt',
 ];
 
+export interface MemberActive {
+  active: boolean;
+  exists: boolean;
+  validId: boolean;
+  status: number;
+  key: string;
+  lang?: string;
+  pushNotifications?: string[];
+}
+
+export interface LangPn {
+  lang: string;
+  pushNotifications?: string[];
+}
+
 @Injectable()
 export class UserService {
   constructor(
@@ -308,50 +323,16 @@ export class UserService {
       : { nickName: '', profileImg: '' };
   }
 
-  /* async updatePrefValue(userID = '', key = '', value = null, type = 'string') {
-    const rec = await this.userModel.findById(userID).select('preferences');
-    if (type === 'integer') {
-      value = parseInt(value, 10);
-    }
-    let result = {};
-    if (rec instanceof Model) {
-      const hasPref =
-        rec.preferences instanceof Array
-          ? rec.preferences.some(pr => pr.key === key)
-          : false;
-      const edited = hasPref
-        ? {
-            $set: { 'preferences.$[outer].value': value },
-          }
-        : {
-            $push: {
-              preferences: {
-                type,
-                key,
-                value,
-              },
-            },
-          };
-      const options = hasPref
-        ? {
-            arrayFilters: [
-              {
-                'outer.key': key,
-              },
-            ],
-          }
-        : {};
-      result = await rec.update(edited, options);
-      return { result, edited, options };
-    }
-    return { result };
-  } */
-
   async getPreferredLangAndPnOptions(
     uid: string,
     withPn = true,
-  ): Promise<{ lang: string; pushNotifications: string[] }> {
+  ): Promise<LangPn> {
     const userRec = await this.getBasicById(uid, ['preferences']);
+    const { lang, pushNotifications } = this.extractLangAndPn(userRec, withPn);
+    return { lang, pushNotifications };
+  }
+
+  extractLangAndPn(userRec: any = null, withPn = true): LangPn {
     const prefs =
       userRec instanceof Object && userRec.preferences instanceof Array
         ? userRec.preferences
@@ -1751,19 +1732,15 @@ export class UserService {
 
   async memberActive(
     userID: string,
-  ): Promise<{
-    active: boolean;
-    exists: boolean;
-    validId: boolean;
-    status: number;
-    key: string;
-  }> {
+    langPnInfo = false,
+  ): Promise<MemberActive> {
     let user = null;
     const validId = isValidObjectId(userID);
     if (validId) {
-      user = await this.userModel
-        .findOne({ _id: userID })
-        .select({ active: 1, roles: 1 });
+      const fields = langPnInfo
+        ? { active: 1, roles: 1, preferences: 1 }
+        : { active: 1, roles: 1 };
+      user = await this.userModel.findOne({ _id: userID }).select(fields);
     }
     const exists = user instanceof Object;
     const active = exists && user.active;
@@ -1783,13 +1760,26 @@ export class UserService {
         ? 'ok'
         : 'inactive'
       : 'not_found';
-    return {
-      exists,
-      active,
-      validId,
-      status,
-      key,
-    };
+    if (langPnInfo) {
+      const { lang, pushNotifications } = this.extractLangAndPn(user);
+      return {
+        exists,
+        active,
+        validId,
+        status,
+        key,
+        lang,
+        pushNotifications,
+      };
+    } else {
+      return {
+        exists,
+        active,
+        validId,
+        status,
+        key,
+      };
+    }
   }
 
   removeHiddenFields(user = null) {

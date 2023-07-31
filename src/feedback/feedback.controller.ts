@@ -261,6 +261,7 @@ export class FeedbackController {
       updated: false,
       value: intValue,
       key: userStatus.key,
+      otherKey: 'invalid',
     };
     if (userStatus.active) {
       const minRatingValue = await this.settingService.minPassValue();
@@ -327,6 +328,8 @@ export class FeedbackController {
         maxRating < 1 ? Math.ceil((currStartTs - nowTs - 50) / 1000) : 0;
       data.roles = roles;
       data.value = intValue;
+      const otherActiveStatus = await this.userService.memberActive(to, true);
+      data.otherKey = otherActiveStatus.key;
       // skip maxRating check only if value is zero. If likes are used up, the value will be -1
       if (
         (numSwipes < maxRating || maxRating === 0) &&
@@ -341,16 +344,12 @@ export class FeedbackController {
           value: intValue,
         } as CreateFlagDTO;
         const flag = await this.feedbackService.saveFlag(flagData);
-        const valid = Object.keys(flag).includes('value');
-        const sendMsg = intValue >= 1;
+        const valid =
+          Object.keys(flag).includes('value') && otherActiveStatus.exists;
+        const sendMsg = intValue >= 1 && otherActiveStatus.active;
         let fcm = {};
         if (sendMsg) {
-          const {
-            lang,
-            pushNotifications,
-          } = await this.userService.getPreferredLangAndPnOptions(
-            flagData.targetUser,
-          );
+          const { lang, pushNotifications } = otherActiveStatus;
           const pnKey =
             data.recipSwipe.value > 0
               ? 'been_matched'
