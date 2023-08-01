@@ -616,6 +616,9 @@ export class UserController {
     return res.json(items);
   }
 
+  /*
+   * uid: user
+   */
   @Get('basic-by-id/:uid/:otherUid?')
   async getBasicDetailsById(
     @Res() res,
@@ -630,10 +633,15 @@ export class UserController {
     const getBlockStatus =
       notEmptyString(otherUid, 12) && isValidObjectId(otherUid);
     const hasUser = user instanceof Object;
-    const result: any =
-      hasUser && user.active
-        ? { valid: true, ...user }
-        : { valid: false, key: 'not_found' };
+    const result: any = hasUser
+      ? { valid: true, ...user }
+      : { valid: false, key: 'not_found' };
+    if (hasUser && !user.active) {
+      result.key =
+        user.roles instanceof Array && user.roles.includes('blocked')
+          ? 'blocked'
+          : 'inactive';
+    }
     if (getBlockStatus) {
       const blocks = await this.feedbackService.getBlocksByUser(
         otherUid,
