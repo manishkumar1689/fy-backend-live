@@ -272,7 +272,7 @@ export class UserService {
     const fieldList =
       fields.length > 0
         ? fields.join(' ')
-        : '_id active nickName dob geo gender roles profiles preferences surveys deviceTokens';
+        : '_id active nickName dob geo gender roles profiles preferences deviceTokens';
     const criteria = activeOnly
       ? {
           _id: uid,
