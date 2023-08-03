@@ -704,7 +704,7 @@ export class UserController {
 
   @Get('member-active/:userID')
   async memberActiveStatus(@Res() res, @Param('userID') userID) {
-    const result = await this.userService.memberActive(userID);
+    const result = await this.userService.memberActive(userID, false, true);
     return res.status(result.status).json(result);
   }
 
@@ -797,6 +797,7 @@ export class UserController {
                 )
                 .map(fl => fl.user)
             : [];
+        filterIds = await this.userService.checkEnabled(filterIds);
         hasFilterIds = true;
         if (startOffset >= 0) {
           const inclusive = smartCastInt(query.incl, 1) > 0;
@@ -934,12 +935,13 @@ export class UserController {
       filterIds = includedIds;
       hasFilterIds = true;
     }
+
     const queryParams = hasFilterIds ? { ...query, ids: filterIds } : query;
 
     if (hasUser) {
       excludedIds.push(userId);
     }
-    // limit ids when applying pagination to ensure likes / matches are sorted by last liked
+    // limit ids when applying pagination to ensure likes / matches are sorted by last likedslice
     if (startOffset < 0) {
       if (queryParams.ids instanceof Array) {
         const numIds = queryParams.ids.length;

@@ -102,6 +102,7 @@ export interface MemberActive {
   validId: boolean;
   status: number;
   key: string;
+  lastLogin?: number;
   lang?: string;
   pushNotifications?: string[];
 }
@@ -1733,14 +1734,21 @@ export class UserService {
   async memberActive(
     userID: string,
     langPnInfo = false,
+    loginInfo = false,
   ): Promise<MemberActive> {
     let user = null;
     const validId = isValidObjectId(userID);
     if (validId) {
-      const fields = langPnInfo
-        ? { active: 1, roles: 1, preferences: 1 }
-        : { active: 1, roles: 1 };
-      user = await this.userModel.findOne({ _id: userID }).select(fields);
+      const fields = ['active', 'roles'];
+      if (langPnInfo) {
+        fields.push('preferences');
+      }
+      if (loginInfo) {
+        fields.push('login');
+      }
+      user = await this.userModel
+        .findOne({ _id: userID })
+        .select(fields.join(' '));
     }
     const exists = user instanceof Object;
     const active = exists && user.active;
@@ -1760,6 +1768,11 @@ export class UserService {
         ? 'ok'
         : 'inactive'
       : 'not_found';
+    const loginAgoSecs =
+      loginInfo && exists && user.login instanceof Date
+        ? (new Date().getTime() - user.login.getTime()) / 1000
+        : -1;
+
     if (langPnInfo) {
       const { lang, pushNotifications } = this.extractLangAndPn(user);
       return {
@@ -1778,8 +1791,22 @@ export class UserService {
         validId,
         status,
         key,
+        lastLogin: loginAgoSecs,
       };
     }
+  }
+
+  async checkEnabled(filterIds: ObjectId[]): Promise<ObjectId[]> {
+    const rows = await this.userModel
+      .find({ _id: { $in: filterIds } })
+      .select('active');
+    const activeIds: ObjectId[] = [];
+    for (const row of rows) {
+      if (row.active) {
+        activeIds.push(row._id);
+      }
+    }
+    return activeIds;
   }
 
   removeHiddenFields(user = null) {
