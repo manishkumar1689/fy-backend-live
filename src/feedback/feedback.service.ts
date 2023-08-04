@@ -2,7 +2,11 @@ import { HttpService, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { isValidObjectId, Model, Types } from 'mongoose';
 import { AxiosResponse } from 'axios';
-import { minutesAgoTs, yearsAgoString } from '../astrologic/lib/date-funcs';
+import {
+  isoDateToMilliSecs,
+  minutesAgoTs,
+  yearsAgoString,
+} from '../astrologic/lib/date-funcs';
 import { extractDocId, extractSimplified } from '../lib/entities';
 import { notEmptyString, validISODateString } from '../lib/validators';
 import { CreateFlagDTO } from './dto/create-flag.dto';
@@ -300,13 +304,18 @@ export class FeedbackService {
 
     const rows = await this.flagModel
       .find(criteriaObj)
-      .select({ _id: 0, __v: 0, isRating: 0, options: 0, active: 0 });
+      .select({ _id: 0, __v: 0, isRating: 0, options: 0, active: 0 })
+      .sort({ modifiedAt: -1 });
 
     const hasRows = rows instanceof Array && rows.length > 0;
     const userID = user.toString();
     const likeKey = 'likeability';
     const excludeKeys = [likeKey];
     const likeRows = rows.filter(row => row.key === likeKey);
+    likeRows.sort(
+      (a, b) =>
+        isoDateToMilliSecs(b.modifiedAt) - isoDateToMilliSecs(a.modifiedAt),
+    );
     const hasLikeRows = likeRows.length > 0;
 
     const likeability = {
@@ -525,15 +534,18 @@ export class FeedbackService {
         user: userId,
         value: mutualValueFilter,
       };
-      const mutualRows = await this.flagModel.find(criteriaObj2).select({
-        _id: 0,
-        __v: 0,
-        key: 0,
-        type: 0,
-        isRating: 0,
-        options: 0,
-        active: 0,
-      });
+      const mutualRows = await this.flagModel
+        .find(criteriaObj2)
+        .select({
+          _id: 0,
+          __v: 0,
+          key: 0,
+          type: 0,
+          isRating: 0,
+          options: 0,
+          active: 0,
+        })
+        .sort({ modifiedAt: -1 });
       const mutualIds = mutualRows.map(r => r.targetUser.toString());
       // match and exclude ids of users that have been rejected (passed) 3 times or more
       const criteriaObj3 = {

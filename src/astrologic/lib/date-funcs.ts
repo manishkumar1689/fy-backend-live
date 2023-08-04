@@ -472,6 +472,21 @@ export const isoDateToMilliSecs = (dateRef = null): number => {
     : 0;
 };
 
+export interface WithModifiedAt {
+  modifiedAt: Date | string;
+  [key: string]: any;
+}
+
+export const sortByModifedAtDesc = (
+  ref1: WithModifiedAt,
+  ref2: WithModifiedAt,
+) => {
+  return isoDateToMilliSecs(ref1.modifiedAt) >
+    isoDateToMilliSecs(ref2.modifiedAt)
+    ? ref1
+    : ref2;
+};
+
 export const fullISOString = (str = ''): string => {
   return validISODateString(str) ? str.split('.').shift() + '.000Z' : '';
 };

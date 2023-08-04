@@ -98,6 +98,7 @@ import {
   dateAgoString,
   isoDateToMilliSecs,
   matchJdAndDatetime,
+  sortByModifedAtDesc,
 } from '../astrologic/lib/date-funcs';
 import {
   cleanSnippet,
@@ -1007,7 +1008,6 @@ export class UserController {
         userId,
         items.map(lk => lk._id),
       );
-      console.log(sorted);
       if (sorted.length > 0) {
         for (const item of items) {
           const sortItem = sorted.find(s => s.id === item._id.toString());
@@ -1019,18 +1019,12 @@ export class UserController {
           }
         }
       }
-      const relSort = (ref1, ref2) => {
-        return isoDateToMilliSecs(ref1.modifiedAt) >
-          isoDateToMilliSecs(ref2.modifiedAt)
-          ? ref1
-          : ref2;
-      };
       items.sort((a, b) => {
         const refA = fromSort
-          ? relSort(a.likeability.to, a.likeability.from)
+          ? sortByModifedAtDesc(a.likeability.to, a.likeability.from)
           : a.likeability.to;
         const refB = fromSort
-          ? relSort(b.likeability.to, b.likeability.from)
+          ? sortByModifedAtDesc(b.likeability.to, b.likeability.from)
           : b.likeability.to;
 
         if (refA.modifiedAt && refB.modifiedAt) {

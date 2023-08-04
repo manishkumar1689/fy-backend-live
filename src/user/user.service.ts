@@ -1798,15 +1798,10 @@ export class UserService {
 
   async checkEnabled(filterIds: ObjectId[]): Promise<ObjectId[]> {
     const rows = await this.userModel
-      .find({ _id: { $in: filterIds } })
+      .find({ _id: { $in: filterIds }, active: true })
       .select('active');
-    const activeIds: ObjectId[] = [];
-    for (const row of rows) {
-      if (row.active) {
-        activeIds.push(row._id);
-      }
-    }
-    return activeIds;
+    const activeStrrId = rows.map(row => row._id.toString());
+    return filterIds.filter(id => activeStrrId.includes(id.toString()));
   }
 
   removeHiddenFields(user = null) {
