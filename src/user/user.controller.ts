@@ -758,7 +758,9 @@ export class UserController {
       queryKeys.includes('start') && isNumeric(query.start)
         ? smartCastInt(query.start, -1)
         : -1;
-    const excludeIds = queryKeys.includes('excludeIds') ? query.excludeIds : [];
+    const excludeUserIds = queryKeys.includes('excludeIds')
+      ? query.excludeIds
+      : [];
     if (startOffset >= 0) {
       startInt = 0;
       limitInt = 500;
@@ -819,9 +821,9 @@ export class UserController {
             : [];
         filterIds = await this.userService.checkEnabled(filterIds);
         hasFilterIds = true;
-        if (excludeIds.length > 0) {
+        if (excludeUserIds.length > 0) {
           filterIds = filterIds.filter(
-            id => excludeIds.includes(id.toString()) === false,
+            id => excludeUserIds.includes(id.toString()) === false,
           );
         } else if (startOffset >= 0) {
           const inclusive = smartCastInt(query.incl, 1) > 0;
