@@ -941,7 +941,7 @@ export class UserController {
     if (hasUser) {
       excludedIds.push(userId);
     }
-    // limit ids when applying pagination to ensure likes / matches are sorted by last likedslice
+    // limit ids when applying pagination to ensure likes / matches are sorted by last like
     if (startOffset < 0) {
       if (queryParams.ids instanceof Array) {
         const numIds = queryParams.ids.length;
@@ -1007,6 +1007,7 @@ export class UserController {
         userId,
         items.map(lk => lk._id),
       );
+      console.log(sorted);
       if (sorted.length > 0) {
         for (const item of items) {
           const sortItem = sorted.find(s => s.id === item._id.toString());
