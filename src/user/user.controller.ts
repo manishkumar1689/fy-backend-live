@@ -713,9 +713,13 @@ export class UserController {
     const maxInt = smartCastInt(max, 250);
     const userStatus = await this.userService.memberActive(user);
     const query = { user, context, excludeIds, profile: 0 };
-    const items = userStatus.active
-      ? await this.fetchMembers(0, maxInt, query)
-      : [];
+    const hasValidContext = ['liked', 'superliked', 'matched'].includes(
+      context,
+    );
+    const items =
+      hasValidContext && userStatus.active
+        ? await this.fetchMembers(0, maxInt, query)
+        : [];
     const valid = userStatus.active;
     const key = userStatus.key;
     return res.status(userStatus.status).json({ valid, key, items });
