@@ -154,6 +154,7 @@ import {
 import { BlockRecord } from '../feedback/lib/interfaces';
 import { mapGeoPlacenames } from '../astrologic/lib/mappers';
 import { LngLat } from '../astrologic/lib/interfaces';
+import { ContextParamsDTO } from './dto/context-params.dto';
 
 @Controller('user')
 export class UserController {
@@ -703,6 +704,23 @@ export class UserController {
     return res.status(userStatus.status).json({ valid, key, items });
   }
 
+  @Post('members-context')
+  async fetchMoreMembersByContext(
+    @Res() res,
+    @Body() params: ContextParamsDTO,
+  ) {
+    const { user, context, excludeIds, max } = params;
+    const maxInt = smartCastInt(max, 250);
+    const userStatus = await this.userService.memberActive(user);
+    const query = { user, context, excludeIds, profile: 0 };
+    const items = userStatus.active
+      ? await this.fetchMembers(0, maxInt, query)
+      : [];
+    const valid = userStatus.active;
+    const key = userStatus.key;
+    return res.status(userStatus.status).json({ valid, key, items });
+  }
+
   @Get('member-active/:userID')
   async memberActiveStatus(@Res() res, @Param('userID') userID) {
     const result = await this.userService.memberActive(userID, false, true);
@@ -740,6 +758,7 @@ export class UserController {
       queryKeys.includes('start') && isNumeric(query.start)
         ? smartCastInt(query.start, -1)
         : -1;
+    const excludeIds = queryKeys.includes('excludeIds') ? query.excludeIds : [];
     if (startOffset >= 0) {
       startInt = 0;
       limitInt = 500;
@@ -800,7 +819,11 @@ export class UserController {
             : [];
         filterIds = await this.userService.checkEnabled(filterIds);
         hasFilterIds = true;
-        if (startOffset >= 0) {
+        if (excludeIds.length > 0) {
+          filterIds = filterIds.filter(
+            id => excludeIds.includes(id.toString()) === false,
+          );
+        } else if (startOffset >= 0) {
           const inclusive = smartCastInt(query.incl, 1) > 0;
           arrayHead(filterIds, startOffset, inclusive);
         }
