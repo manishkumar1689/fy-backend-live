@@ -709,8 +709,9 @@ export class UserController {
     @Res() res,
     @Body() params: ContextParamsDTO,
   ) {
-    const { user, context, excludeIds, max } = params;
+    const { user, context, excludeIds, max, start } = params;
     const maxInt = smartCastInt(max, 250);
+    const startInt = smartCastInt(start, 0);
     const userStatus = await this.userService.memberActive(user);
     const query = { user, context, excludeIds, profile: 0 };
     const hasValidContext = ['liked', 'superliked', 'matched'].includes(
@@ -718,7 +719,7 @@ export class UserController {
     );
     const items =
       hasValidContext && userStatus.active
-        ? await this.fetchMembers(0, maxInt, query)
+        ? await this.fetchMembers(startInt, maxInt, query)
         : [];
     const valid = userStatus.active;
     const key = userStatus.key;

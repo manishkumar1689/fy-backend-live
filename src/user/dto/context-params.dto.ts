@@ -9,4 +9,6 @@ export class ContextParamsDTO {
   context: string;
   @ApiProperty()
   max?: number;
+  @ApiProperty()
+  start?: number;
 }
