@@ -1579,7 +1579,7 @@ export class UserController {
   async processLogin(loginDTO: LoginDTO, mode = 'editor') {
     const user = await this.userService.findOneByEmail(loginDTO.email, false);
     const userData = new Map<string, any>();
-    const validIdentifier = notEmptyString(loginDTO.email, 7);
+    const validIdentifier = notEmptyString(loginDTO.email, 6);
     let valid = false;
     let exists = false;
     const isMemberLogin = mode === 'member';
