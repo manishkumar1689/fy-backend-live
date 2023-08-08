@@ -254,7 +254,8 @@ export class FeedbackController {
   async saveSwipe(@Res() res, @Body() swipeDTO: SwipeDTO) {
     const { to, from, value, context } = swipeDTO;
     const userStatus = await this.userService.memberActive(from);
-    let status = userStatus.status;
+    // do not override later
+    const status = userStatus.status;
     let intValue = smartCastInt(value, 0);
     const data: any = {
       valid: false,
