@@ -384,7 +384,7 @@ export class FeedbackController {
         }
         data.valid = valid;
         if (!data.valid) {
-          status = HttpStatus.NOT_ACCEPTABLE;
+          status = HttpStatus.NO_CONTENT;
         }
         data.flag = flag;
         data.fcm = fcm;
