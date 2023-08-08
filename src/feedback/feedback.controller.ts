@@ -383,9 +383,6 @@ export class FeedbackController {
           }
         }
         data.valid = valid;
-        if (!data.valid) {
-          status = HttpStatus.NO_CONTENT;
-        }
         data.flag = flag;
         data.fcm = fcm;
         data.prevSwipe = prevSwipe;
