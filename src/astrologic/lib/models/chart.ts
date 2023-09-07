@@ -2432,7 +2432,9 @@ export const simpleSetToFullChart = (
       mp.set('grahas', grahas);
     }
   }
-  return new Chart(Object.fromEntries(mp.entries()));
+  const chart = new Chart(Object.fromEntries(mp.entries()));
+  chart.setAyanamshaItem(ayanamshaItem);
+  return chart;
 };
 
 export const basicSetToFullChart = (
