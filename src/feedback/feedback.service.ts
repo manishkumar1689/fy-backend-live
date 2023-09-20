@@ -14,6 +14,7 @@ import { Feedback } from './interfaces/feedback.interface';
 import { Flag, SimpleFlag } from './interfaces/flag.interface';
 import {
   filterLikeabilityFlags,
+  FlagResult,
   mapFlagItems,
   mapLikeability,
   mapUserFlag,
@@ -1022,13 +1023,28 @@ export class FeedbackService {
       data = await newFB.save();
     }
     const hasData = data instanceof Object;
-    const result = hasData
-      ? extractSimplified(data, ['_id', '__v', 'active'])
+    const simpleResult = hasData ? extractSimplified(data, ['_id', '__v', 'active']) : { };
+    const result: FlagResult = hasData
+      ? { ...simpleResult, valid: true }
       : { valid: false, value: 0 };
     if (hasData) {
       result.value = value;
     }
     return result;
+  }
+
+  async saveLikeability(from = '', to = '', intValue = 0, isCounted = true): Promise<{flag: FlagResult; flagData: CreateFlagDTO }> {
+    const flagData = {
+      user: from,
+      targetUser: to,
+      key: 'likeability',
+      type: 'int',
+      counted: isCounted,
+      isRating: true,
+      value: intValue,
+    } as CreateFlagDTO;
+    const flag = await this.saveFlag(flagData);
+    return { flag, flagData };
   }
 
   async countRecentLikeability(userId: string, refNum = 1, likeStartTs = -1) {
@@ -1043,6 +1059,7 @@ export class FeedbackService {
       user: userId,
       value: refNum,
       modifiedAt,
+      counted: true
     };
     return await this.flagModel.count(criteria);
   }

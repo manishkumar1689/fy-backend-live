@@ -43,6 +43,11 @@ export interface FlagVal {
   modifiedAt?: string;
 }
 
+export interface FlagResult {
+  valid: boolean;
+  [key: string]: any;
+}
+
 export interface FlagItem {
   key: string;
   value: number | boolean;

@@ -5,6 +5,7 @@ export interface Flag extends Document {
   readonly targetUser: any;
   readonly key: string;
   readonly active: boolean;
+  readonly counted?: boolean;
   readonly type: string;
   readonly value: any;
   readonly isRating: boolean;

@@ -14,6 +14,9 @@ export class CreateFlagDTO {
   readonly active?: boolean;
 
   @ApiProperty()
+  readonly counted?: boolean;
+
+  @ApiProperty()
   readonly type?: string;
 
   @ApiProperty()

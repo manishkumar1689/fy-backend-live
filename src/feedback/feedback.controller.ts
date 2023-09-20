@@ -297,10 +297,8 @@ export class FeedbackController {
         maxRatingLimit = -1;
       }
       // Has someone responded to a like (reciprocal rating)
-      /* const recipRating = contextKey.endsWith('back');
-      if (recipRating) {
-        maxRatingLimit = 0;
-      } */
+      const recipRating = contextKey.endsWith('back');
+
       const hasPaidRole = roles.some(rk => rk.includes('member'));
       const hasPrevPass = prevSwipe.valid && prevSwipe.value < 1;
       const isPass = intValue <= 0;
@@ -338,15 +336,8 @@ export class FeedbackController {
         (numSwipes < maxRatingLimit || maxRatingLimit === 0) &&
         prevPass > minRatingValue
       ) {
-        const flagData = {
-          user: from,
-          targetUser: to,
-          key: 'likeability',
-          type: 'int',
-          isRating: true,
-          value: intValue,
-        } as CreateFlagDTO;
-        const flag = await this.feedbackService.saveFlag(flagData);
+        const isCounted = !recipRating;
+        const { flag, flagData } = await this.feedbackService.saveLikeability(from, to, intValue, isCounted);
         const valid =
           Object.keys(flag).includes('value') && otherActiveStatus.exists;
         const sendMsg = intValue >= 1 && otherActiveStatus.active;

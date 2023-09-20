@@ -27,6 +27,12 @@ export const FlagSchema = new mongoose.Schema({
     default: true,
     // whether the target user is active
   },
+  counted: {
+    type: Boolean,
+    required: false,
+    default: true,
+    // whether this flag is counted when assessing limits (buckets)
+  },
   type: {
     type: String,
     enum: [
