@@ -382,7 +382,7 @@ export class FeedbackController {
         data.prevSwipe = prevSwipe;
         if (valid && prevSwipe.value !== intValue) {
           numSwipes++;
-          if (!isPass) {
+          if (!isPass && !recipRating) {
             data.remaining--;
           }
           data.updated = true;
