@@ -994,7 +994,7 @@ export class FeedbackService {
   }
 
   async saveFlag(flagDto: CreateFlagDTO | SimpleFlag) {
-    const { user, targetUser, key, type, value, isRating } = flagDto;
+    const { user, targetUser, key, type, value, counted, isRating } = flagDto;
     const uid = user;
     const criteria = this.buildFilterCriteria(targetUser, key, { uid });
     const fbItem = await this.flagModel.findOne(criteria);
@@ -1015,6 +1015,7 @@ export class FeedbackService {
         key,
         type,
         value,
+        counted: counted !== false,
         isRating: isRating === true,
         createdAt: dt,
         modifiedAt: dt,

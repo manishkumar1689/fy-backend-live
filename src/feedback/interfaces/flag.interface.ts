@@ -19,5 +19,6 @@ export interface SimpleFlag {
   key: string;
   value: any;
   type?: string;
+  counted?: boolean;
   isRating?: boolean;
 }
