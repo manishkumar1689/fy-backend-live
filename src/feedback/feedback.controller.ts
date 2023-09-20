@@ -287,18 +287,20 @@ export class FeedbackController {
       );
       // fetch the max limit for this swipe action associated with a user's current roles
       // does not apply to passes
-      let maxRating = await this.settingService.getMaxRatingLimit(
+      let maxRatingLimit = await this.settingService.getMaxRatingLimit(
         roles,
         intValue,
       );
       // the like Start timestamp is in the future and the action is like
       // set the limit to zero
       if (currStartTs > nowTs && intValue > 0) {
-        maxRating = -1;
+        maxRatingLimit = -1;
       }
-      if (contextKey.endsWith('back')) {
-        maxRating = 0;
-      }
+      // Has someone responded to a like (reciprocal rating)
+      /* const recipRating = contextKey.endsWith('back');
+      if (recipRating) {
+        maxRatingLimit = 0;
+      } */
       const hasPaidRole = roles.some(rk => rk.includes('member'));
       const hasPrevPass = prevSwipe.valid && prevSwipe.value < 1;
       const isPass = intValue <= 0;
@@ -316,24 +318,24 @@ export class FeedbackController {
           intValue = prevSwipe.value - 1;
         }
       }
-      const applyMaxRating = maxRating < 100000;
+      const applyMaxRating = maxRatingLimit < 100000;
       // if rating limit is not applied, keep high value without decrementing
       data.remaining =
-        maxRating > 0
+        maxRatingLimit > 0
           ? applyMaxRating
-            ? maxRating - numSwipes
-            : maxRating
+            ? maxRatingLimit - numSwipes
+            : maxRatingLimit
           : 0;
       data.nextStartTs = currStartTs;
       data.secondsToWait =
-        maxRating < 1 ? Math.ceil((currStartTs - nowTs - 50) / 1000) : 0;
+      maxRatingLimit < 1 ? Math.ceil((currStartTs - nowTs - 50) / 1000) : 0;
       data.roles = roles;
       data.value = intValue;
       const otherActiveStatus = await this.userService.memberActive(to, true);
       data.otherKey = otherActiveStatus.key;
       // skip maxRating check only if value is zero. If likes are used up, the value will be -1
       if (
-        (numSwipes < maxRating || maxRating === 0) &&
+        (numSwipes < maxRatingLimit || maxRatingLimit === 0) &&
         prevPass > minRatingValue
       ) {
         const flagData = {
