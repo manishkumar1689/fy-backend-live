@@ -990,7 +990,6 @@ export class AstrologicService {
         .utc(data.datetime)
         .toISOString()
         .replace(/\.\w+$/, '.00Z');
-
       data = { ...data, datetime: new Date(adjustedDate) };
     }
     return data.datetime;

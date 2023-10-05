@@ -2097,7 +2097,6 @@ export class UserController {
     const endJd = midNightJd + 1;
     const startScanJd = jd - 0.5;
     const positions = toSimplePositions(chart, 'special');
-
     const trData = await this.astrologicService.fetchCurrentAndTransposedTransitions(
       positions,
       startScanJd,
@@ -2105,8 +2104,8 @@ export class UserController {
       chart.geo,
       chart.isDayTime,
     );
-
     const transitions = processTransitionData(trData, midNightJd, endJd);
+  
     const ppData = await process5PRulesWithPeaks(
       chart,
       [jd, midNightJd, endJd],

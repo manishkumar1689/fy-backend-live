@@ -405,8 +405,6 @@ export const process5PRulesWithPeaks = async (
       const item = matchPPRulesToJd(midJd, rules, -1, true);
       const score = item.ppScore + tr.score;
       const { ppScore, names, startJd, endJd } = item;
-      names.push(tr.name);
-
       if (jds.includes(midJd) === false) {
         peaks.push({
           jd: midJd,

@@ -153,7 +153,7 @@ export const julToISODate = (jd: number, tzOffset = 0): string => {
 };
 
 export const currentISODate = (fromDayStart = false) => {
-  const dt = moment.utc().format();
+  const dt = new Date().toISOString();
   return fromDayStart ? dt.split('T').shift() + 'T00:00:00' : dt;
 };
 

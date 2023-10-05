@@ -1009,6 +1009,14 @@ export const calcBrighuBindu = (moonLng = 0, rahuLng = 0): number => {
   return ((moonLng + rahuLng) / 2) % 360;
 };
 
+
+
+export const calcYogiSphuta = (sunLng = 0, moonLng = 0): number => {
+  const deg = (sunLng + moonLng) % 360;
+  const supplement = 93 + 1 / 3; // 93 1/3
+  return (deg + supplement) % 360;
+}
+
 export const calcSpecialObjectPositions = (
   birthLagna = 0,
   isDayTime = true,
@@ -1026,11 +1034,13 @@ export const calcSpecialObjectPositions = (
   );
   const spirit = calcRelativeLotSpirit(birthLagna, isDayTime, moonLng, sunLng);
   const bb = calcBrighuBindu(moonLng, rahuLng);
+  const yp = calcYogiSphuta(sunLng, moonLng);
   const hasPrefix = notEmptyString(prefix, 1);
   const toKey = (key: string) => (hasPrefix ? [prefix, key].join('__') : key);
   pos.push({ key: toKey('fortune'), lng: fortune, lat: 0, lngSpeed: 0 });
   pos.push({ key: toKey('spirit'), lng: spirit, lat: 0, lngSpeed: 0 });
   pos.push({ key: toKey('brighu_bindu'), lng: bb, lat: 0, lngSpeed: 0 });
+  pos.push({ key: toKey('yogi_point'), lng: yp, lat: 0, lngSpeed: 0 });
   return pos;
 };
 

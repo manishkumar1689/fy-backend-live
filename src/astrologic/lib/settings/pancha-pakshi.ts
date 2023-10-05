@@ -2232,7 +2232,7 @@ const matchRuleTransitionKey = (key: string): string => {
   }
 };
 
-const matchTransitionKeys = (rules: PPRule[] = []) => {
+/* const matchTransitionKeys = (rules: PPRule[] = []) => {
   const ruleKeys = rules
     .filter(r => ['mc', 'ic', 'as', 'ds', 'rise', 'set'].includes(r.action))
     .map(r => r.key);
@@ -2245,7 +2245,7 @@ const matchTransitionKeys = (rules: PPRule[] = []) => {
   });
   return keys;
 };
-
+ */
 export const matchPeriodsWithPPScores = (
   allYamasWithSubs: any[] = [],
   rules: PPRule[] = [],

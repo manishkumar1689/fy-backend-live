@@ -20,7 +20,6 @@ import {
   smartCastString,
 } from '../lib/converters';
 import { notEmptyString } from '../lib/validators';
-import { currentISODate } from '../astrologic/lib/date-funcs';
 import googleTranslateCodes from './sources/google-translate-codes';
 import { TranslateDTO } from './dto/translate.dto';
 import { exportCollection } from '../lib/operations';
@@ -77,7 +76,7 @@ export class SnippetController {
       const defaultLang = createSnippetDTO.values.find(
         vn => vn.lang === fromLang || vn.lang.startsWith(`${fromLang}-`),
       );
-      const nowDt = currentISODate();
+      const nowDt = new Date();
       if (defaultLang) {
         for (const toKey of translateLangs) {
           if (toKey !== fromLang) {
