@@ -1620,6 +1620,10 @@ export class PPRule {
     return this.from.includes('transit') || this.from.startsWith('birth');
   }
 
+  get isTransposed() {
+    return this.from.startsWith('birth');
+  }
+
   addMatch(start = 0, end = 0, type = 'subyama', score = 10) {
     if (end > start) {
       const newMatch = { start, end, type, score };

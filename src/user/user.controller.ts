@@ -97,6 +97,7 @@ import { ActiveStatusDTO } from './dto/active-status.dto';
 import {
   dateAgoString,
   isoDateToMilliSecs,
+  julToDateFormat,
   matchJdAndDatetime,
   sortByModifedAtDesc,
 } from '../astrologic/lib/date-funcs';
@@ -1898,6 +1899,10 @@ export class UserController {
     if (paramKeys.includes('mode')) {
       showMode = params.mode;
     }
+    let debug = false;
+    if (paramKeys.includes('debug')) {
+      debug = smartCastInt(params.debug, 0) > 0;
+    }
     const hasGeo = paramKeys.includes('loc')
       ? validLocationParameter(params.loc)
       : false;
@@ -2005,6 +2010,7 @@ export class UserController {
               rules,
               customCutoff,
               dateMode,
+              debug,
             );
             ctData.set('luckyTimes', Object.fromEntries(luckyData.entries()));
           }
@@ -2054,6 +2060,9 @@ export class UserController {
     if (['charts', 'all'].includes(showMode)) {
       allowedKeys.push('current', 'progress', 'birth');
     }
+    if (debug) {
+      allowedKeys.push('peaks');
+    }
     if (['all'].includes(showMode)) {
       allowedKeys.push(
         'ranges',
@@ -2082,6 +2091,7 @@ export class UserController {
     rules: PPRule[],
     cutoff = 0,
     dateMode = 'simple',
+    debug = false,
   ) {
     const result: Map<string, any> = new Map();
 
@@ -2114,15 +2124,12 @@ export class UserController {
       rules,
       cutoff,
       timeInfo.tzOffset,
-      false,
+      debug,
       dateMode,
     );
     const ppKeys = ppData.keys();
     const excludeKeys = [
-      'rules',
       'span',
-      'yamas1',
-      'yamas2',
       'ruleJds',
       'totalMatched',
       'tzOffset',
@@ -2131,6 +2138,9 @@ export class UserController {
       'unix',
       'jd',
     ];
+    if (!debug) {
+      excludeKeys.push('rules','yamas1', 'yamas2');
+    }
     for (const ppKey of ppKeys) {
       if (excludeKeys.includes(ppKey) === false) {
         result.set(ppKey, ppData.get(ppKey));

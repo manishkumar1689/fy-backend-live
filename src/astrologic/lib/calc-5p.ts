@@ -1,4 +1,6 @@
-import { julToDateFormat, julToUnixTime } from './date-funcs';
+import { notEmptyString } from 'src/lib/validators';
+import { matchNakshatra } from './core';
+import { julToDateFormat, julToISODate, julToUnixTime } from './date-funcs';
 import { TransitionItem } from './interfaces';
 import { unixTimeToJul } from './julian-date';
 import { Chart } from './models/chart';
@@ -131,12 +133,20 @@ export const process5PTransition = (
     grahaKeys = r.context.includes('avayogi') ? ['avayogi'] : ['yogi'];
     filterByGrahasAndAction = true;
   } else if (r.key.endsWith('yogi_graha')) {
-    const objKey = r.context.includes('avayogi') ? 'avayogi' : 'yogi';
-    const gk = chart.matchObject(objKey);
-    if (gk) {
-      grahaKeys = [gk];
+    const yp = r.context.includes('avayogi')? chart.calcAvayogiSphuta() : chart.calcYogiSphuta();
+    const yogiSphutaNk = matchNakshatra(yp);
+    if (notEmptyString(yogiSphutaNk.ruler)) {
+      grahaKeys = [yogiSphutaNk.ruler];
       filterByGrahasAndAction = true;
     }
+  } else if (r.key.endsWith('fortune')) {
+    // grahaKeys = ['lotOfFortune'];
+    grahaKeys = ['fortune'];
+    filterByGrahasAndAction = true;
+  } else if (r.key.endsWith('spirit')) {
+    //grahaKeys = ['lotOSpirit'];
+    grahaKeys = ['spirit'];
+    filterByGrahasAndAction = true;
   }
   if (filterByGrahasAndAction) {
     subs = allSubs.filter(
@@ -148,16 +158,16 @@ export const process5PTransition = (
   }
   if (isTr) {
     const lcGrKeys = grahaKeys.map(gk => gk.toLowerCase());
-    const relTrs = transitions.filter(tr => {
+    const preFilterByKeys = true;
+    const relTrs = preFilterByKeys ? transitions.filter(tr => {
       const rKey = tr.key.toLowerCase().replace('2', '');
       return rKey === trRef.toLowerCase() || lcGrKeys.includes(rKey);
-    });
+    }) : transitions;
     if (relTrs.length > 0) {
       for (const relTr of relTrs) {
         const refK = toTransitKey(r.action);
         const rk = refK.startsWith('dik') ? matchDikBalaTransition(refK) : refK;
-
-        if (relTr.type === rk) {
+        if (relTr.type === rk && relTr.transposed === r.isTransposed) {      
           const mr = matchTransitionItemRange(relTr);
           if (mr instanceof TransitionOrb) {
             if (mr.end > startJd && mr.start < endJd) {
@@ -245,15 +255,19 @@ export const matchPPRulesToJd = (
               );
               if (endSubJd < 0 || (peak <= endSubJd && endSubJd > 0)) {
                 score += rule.score * fraction;
-                names.push(rule.name);
-                peaks.push(peak);
+                if (names.includes(rule.name) === false) {
+                  names.push(rule.name);
+                  peaks.push(peak);
+                }                
               }
             }
           } else {
             if (rule.validateAtMinJd(minJd)) {
-              score += rule.score;
-              ppScore += rule.score;
-              names.push(rule.name);
+              if (names.includes(rule.name) === false) {
+                score += rule.score;
+                ppScore += rule.score;
+                names.push(rule.name);
+              }
             }
           }
           isMatched = true;
@@ -376,7 +390,11 @@ export const process5PRulesWithPeaks = async (
     birdGrahaSet2,
     true,
   );
-
+/*  periods1.forEach((outer, oi) => {
+  outer.forEach((inner, ii) => {
+    console.log(oi, ii, inner);
+  })
+ }) */
   //const specialPos = ppData2.get('moon').current;
 
   const allSubs1 = toAllYamaSubs(periods1, dayFirst);
@@ -388,7 +406,7 @@ export const process5PRulesWithPeaks = async (
     ['birth', 'transit'].includes(r.from),
   );
   const peaks: any[] = [];
-  const jds: number[] = [];
+  // const jdKeys: strings[] = [];
   const ruleJds: number[] = rules
     .map(r =>
       r.matches
@@ -405,20 +423,21 @@ export const process5PRulesWithPeaks = async (
       const item = matchPPRulesToJd(midJd, rules, -1, true);
       const score = item.ppScore + tr.score;
       const { ppScore, names, startJd, endJd } = item;
-      if (jds.includes(midJd) === false) {
-        peaks.push({
-          jd: midJd,
-          ppScore,
-          trScore: tr.score,
-          score,
-          ruleKeys: names,
-          startJd,
-          endJd,
-        });
-        jds.push(midJd);
-      }
+      names.push(tr.name);
+      peaks.push({
+        jd: midJd,
+        ppScore,
+        trScore: tr.score,
+        score,
+        ruleKeys: names,
+        startJd,
+        endJd,
+      });
+     // jdKeys.push(midJd.toString());
     });
   });
+  
+  
   const filteredPeaks = peaks
     .filter(p => p.score >= cutoff)
     .map(item => {
@@ -460,14 +479,34 @@ export const process5PRulesWithPeaks = async (
 
   const mapFunc = dateMode === 'all' ? mapToPeakVariants : mapToSimplePeak;
   const mappedPeaks = showRules ? filteredPeaks : filteredPeaks.map(mapFunc);
-
   result.set('times', mappedPeaks);
   result.set('totalMatched', totalMatched);
   result.set('span', [startJd, endJd]);
   result.set('yamas1', yamas1);
   result.set('yamas2', yamas2);
   if (showRules) {
+    peaks.sort((a,b) => a.jd - b.jd);
+    result.set('peaks', peaks.map(p => {
+      const transDt = julToDateFormat(p.jd, tzOffset, 'iso');
+      const startDt = julToDateFormat(p.startJd, tzOffset, 'iso');
+      const endDt = julToDateFormat(p.endJd, tzOffset, 'iso');
+      return {transDt, startDt, endDt, ...p };
+    }));
     result.set('rules', rules);
+
+  /*   const current = trData.current.map(r => {
+      const items = r.items.filter(it => ['min','max'].includes(it.key) === false).map(it => {
+        const dt = julToDateFormat(it.value, chart.tzOffset, 'iso');
+        return { ...it, dt};
+      });
+      return { ...r, items };
+    }); */
+    transitions.sort((a, b) => a.jd - b.jd);
+    result.set('xtr', transitions.map(item => {
+      const dt = julToDateFormat(item.jd, tzOffset, 'iso');
+      return { ...item, dt };
+    }));
+    result.set('tzHrs', tzOffset / 3600);
   }
   result.set('ruleJds', ruleJds);
   return result;

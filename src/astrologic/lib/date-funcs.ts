@@ -405,6 +405,7 @@ export const julToDateFormat = (
       break;
     case 'iso':
       dp = [y, m, d];
+      sep = '-';
       break;
     case '-':
     case '':

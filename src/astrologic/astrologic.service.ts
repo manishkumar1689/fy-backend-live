@@ -3121,7 +3121,6 @@ export class AstrologicService {
       days: 1,
       isDayTime,
     };
-
     const remResp = await this.postHttp(uri, payload);
     if (remResp.status < 300) {
       return remResp.data;

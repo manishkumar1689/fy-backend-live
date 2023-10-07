@@ -1460,10 +1460,14 @@ export class Chart {
     return keys.map(k => this.matchLng(k, 0)).reduce((a, b) => a + b, 0) % 360;
   }
 
-  calcYogiSphuta() {
+  calcYogiSphuta(): number {
     const deg = this.addBodyLngs(['su', 'mo']);
     const supplement = 93 + 1 / 3; /// 93 1/3
     return (deg + supplement) % 360;
+  }
+
+  calcAvayogiSphuta(): number {
+    return (this.calcYogiSphuta() + 560 / 3) % 360;
   }
 
   calcBijaSphuta() {

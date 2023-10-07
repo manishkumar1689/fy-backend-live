@@ -1012,29 +1012,42 @@ export const calcBrighuBindu = (moonLng = 0, rahuLng = 0): number => {
 
 
 export const calcYogiSphuta = (sunLng = 0, moonLng = 0): number => {
-  const deg = (sunLng + moonLng) % 360;
+  const deg = sunLng + moonLng;
   const supplement = 93 + 1 / 3; // 93 1/3
+  // const tot = sunLng + moonLng + supplement;
+  /* console.log({sunLng, moonLng,supplement, tot})
+  const a = 23.3;
+  const tot2 = (subtractLng360(sunLng, a)) + subtractLng360(moonLng, a) + supplement;
+  const tot2Mod = tot2 % 360;
+  console.log({tot2Mod}); */
   return (deg + supplement) % 360;
 }
 
+/*
+* Accepts sidereal (ayanamsha-adjusted) longitudes. Returns tropical values
+*/
 export const calcSpecialObjectPositions = (
   birthLagna = 0,
   isDayTime = true,
   moonLng = 0,
   sunLng = 0,
   rahuLng = 0,
+  ayanamshaValue = 0,
   prefix = '',
 ): GrahaPos[] => {
   const pos: GrahaPos[] = [];
-  const fortune = calcRelativeLotFortune(
+  const fortuneSid = calcRelativeLotFortune(
     birthLagna,
     isDayTime,
     moonLng,
     sunLng,
   );
-  const spirit = calcRelativeLotSpirit(birthLagna, isDayTime, moonLng, sunLng);
-  const bb = calcBrighuBindu(moonLng, rahuLng);
-  const yp = calcYogiSphuta(sunLng, moonLng);
+  // add ayanamsha to re-adjust to the tropical longitudes used to calculate transposed transitions
+  const fortune = (fortuneSid + ayanamshaValue) % 360;
+  const spirit = (calcRelativeLotSpirit(birthLagna, isDayTime, moonLng, sunLng) + ayanamshaValue) % 360;
+  const bb = (calcBrighuBindu(moonLng, rahuLng) + ayanamshaValue) % 360;
+  const ypSid = calcYogiSphuta(sunLng, moonLng);
+  const yp = (ypSid + ayanamshaValue) % 360;
   const hasPrefix = notEmptyString(prefix, 1);
   const toKey = (key: string) => (hasPrefix ? [prefix, key].join('__') : key);
   pos.push({ key: toKey('fortune'), lng: fortune, lat: 0, lngSpeed: 0 });
@@ -2504,14 +2517,14 @@ const matchGrahaSetMode = (key = 'standard') => {
   switch (key) {
     case 'core':
     case 'special':
-      return ['su', 'mo', 'me', 've', 'ma', 'ju', 'sa'];
+      return ['su', 'mo', 'me', 've', 'ma', 'ju', 'sa','ra', 'ke'];
     default:
       return ['su', 'mo', 'me', 've', 'ma', 'ju', 'sa', 'ur', 'ne', 'pl'];
   }
 };
 
 export const toSimplePositions = (
-  chart: any,
+  chart: Chart,
   mode = 'standard',
 ): GrahaPos[] => {
   let positions: GrahaPos[] = [];
@@ -2524,12 +2537,14 @@ export const toSimplePositions = (
         return { key, lng, lat, lngSpeed };
       });
     if (mode === 'special') {
+      
       const extraPos = calcSpecialObjectPositions(
         chart.lagna,
         chart.indianTime.isDayTime,
-        chart.moon.lng,
-        chart.sun.lng,
-        chart.graha('ra').lng,
+        chart.moon.longitude,
+        chart.sun.longitude,
+        chart.graha('ra').longitude,
+        chart.ayanamshaOffset
       );
       positions = [...positions, ...extraPos];
     }

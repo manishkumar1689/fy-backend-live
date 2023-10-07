@@ -297,7 +297,7 @@ export class FeedbackController {
         maxRatingLimit = -1;
       }
       // Has someone responded to a like (reciprocal rating)
-      const recipRating = contextKey.endsWith('back');
+    const recipRating = contextKey.endsWith('back');
 
       const hasPaidRole = roles.some(rk => rk.includes('member'));
       const hasPrevPass = prevSwipe.valid && prevSwipe.value < 1;

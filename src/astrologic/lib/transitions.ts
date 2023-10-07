@@ -135,8 +135,7 @@ export const matchTransData = async (
 
 const centerDiscRising = () => {
   return (
-    swisseph.SE_BIT_DISC_CENTER | swisseph.SE_BIT_NO_REFRACTION ||
-    swisseph.SE_BIT_GEOCTR_NO_ECL_LAT
+    swisseph.SE_BIT_DISC_CENTER | swisseph.SE_BIT_NO_REFRACTION
   );
 };
 
