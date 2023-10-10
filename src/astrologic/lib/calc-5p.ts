@@ -1,5 +1,5 @@
 import { matchNakshatra } from './core';
-import { julToDateFormat, julToUnixTime } from './date-funcs';
+import { julToDateFormat, julToISODate, julToUnixTime } from './date-funcs';
 import { TransitionItem } from './interfaces';
 import { unixTimeToJul } from './julian-date';
 import { Chart } from './models/chart';
@@ -342,17 +342,20 @@ const toDateVariants = (
 
 const mapToSimplePeak = (item: any) => {
   const { peak, score, start, end, ruleKeys } = item;
-  return { start, peak, end, max: score, ruleKeys };
+  const dtUtc = julToISODate(peak);
+  return { start, peak, end, max: score, ruleKeys, dtUtc };
 };
 
 const mapToPeakVariants = (item: any) => {
   const { peak, score, start, end, ruleKeys } = item;
+  const dtUtc = julToISODate(peak);
   return {
     start: toDateVariants(start),
     peak: toDateVariants(peak),
     end: toDateVariants(end),
     max: score,
-    ruleKeys
+    ruleKeys,
+    dtUtc
   };
 };
 
