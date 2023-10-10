@@ -341,17 +341,18 @@ const toDateVariants = (
 };
 
 const mapToSimplePeak = (item: any) => {
-  const { peak, score, start, end } = item;
-  return { start, peak, end, max: score };
+  const { peak, score, start, end, ruleKeys } = item;
+  return { start, peak, end, max: score, ruleKeys };
 };
 
 const mapToPeakVariants = (item: any) => {
-  const { peak, score, start, end } = item;
+  const { peak, score, start, end, ruleKeys } = item;
   return {
     start: toDateVariants(start),
     peak: toDateVariants(peak),
     end: toDateVariants(end),
     max: score,
+    ruleKeys
   };
 };
 

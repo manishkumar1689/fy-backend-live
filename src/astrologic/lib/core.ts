@@ -61,7 +61,7 @@ import {
   inRange360,
 } from '../../lib/validators';
 import { hashMapToObject } from '../../lib/entities';
-import { KeyValue } from '../interfaces/key-value';
+import { KeyValue, NakshatraItem } from '../interfaces/key-value';
 import { GeoPos } from '../interfaces/geo-pos';
 import { IndianTime } from './models/indian-time';
 import {
@@ -911,7 +911,7 @@ export const calcAllStars = async (
   return data;
 };
 
-export const matchNakshatra = (deg: number) => {
+export const matchNakshatra = (deg: number): NakshatraItem => {
   let row: any = { index: -1, num: 0, percent: 0, ruler: '', yoni: -1 };
   const nkVal = deg / (360 / nakshatraValues.length);
   const index = Math.floor(nkVal);
@@ -1014,12 +1014,6 @@ export const calcBrighuBindu = (moonLng = 0, rahuLng = 0): number => {
 export const calcYogiSphuta = (sunLng = 0, moonLng = 0): number => {
   const deg = sunLng + moonLng;
   const supplement = 93 + 1 / 3; // 93 1/3
-  // const tot = sunLng + moonLng + supplement;
-  /* console.log({sunLng, moonLng,supplement, tot})
-  const a = 23.3;
-  const tot2 = (subtractLng360(sunLng, a)) + subtractLng360(moonLng, a) + supplement;
-  const tot2Mod = tot2 % 360;
-  console.log({tot2Mod}); */
   return (deg + supplement) % 360;
 }
 
@@ -2530,6 +2524,8 @@ export const toSimplePositions = (
   let positions: GrahaPos[] = [];
   if (chart instanceof Object && chart.grahas instanceof Array) {
     const keys = matchGrahaSetMode(mode);
+    const yogiGrahaKey = chart.calcYogiGrahaKey();
+    const ruleKeys = ['ju', 've', yogiGrahaKey];
     positions = chart.grahas
       .filter(g => g instanceof Object && keys.includes(g.key))
       .map(g => {
@@ -2546,7 +2542,8 @@ export const toSimplePositions = (
         chart.graha('ra').longitude,
         chart.ayanamshaOffset
       );
-      positions = [...positions, ...extraPos];
+      
+      positions = [...positions.filter(g => ruleKeys.includes(g.key)), ...extraPos];
     }
   }
   return positions;
