@@ -391,12 +391,6 @@ export const process5PRulesWithPeaks = async (
     birdGrahaSet2,
     true,
   );
-/*  periods1.forEach((outer, oi) => {
-  outer.forEach((inner, ii) => {
-    console.log(oi, ii, inner);
-  })
- }) */
-  //const specialPos = ppData2.get('moon').current;
 
   const allSubs1 = toAllYamaSubs(periods1, dayFirst);
   addMatched5PTransitions(chart, allSubs1, rules, transitions, birdGrahaSet1);
