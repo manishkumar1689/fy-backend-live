@@ -482,9 +482,19 @@ export const process5PRulesWithPeaks = async (
   result.set('times', mappedPeaks);
   result.set('totalMatched', totalMatched);
   result.set('span', [startJd, endJd]);
-  result.set('yamas1', yamas1);
-  result.set('yamas2', yamas2);
+ 
+  
+  
   if (showRules) {
+    const addNums = (y, yi) => {
+      return y.map((sy, syi) => {
+        const startDt = julToDateFormat(sy.start, tzOffset, 'iso');
+        const endDt = julToDateFormat(sy.end, tzOffset, 'iso');
+        return {startDt, endDt, ...sy, yn: (yi+1), sn: (syi+1)}
+      })
+    }
+    const yamas = [...yamas1.map(addNums), ...yamas2.map(addNums)].reduce((a, b) => a.concat(b), []).filter(sy => sy.end >= startJd && sy.start <= endJd );
+    result.set('yamas', yamas);
     peaks.sort((a,b) => a.jd - b.jd);
     result.set('peaks', peaks.map(p => {
       const transDt = julToDateFormat(p.jd, tzOffset, 'iso');
