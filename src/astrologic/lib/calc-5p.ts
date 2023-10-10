@@ -343,17 +343,19 @@ const toDateVariants = (
 const mapToSimplePeak = (item: any) => {
   const { peak, score, start, end, ruleKeys } = item;
   const dtUtc = new Date(peak * 1000).toISOString();
-  return { start, peak, end, max: score, ruleKeys, dtUtc };
+  const rr = ruleKeys instanceof Array ? ruleKeys : []
+  return { start, peak, end, max: score, ruleKeys: rr, dtUtc };
 };
 
 const mapToPeakVariants = (item: any) => {
   const { peak, score, start, end, ruleKeys } = item;
+  const rr = ruleKeys instanceof Array ? ruleKeys : []
   return {
     start: toDateVariants(start),
     peak: toDateVariants(peak),
     end: toDateVariants(end),
     max: score,
-    ruleKeys,
+    ruleKeys: rr,
   };
 };
 
@@ -474,7 +476,7 @@ export const process5PRulesWithPeaks = async (
   filteredPeaks.sort((a, b) => a.peak - b.peak);
 
   const mapFunc = dateMode === 'all' ? mapToPeakVariants : mapToSimplePeak;
-  const mappedPeaks = showRules ? filteredPeaks : filteredPeaks.map(mapFunc);
+  const mappedPeaks: any[] = showRules ? filteredPeaks : filteredPeaks.map(mapFunc);
   result.set('times', mappedPeaks);
   result.set('totalMatched', totalMatched);
   result.set('span', [startJd, endJd]);
