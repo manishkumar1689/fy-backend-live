@@ -24,6 +24,21 @@ import {
 } from './settings/pancha-pakshi';
 import { notEmptyString } from '../../lib/validators';
 
+interface TimeUnit {
+  un: number;
+  jd: number;
+  dt: string;
+}
+
+interface PeakItem {
+  start: number | TimeUnit;
+  peak: number | TimeUnit;
+  end: number | TimeUnit;
+  max: number;
+  ruleKeys?: string[];
+  dtUtc?: string;
+}
+
 export const addTransitionItemsWithinRange = (
   transitions: TransitionItem[],
   items: any[],
@@ -330,7 +345,7 @@ const julToUnixInt = (num: number | undefined): number => {
 
 const toDateVariants = (
   unix: number,
-): { jd: number; un: number; dt: string } => {
+): TimeUnit => {
   const jd = unixTimeToJul(unix);
   const dt = julToDateFormat(jd);
   return {
@@ -340,14 +355,14 @@ const toDateVariants = (
   };
 };
 
-const mapToSimplePeak = (item: any) => {
+const mapToSimplePeak = (item: any): PeakItem => {
   const { peak, score, start, end, ruleKeys } = item;
   const dtUtc = new Date(peak * 1000).toISOString();
   const rr = ruleKeys instanceof Array ? ruleKeys : []
   return { start, peak, end, max: score, ruleKeys: rr, dtUtc };
 };
 
-const mapToPeakVariants = (item: any) => {
+const mapToPeakVariants = (item: any): PeakItem => {
   const { peak, score, start, end, ruleKeys } = item;
   const rr = ruleKeys instanceof Array ? ruleKeys : []
   return {
@@ -476,7 +491,7 @@ export const process5PRulesWithPeaks = async (
   filteredPeaks.sort((a, b) => a.peak - b.peak);
 
   const mapFunc = dateMode === 'all' ? mapToPeakVariants : mapToSimplePeak;
-  const mappedPeaks: any[] = showRules ? filteredPeaks : filteredPeaks.map(mapFunc);
+  const mappedPeaks: PeakItem[] = showRules ? filteredPeaks : filteredPeaks.map(mapFunc);
   result.set('times', mappedPeaks);
   result.set('totalMatched', totalMatched);
   result.set('span', [startJd, endJd]);
