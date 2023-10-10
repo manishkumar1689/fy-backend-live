@@ -342,20 +342,18 @@ const toDateVariants = (
 
 const mapToSimplePeak = (item: any) => {
   const { peak, score, start, end, ruleKeys } = item;
-  const dtUtc = julToISODate(peak);
+  const dtUtc = new Date(peak * 1000).toISOString();
   return { start, peak, end, max: score, ruleKeys, dtUtc };
 };
 
 const mapToPeakVariants = (item: any) => {
   const { peak, score, start, end, ruleKeys } = item;
-  const dtUtc = julToISODate(peak);
   return {
     start: toDateVariants(start),
     peak: toDateVariants(peak),
     end: toDateVariants(end),
     max: score,
     ruleKeys,
-    dtUtc
   };
 };
 
