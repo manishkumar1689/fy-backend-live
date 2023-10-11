@@ -104,19 +104,19 @@ export const imageSizes = {
     mode: 'resize',
     width: 640,
     height: 640,
-    quality: 92,
+    quality: 90,
   },
   half: {
     mode: 'resize',
     width: 1280,
     height: 1280,
-    quality: 92,
+    quality: 87,
   },
   large: {
     mode: 'resize',
     width: 2560,
     height: 2560,
-    quality: 88,
+    quality: 84,
   },
 };
 

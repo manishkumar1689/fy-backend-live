@@ -3322,7 +3322,7 @@ export class UserController {
         );
         if (filename.length > 5) {
           fileData.filename = filename;
-          fileData.mime = mimetype;
+          fileData.mime = mime; // override server-mimetype for jpegs and pngs
           fileData.size = intSize;
           fileData.attributes = attributes;
           fileData.variants = variants;

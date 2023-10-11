@@ -549,10 +549,7 @@ const matchTypeFromMime = (mime = '') => {
 
 export const matchFileTypeAndMime = (filename = '', mimetype = '') => {
   let mime = mimetype || 'text/plain';
-  if (
-    (notEmptyString(filename) && emptyString(mimetype)) ||
-    ['application/octet-stream'].includes(mimetype)
-  ) {
+  if (notEmptyString(filename)) {
     const fn = filename.toLowerCase();
     const extension = fn.split('.').pop();
     mime = matchMimeFromExtension(extension);
