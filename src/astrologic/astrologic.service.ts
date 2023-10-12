@@ -1136,13 +1136,16 @@ export class AstrologicService {
     geo: GeoPos,
     tzOffset = -1,
     ayanamsaKey = 'true_citra',
+    skipCache = false
   ): Promise<ChartClass> {
-    const approxLat = Math.round(geo.lat / 15) * 15;
-    const approxLng = Math.round(geo.lng / 15) * 15;
-    const geoOffset = tzOffset !== -1 ? tzOffset : approxLng * 240; // solar timezone offset to nearest hour in secs
+    const approxLat = Math.round(geo.lat);
+    const approxLng = Math.round(geo.lng);
+    const geoSecOffset = Math.round(approxLng / 15) * 15 * 240;
+    const geoOffset = tzOffset !== -1 ? tzOffset : geoSecOffset; // solar timezone offset to nearest hour in secs
     const approxTimeDt = dtStringToNearest15Minutes(dtUtc);
     const key = ['curr-bc', approxTimeDt, approxLat, approxLng].join('-');
-    const stored = await this.redisGet(key);
+    const stored = skipCache ? null : await this.redisGet(key);
+    
     let tData = null;
     if (stored instanceof Object) {
       tData = stored;
@@ -1156,7 +1159,7 @@ export class AstrologicService {
         false,
         false,
       );
-      this.redisSet(key, tData, 30 * 60);
+      this.redisSet(key, tData, 15 * 60);
     }
     return new ChartClass(tData);
   }

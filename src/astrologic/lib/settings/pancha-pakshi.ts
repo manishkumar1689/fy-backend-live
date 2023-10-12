@@ -2271,6 +2271,7 @@ export const matchPeriodsWithPPScores = (
       let subScore = 0;
       for (const rSet of rules) {
         for (const r of rSet.ppConditions()) {
+          
           const isSegment = r.key.includes('day_night');
           const friendRel = r.context.includes('friend');
           const enemyRel = r.context.includes('enemy');

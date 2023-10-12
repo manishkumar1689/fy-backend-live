@@ -1899,6 +1899,7 @@ export class UserController {
     if (paramKeys.includes('mode')) {
       showMode = params.mode;
     }
+    const skipCache = paramKeys.includes('sk') ? smartCastInt(params.sk) > 0 : false;
     let debug = false;
     if (paramKeys.includes('debug')) {
       debug = smartCastInt(params.debug, 0) > 0;
@@ -2019,6 +2020,9 @@ export class UserController {
           const transitChart = await this.astrologicService.getCurrentChartObj(
             dtUtc,
             geoLoc,
+            -1,
+            'true_citra',
+            skipCache
           );
           transitChart.setAyanamshaItemByKey('true_citra');
           const kc = calcKotaChakraScoreData(

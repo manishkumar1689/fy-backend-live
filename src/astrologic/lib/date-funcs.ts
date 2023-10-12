@@ -444,7 +444,7 @@ export const dtStringToNearest15Minutes = (dtStr = '') => {
     const parts = dtStr.split(/[T ]/);
     const timePart = parts[1].split('.').shift();
     const timeParts = timePart.split(':');
-    const mins = Math.round(parseInt(timeParts[1], 10) / 15) * 15;
+    const mins = (Math.round(parseInt(timeParts[1], 10) / 15) * 15) % 60;
     return [parts[0], [timeParts[0], zero2Pad(mins), '00'].join('-')].join('T');
   } else {
     return dtStr;
