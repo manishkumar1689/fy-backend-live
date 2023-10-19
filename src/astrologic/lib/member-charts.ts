@@ -133,7 +133,6 @@ export const simplifyChart = (chartRef = null, ayanamshaKey = 'true_citra', mode
     delete chart.objects;
     delete chart.rashis;
     delete chart.houses;
-    delete chart.numValues;
   } else {
     chart.sphutas = matchAyanamshaDataSet(chart, 'sphutas', ayanamshaNum);
     chart.objects = matchAyanamshaDataSet(chart, 'objects', ayanamshaNum);
