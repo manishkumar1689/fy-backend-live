@@ -2087,7 +2087,7 @@ export class UserService {
         },
       );
       data.valid = userData instanceof Object;
-      data.user = extractSimplified(userData, ['password', 'coords']);
+      data.user = extractSimplified(userData, ['password', 'coords', 'status']);
     }
     return data;
   }
