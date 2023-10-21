@@ -2540,7 +2540,7 @@ export class UserService {
     };
   }
 
-  async fetchMaxImages(userID = '', permData = null) {
+  async fetchMaxImages(userID = '', permData = null, updateAllowance = false) {
     const user = await this.userModel
       .findById(userID)
       .select('active roles profiles');
@@ -2590,6 +2590,9 @@ export class UserService {
           });
         }
       });
+    }
+    if (updateAllowance) {
+      numUploaded--;
     }
     const mayUploadMore = isAdmin || numUploaded < limit;
     return {

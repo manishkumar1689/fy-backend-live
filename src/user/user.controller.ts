@@ -97,7 +97,6 @@ import { ActiveStatusDTO } from './dto/active-status.dto';
 import {
   dateAgoString,
   isoDateToMilliSecs,
-  julToDateFormat,
   matchJdAndDatetime,
   sortByModifedAtDesc,
 } from '../astrologic/lib/date-funcs';
@@ -1229,9 +1228,10 @@ export class UserController {
   #admin
   #mobile
   */
-  async maxUploadByUser(userID: string) {
+  async maxUploadByUser(userID: string, mediaRef = '') {
+    const updateAllowance = notEmptyString(mediaRef, 16);
     const permData = await this.settingService.getPermissionData(true);
-    return await this.userService.fetchMaxImages(userID, permData);
+    return await this.userService.fetchMaxImages(userID, permData, updateAllowance);
   }
 
   /*
@@ -2118,6 +2118,12 @@ export class UserController {
       chart.geo,
       chart.isDayTime,
     );
+/*     trData.transposed.forEach(row => {
+      console.log(row.key, row.items.map(r => {
+        const dt = julToISODate(r.value);
+        return { ...r,dt }
+      }));
+    }) */
     const transitions = processTransitionData(trData, midNightJd, endJd);
   
     const ppData = await process5PRulesWithPeaks(
@@ -3291,7 +3297,7 @@ export class UserController {
       data.message = 'not authorised';
     }
     if (file instanceof Object && userStatus.active) {
-      const uploadAuth = await this.maxUploadByUser(userID);
+      const uploadAuth = await this.maxUploadByUser(userID, mediaRef);
       if (!uploadAuth.valid) {
         data.message = 'unmatched user';
         status = HttpStatus.NOT_FOUND;
