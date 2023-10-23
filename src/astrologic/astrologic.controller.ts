@@ -66,7 +66,6 @@ import {
 } from './lib/point-transitions';
 import { sampleBaseObjects } from './lib/custom-transits';
 import {
-  calcJulianDate,
   calcJulDate,
   applyTzOffsetToDateString,
   toShortTzAbbr,
@@ -79,7 +78,6 @@ import {
   julToUnixTime,
   matchLocaleJulianDayData,
 } from './lib/date-funcs';
-import { getFuncNames, getConstantVals } from './lib/sweph-test';
 import {
   toIndianTime,
   calcTransition,
@@ -165,51 +163,7 @@ export class AstrologicController {
     private dictionaryService: DictionaryService,
   ) {}
 
-  /*
-  #astrotesting
-  */
-  @Get('juldate/:isodate?')
-  async juldate(@Res() res, @Param('isodate') isodate, @Query() query) {
-    const params = validISODateString(isodate) ? { dt: isodate } : query;
-    const data = calcJulianDate(params);
-    res.send(data);
-  }
 
-  /*
-  #astrotesting
-  */
-  @Get('swisseph/constants')
-  async listConstants(@Res() res) {
-    const constants = getConstantVals();
-    const data = {
-      constants,
-    };
-    res.send(data);
-  }
-
-  /*
-  #astrotesting
-  */
-  @Get('swisseph/functions')
-  async showFunctions(@Res() res) {
-    const functions = getFuncNames();
-    const data = {
-      functions,
-    };
-    res.send(data);
-  }
-
-  /*
-  #astrotesting
-  */
-  @Post('create-chart')
-  async createChart(@Res() res, @Body() chartDTO: CreateChartDTO) {
-    const chart = await this.astrologicService.createChart(chartDTO);
-    res.send({
-      valid: chart instanceof Object,
-      chart,
-    });
-  }
 
   /*
     #mobile
@@ -405,71 +359,8 @@ export class AstrologicController {
   }
 
   /*
-    #mobile
-    #testing
+  * Mobile / astrotesting
   */
-  /* @Get('lucky-times/:chartRef/:loc/:dt?/:dtMode?')
-  async ppLuckyTimes(
-    @Res() res,
-    @Param('chartRef') chartRef,
-    @Param('loc') loc,
-    @Param('dt') dt,
-    @Param('dtMode') dtMode,
-  ) {
-    let status = HttpStatus.BAD_REQUEST;
-    const dateMode = notEmptyString(dtMode) ? dtMode.toLowerCase() : 'simple';
-    const data: Map<string, any> = new Map(
-      Object.entries({
-        valid: false,
-        message: '',
-      }),
-    );
-    let chartID = await this.astrologicService.getChartIDByUserRef(chartRef);
-    if (!notEmptyString(chartID, 12)) {
-      chartID = chartRef;
-    }
-    if (notEmptyString(chartID) && notEmptyString(loc, 3)) {
-      const geo = locStringToGeo(loc);
-      const { dtUtc, jd } = matchJdAndDatetime(dt);
-
-      data.set('jd', jd);
-      data.set('unix', julToDateParts(jd).unixTimeInt);
-      data.set('dtUtc', dtUtc);
-      const chartData = await this.astrologicService.getChart(chartID);
-      const hasChart = chartData instanceof Model;
-      const valid = hasChart && chartData.grahas.length > 1;
-      data.set('valid', valid);
-      if (valid) {
-        const chartObj = hasChart ? chartData.toObject() : {};
-        const chart = new Chart(chartObj);
-        const rules = await this.settingService.getPPRules();
-        const customCutoff = await this.settingService.getPPCutoff();
-        const ppData = await calcLuckyTimes(
-          chart,
-          jd,
-          geo,
-          rules,
-          customCutoff,
-          dateMode,
-        );
-        const simpleModeExcludeKeys = ['minutes', 'rules'];
-        const fullMode = dateMode !== 'simple';
-        ppData.forEach((v, k) => {
-          if (fullMode || simpleModeExcludeKeys.includes(k) === false) {
-            data.set(k, v);
-          }
-        });
-
-        if (data.get('valid')) {
-          status = HttpStatus.OK;
-        }
-      }
-    } else {
-      data.set('message', 'Invalid parameters');
-    }
-    return res.status(status).json(Object.fromEntries(data));
-  } */
-
   @Get('lucky-times/:chartRef/:loc/:dt?/:dtMode?')
   async ppLuckyTimes(
     @Res() res,
@@ -654,45 +545,6 @@ export class AstrologicController {
     return res.status(status).json(Object.fromEntries(data));
   }
 
-  /*
-    #astrotesting
-  */
-  @Get('houses/:loc/:dt/:system?')
-  async housesByDateGeo(
-    @Res() res,
-    @Param('loc') loc,
-    @Param('dt') dt,
-    @Param('system') system,
-  ) {
-    let data: any = { valid: false };
-    if (notEmptyString(dt, 6) && notEmptyString(loc, 3)) {
-      const geo = locStringToGeo(loc);
-      const sysRef = notEmptyString(system) ? system : 'W';
-      data = await fetchHouseData(dt, geo, sysRef);
-    }
-    return res.status(HttpStatus.OK).json(data);
-  }
-
-  /*
-    #astrotesting
-  */
-  @Get('bodies-in-houses/:loc/:dt/:system?/:ayanamsha?')
-  async bodiesInhousesByDateGeo(
-    @Res() res,
-    @Param('loc') loc,
-    @Param('dt') dt,
-    @Param('system') system,
-    @Param('ayanamsha') ayanamsha,
-  ) {
-    let data: any = { valid: false };
-    if (notEmptyString(dt, 6) && notEmptyString(loc, 3)) {
-      const geo = locStringToGeo(loc);
-      const sysRef = notEmptyString(system) ? system : 'W';
-      const ayanamshaNum = isNumeric(ayanamsha) ? parseInt(ayanamsha, 10) : 27;
-      data = await calcBodiesInHouses(dt, geo, sysRef, ayanamshaNum);
-    }
-    return res.status(HttpStatus.OK).json(data);
-  }
 
   @Get('core-grahas/:loc/:dt/:ayanamsha?')
   async coreGrahasByDateGeo(
@@ -955,205 +807,6 @@ export class AstrologicController {
       }
     }
     return res.status(HttpStatus.OK).json(data);
-  }
-
-  /*
-    #astroui only
-  */
-  @Get('sbc-vedhas/:chartRef/:loc/:dt?')
-  async getSbcVedhas(
-    @Res() res,
-    @Param('chartRef') chartRef,
-    @Param('loc') loc,
-    @Param('dt') dt,
-  ) {
-    let chartID = chartRef;
-    if (chartRef.includes('@') && chartRef.includes('.')) {
-      chartID = await this.astrologicService.getChartIDByEmail(chartRef);
-    }
-    const { dtUtc, jd } = matchJdAndDatetime(dt);
-    const topList = 'true_citra';
-    const transitCData = await this.fetchCompactChart(
-      loc,
-      dtUtc,
-      'top',
-      topList,
-      false,
-      false,
-    );
-    const result: Map<string, any> = new Map();
-    result.set('grid', []);
-    result.set('jd', jd);
-    if (transitCData instanceof Object) {
-      const transit = new Chart(transitCData);
-      transit.setAyanamshaItemByKey('true_citra');
-      result.set(
-        'transit',
-        transit.grahasByKeys().map(gr => gr.toKeyLng()),
-      );
-      if (isValidObjectId(chartID)) {
-        const bData = await this.astrologicService.getChart(chartID);
-        if (bData instanceof Model) {
-          const birth = new Chart(bData.toObject());
-          birth.setAyanamshaItemByKey('true_citra');
-          const sbc = traverseAllNak28Cells(transit, birth);
-          result.set('sbc', sbc);
-          const grid = buildSbcScoreGrid(sbc);
-          result.set(
-            'natal',
-            birth.grahasByKeys().map(gr => gr.toKeyLng()),
-          );
-          result.set('grid', grid);
-          result.set('natalWd', birth.indianTime.weekDayNum);
-          result.set('natalMoonSign', birth.moon.sign);
-          result.set('natalMoonNak28', birth.moon.nakshatra28);
-          result.set('natalAscSign', birth.ascendantGraha.sign);
-          result.set('natalAscSign', birth.tithi.num);
-        }
-      }
-    }
-    return res.json(Object.fromEntries(result.entries()));
-  }
-
-  /*
-    #astroui only
-  */
-  @Get('kota-chakra/:chartRef/:loc/:dt?')
-  async getKotaChakra(
-    @Res() res,
-    @Param('chartRef') chartRef,
-    @Param('loc') loc,
-    @Param('dt') dt,
-    @Query() query,
-  ) {
-    let chartID = chartRef;
-    if (chartRef.includes('@') && chartRef.includes('.')) {
-      chartID = await this.astrologicService.getChartIDByEmail(chartRef);
-    }
-    const { dtUtc, jd } = matchJdAndDatetime(dt);
-    const params = query instanceof Object ? query : {};
-    const paramKeys = Object.keys(params);
-    const separateSP = paramKeys.includes('separate')
-      ? smartCastInt(params.separate, 0) > 0
-      : false;
-    const topList = 'true_citra';
-    const transitCData = await this.fetchCompactChart(
-      loc,
-      dtUtc,
-      'top',
-      topList,
-      false,
-      false,
-    );
-    const result: Map<string, any> = new Map();
-    result.set('jd', jd);
-    result.set('dtUtc', dtUtc);
-    if (transitCData instanceof Object) {
-      const transit = new Chart(transitCData);
-      transit.setAyanamshaItemByKey('true_citra');
-      const ruleData = await this.settingService.getKotaChakraScoreData();
-      //result.set('rules', ruleData);
-      if (isValidObjectId(chartID)) {
-        const bData = await this.astrologicService.getChart(chartID);
-        if (bData instanceof Model) {
-          const birth = new Chart(bData.toObject());
-          result.set('birthJd', birth.jd);
-          result.set('birthUtc', birth.datetime);
-          result.set('birthLocation', birth.geo);
-          const {
-            scores,
-            total,
-            moonNakshatra,
-            svami,
-            pala,
-            scoreSet,
-          } = calcKotaChakraScoreSet(birth, transit, ruleData, separateSP);
-          result.set('svami', svami);
-          result.set('pala', pala);
-          result.set('total', total);
-          result.set('scores', scores);
-          result.set('moonNakshatra', moonNakshatra);
-          result.set('scoreSet', scoreSet);
-          result.set(
-            'transit',
-            transit.grahasByKeys().map(gr => gr.toKeyLng()),
-          );
-        }
-      }
-    }
-    return res.json(Object.fromEntries(result.entries()));
-  }
-
-  /*
-    #testing
-  */
-  @Get('kota-chakra-compare/:c1/:c2?')
-  async compareKotaChakra(
-    @Res() res,
-    @Param('c1') c1,
-    @Param('c2') c2,
-    @Query() query,
-  ) {
-    let chartID1 = c1;
-    if (c1.includes('@') && c1.includes('.')) {
-      chartID1 = await this.astrologicService.getChartIDByEmail(c1);
-    }
-    let chartID2 = c2;
-    if (c2.includes('@') && c2.includes('.')) {
-      chartID2 = await this.astrologicService.getChartIDByEmail(c2);
-    }
-    const params = query instanceof Object ? query : {};
-    const paramKeys = Object.keys(params);
-    const separateSP = paramKeys.includes('separate')
-      ? smartCastInt(params.separate, 0) > 0
-      : false;
-    const result: Map<string, any> = new Map();
-    const cData1 = isValidObjectId(chartID1)
-      ? await this.astrologicService.getChart(chartID1)
-      : null;
-    const cData2 = isValidObjectId(chartID2)
-      ? await this.astrologicService.getChart(chartID2)
-      : null;
-    if (cData1 instanceof Model && cData2 instanceof Model) {
-      const chart1 = new Chart(cData1.toObject());
-      chart1.setAyanamshaItemByKey('true_citra');
-      const chart2 = new Chart(cData2.toObject());
-      chart2.setAyanamshaItemByKey('true_citra');
-      const scoreSet = await this.settingService.getKotaChakraScoreSet();
-      result.set('c1Jd', chart1.jd);
-      result.set('c1Utc', chart1.datetime);
-      result.set('c1Location', chart1.geo);
-      result.set('c2Jd', chart2.jd);
-      result.set('c2Utc', chart2.datetime);
-      result.set('c2Location', chart2.geo);
-      const s1Data = calcKotaChakraScoreData(
-        chart1,
-        chart2,
-        scoreSet,
-        separateSP,
-      );
-      result.set('s1', {
-        moonNakshatra: s1Data.moonNakshatra,
-        svami: s1Data.svami,
-        pala: s1Data.pala,
-        total: s1Data.total,
-        scores: s1Data.scores,
-      });
-      const s2Data = calcKotaChakraScoreData(
-        chart2,
-        chart1,
-        scoreSet,
-        separateSP,
-      );
-      result.set('s2', {
-        moonNakshatra: s2Data.moonNakshatra,
-        svami: s2Data.svami,
-        pala: s2Data.pala,
-        total: s2Data.total,
-        scores: s2Data.scores,
-      });
-    }
-    return res.json(Object.fromEntries(result.entries()));
   }
 
   /*
