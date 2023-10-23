@@ -11,7 +11,6 @@ import {
   calcAscendantTimelineSet,
   calcCoreKakshaTimeline,
   calcCoreSignTimeline,
-  calcStation,
   SignTimelineSet,
 } from './lib/astro-motion';
 import { subtractLng360 } from './lib/math-funcs';
@@ -101,7 +100,6 @@ import {
 import { currentJulianDay } from './lib/julian-date';
 import { filterCorePreference } from '../lib/mappers';
 import { User } from '../user/interfaces/user.interface';
-import { KeyNumValue } from '../lib/interfaces';
 import {
   calcKsetraBala,
   calcNavamshaBala,
@@ -2389,172 +2387,6 @@ export class AstrologicService {
       relType: /\w+/,
     });
     return slugs instanceof Array ? slugs : [];
-  }
-
-  /*
-    Development and maintenance
-  */
-  async savePlanetStations(
-    num: number,
-    datetime: string,
-    days: number,
-  ): Promise<any> {
-    const jd = calcJulDate(datetime);
-    const body = grahaValues.find(b => b.num === num);
-    let prevSpeed = 0;
-    let data: any = { valid: false };
-    for (let i = 0; i < days; i++) {
-      const refJd = jd + i;
-      data = await calcAcceleration(refJd, body);
-      const { start, end } = data;
-
-      if (i > 0) {
-        const prevSpeedDiv =
-          isNumber(prevSpeed) && prevSpeed !== 0 ? start.speed / prevSpeed : 0;
-        const sd1: BodySpeedDTO = {
-          num,
-          speed: start.spd,
-          lng: start.lng,
-          jd: start.jd,
-          datetime: start.datetime,
-          acceleration: prevSpeedDiv,
-          station: 'sample',
-        };
-        await this.saveBodySpeed(sd1);
-      }
-
-      const sd2: BodySpeedDTO = {
-        num,
-        speed: end.speed,
-        lng: end.lng,
-        jd: end.jd,
-        datetime: end.datetime,
-        acceleration: data.rate,
-        station: 'sample',
-      };
-      await this.saveBodySpeed(sd2);
-      prevSpeed = end.spd;
-    }
-    return data;
-  }
-
-  /*
-    Development and maintenance
-  */
-  async saveBodySpeedStation(
-    jd: number,
-    num: number,
-    station: string,
-  ): Promise<BodySpeed> {
-    const bs = await calcStation(jd, num, station);
-    const saved = await this.saveBodySpeed(bs);
-    return saved;
-  }
-
-  /*
-    Development and maintenance
-  */
-  async nextPrevStation(
-    num: number,
-    jd: number,
-    stationKey: string,
-    prev: boolean,
-  ): Promise<BodySpeed> {
-    const relCondition = prev ? { $lte: jd } : { $gte: jd };
-    const sortDir = prev ? -1 : 1;
-    const station = notEmptyString(stationKey, 2)
-      ? stationKey
-      : { $nin: ['sample', 'peak', 'retro-peak'] };
-    const criteria: any = { num, jd: relCondition, station };
-    return await this.bodySpeedModel
-      .findOne(criteria)
-      .sort({ jd: sortDir })
-      .limit(1)
-      .exec();
-  }
-
-  async speedProgress(
-    key = '',
-    speed = 0,
-    jd: number,
-  ): Promise<{
-    progress: number;
-    start: number;
-    end: number;
-    peak: number;
-    retro: boolean;
-  }> {
-    let progress = 0;
-    let peak = 0;
-    let end = 0;
-    let start = 0;
-    const direct = speed > 0;
-    const retro = !direct;
-    const stations = await this._fetchRelatedStations(key, jd, true, direct);
-    const stationKeys =
-      stations.length > 0 ? stations.map(st => st.station) : [];
-    const startKey = retro ? 'retro-start' : 'retro-end';
-    const endKey = retro ? 'retro-end' : 'retro-start';
-    const peakKey = retro ? 'retro-peak' : 'peak';
-    if (stationKeys.includes(peakKey)) {
-      const stSt = stations.find(st => st.station === startKey);
-      const pkSt = stations.find(st => st.station === peakKey);
-      const stJd = stSt instanceof Object ? stSt.jd : -1;
-      const pkStJd = pkSt instanceof Object ? pkSt.jd : -1;
-      if (pkStJd < stJd) {
-        const peakIndex = stationKeys.indexOf(peakKey);
-        stationKeys.splice(peakIndex, 1);
-        stations.splice(peakIndex, 1);
-      }
-    }
-    if (stationKeys.length > 0 && stationKeys.length < 3) {
-      const nextStations = await this._fetchRelatedStations(
-        key,
-        jd,
-        false,
-        direct,
-        stationKeys,
-      );
-      if (nextStations.length > 0) {
-        nextStations.forEach(st => {
-          stations.push(st);
-        });
-      }
-    }
-    if (stations.length > 2) {
-      const startStation = stations.find(st => st.station === startKey);
-      start = startStation instanceof Object ? startStation.jd : -1;
-      const endStation = stations.find(st => st.station === endKey);
-      end = endStation instanceof Object ? endStation.jd : -1;
-      const peakStation = stations.find(st => st.station === peakKey);
-      peak = peakStation instanceof Object ? peakStation.speed : 0;
-      progress = Math.abs(speed) / Math.abs(peak);
-    }
-    return { progress, start, end, peak, retro };
-  }
-
-  /*
-    Development
-  */
-  async matchRetroValues(chart: ChartClass): Promise<KeyNumValue[]> {
-    const keys = ['me', 've', 'ma', 'ju', 'sa'];
-    const values: any[] = [];
-    for (const key of keys) {
-      const gr = chart.graha(key);
-      if (gr instanceof Object) {
-        let progVal = -1;
-        if (gr.lngSpeed <= 0) {
-          const { progress } = await this.speedProgress(
-            key,
-            gr.lngSpeed,
-            chart.jd,
-          );
-          progVal = progress;
-        }
-        values.push({ key, value: progVal });
-      }
-    }
-    return values;
   }
 
   async calcExtraScoresForChart(cData = null, vakraScale = 60) {
