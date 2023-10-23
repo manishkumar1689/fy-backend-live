@@ -141,7 +141,6 @@ import {
 import { PairsSetDTO } from './dto/pairs-set.dto';
 import {
   buildProgressSetPairs,
-  buildSingleProgressSet,
   buildSingleProgressSetKeyValues,
   calcProgressAspectDataFromProgressItems,
   calcProgressSummary,
@@ -1155,77 +1154,6 @@ export class AstrologicController {
       });
     }
     return res.json(Object.fromEntries(result.entries()));
-  }
-
-  /*
-    Astro UI only
-  */
-  @Get('retro-scores/:chartRef')
-  async getRetroScores(@Res() res, @Param('chartRef') chartRef) {
-    let chartID = chartRef;
-    const data = { valid: false, result: null };
-    if (chartRef.includes('@') && chartRef.includes('.')) {
-      chartID = await this.astrologicService.getChartIDByEmail(chartRef);
-    }
-    if (isValidObjectId(chartID)) {
-      const cData = await this.astrologicService.getChart(chartID);
-      if (cData instanceof Model) {
-        const chart = new Chart(cData.toObject());
-        data.result = await this.astrologicService.matchRetroValues(chart);
-        data.valid = data.result.length > 4;
-      }
-    }
-    return res.json(data);
-  }
-
-  /*   @Get('test-vedhas/:nak/:pada?')
-  async testSbcVedhas(@Res() res, @Param('nak') nak, @Param('pada') pada) {
-    const nakNum = isNumeric(nak)? smartCastInt(nak) : 0;
-    const padaNum = isNumeric(pada)? smartCastInt(pada) : 0;
-    const result: Map<string, any> = new Map();
-    result.set('valid', false);
-    if (nakNum > 0) {
-      const vedhas = matchTraversedNak28Cells(nakNum, padaNum);
-      result.set('vedhas', vedhas);
-      if (vedhas.length > 0) {
-        result.set('valid', true);
-      }
-    }
-    return res.json(Object.fromEntries( result.entries() ));
-  } */
-  /*
-    Admin UI / testing
-  */
-  @Get('next-p2/:chartID/:showISO?/:grahas?')
-  async renderNextProgressionPositionsForChart(
-    @Res() res,
-    @Param('chartID') chartID,
-    @Param('showISO') showISO,
-    @Param('grahas') grahas,
-  ) {
-    const chartData = await this.astrologicService.getChart(chartID);
-    const rsMap: Map<string, any> = new Map();
-    if (chartData instanceof Model) {
-      const chart = new Chart(chartData.toObject());
-      const showISODt = isNumeric(showISO)
-        ? smartCastInt(showISO, 0) > 0
-        : false;
-      let grahaKeys = ['su', 've', 'ma'];
-      if (notEmptyString(grahas)) {
-        const gKeys = grahas.split(',').filter(gk => gk.length === 2);
-        if (gKeys.length > 0) {
-          grahaKeys = gKeys;
-        }
-      }
-      const progSet = await buildSingleProgressSet(
-        chart.jd,
-        21,
-        grahaKeys,
-        showISODt,
-      );
-      rsMap.set('progressSet', progSet);
-    }
-    return res.json(Object.fromEntries(rsMap.entries()));
   }
 
   /*

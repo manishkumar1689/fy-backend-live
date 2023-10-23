@@ -5,16 +5,8 @@ import { AxiosResponse } from 'axios';
 import { BodySpeed } from './interfaces/body-speed.interface';
 import { Chart } from './interfaces/chart.interface';
 import { BodySpeedDTO } from './dto/body-speed.dto';
-import {
-  calcAcceleration,
-  calcAscendantKakshaSet,
-  calcAscendantTimelineSet,
-  calcCoreKakshaTimeline,
-  calcCoreSignTimeline,
-  SignTimelineSet,
-} from './lib/astro-motion';
 import { subtractLng360 } from './lib/math-funcs';
-import grahaValues, { matchPlanetNum } from './lib/settings/graha-values';
+import { matchPlanetNum } from './lib/settings/graha-values';
 import roddenScaleValues, {
   matchRoddenKeyValue,
 } from './lib/settings/rodden-scale-values';
@@ -30,7 +22,6 @@ import {
 import {
   applyTzOffsetToDateString,
   calcJulDate,
-  calcJulDateFromParts,
   dtStringToNearest15Minutes,
   julToISODateObj,
   zero2Pad,
@@ -39,7 +30,6 @@ import {
   emptyString,
   inRange,
   isNumber,
-  isNumeric,
   notEmptyString,
   validISODateString,
 } from '../lib/validators';
@@ -55,7 +45,6 @@ import {
   storeInRedis,
 } from '../lib/entities';
 import * as Redis from 'ioredis';
-import { SimpleTransition } from './interfaces/simple-transition.interface';
 import {
   matchDefaultVocabOptionKeys,
   SlugNameVocab,
@@ -82,12 +71,10 @@ import {
 } from './lib/helpers';
 import { calcTropicalAscendantDt } from './lib/calc-ascendant';
 import { GeoLoc } from './lib/models/geo-loc';
-import { LngLat } from './lib/interfaces';
 import {
   addExtraPanchangaNumValuesFromClass,
   simplifyChart,
 } from './lib/member-charts';
-import { getAshtakavargaBodyGrid } from './lib/settings/ashtakavarga-values';
 import { GeoPos } from './interfaces/geo-pos';
 import { ProgressItemDTO } from './dto/progress-item.dto';
 import {
@@ -110,6 +97,7 @@ import {
 import { calcKotaChakraScoreData } from './lib/settings/kota-values';
 import { addSnippetKeyToSynastryAspectMatches } from './lib/synastry-aspect-mapper';
 import { GrahaPos } from './lib/point-transitions';
+import { KeyNumValue } from '../lib/interfaces';
 import { astroCalcApi } from '../.config';
 const { ObjectId } = Types;
 
@@ -2388,6 +2376,88 @@ export class AstrologicService {
     });
     return slugs instanceof Array ? slugs : [];
   }
+  
+
+  async speedProgress(
+    key = '',
+    speed = 0,
+    jd: number,
+  ): Promise<{
+    progress: number;
+    start: number;
+    end: number;
+    peak: number;
+    retro: boolean;
+  }> {
+    let progress = 0;
+    let peak = 0;
+    let end = 0;
+    let start = 0;
+    const direct = speed > 0;
+    const retro = !direct;
+    const stations = await this._fetchRelatedStations(key, jd, true, direct);
+    const stationKeys =
+      stations.length > 0 ? stations.map(st => st.station) : [];
+    const startKey = retro ? 'retro-start' : 'retro-end';
+    const endKey = retro ? 'retro-end' : 'retro-start';
+    const peakKey = retro ? 'retro-peak' : 'peak';
+    if (stationKeys.includes(peakKey)) {
+      const stSt = stations.find(st => st.station === startKey);
+      const pkSt = stations.find(st => st.station === peakKey);
+      const stJd = stSt instanceof Object ? stSt.jd : -1;
+      const pkStJd = pkSt instanceof Object ? pkSt.jd : -1;
+      if (pkStJd < stJd) {
+        const peakIndex = stationKeys.indexOf(peakKey);
+        stationKeys.splice(peakIndex, 1);
+        stations.splice(peakIndex, 1);
+      }
+    }
+    if (stationKeys.length > 0 && stationKeys.length < 3) {
+      const nextStations = await this._fetchRelatedStations(
+        key,
+        jd,
+        false,
+        direct,
+        stationKeys,
+      );
+      if (nextStations.length > 0) {
+        nextStations.forEach(st => {
+          stations.push(st);
+        });
+      }
+    }
+    if (stations.length > 2) {
+      const startStation = stations.find(st => st.station === startKey);
+      start = startStation instanceof Object ? startStation.jd : -1;
+      const endStation = stations.find(st => st.station === endKey);
+      end = endStation instanceof Object ? endStation.jd : -1;
+      const peakStation = stations.find(st => st.station === peakKey);
+      peak = peakStation instanceof Object ? peakStation.speed : 0;
+      progress = Math.abs(speed) / Math.abs(peak);
+    }
+    return { progress, start, end, peak, retro };
+  }
+
+  async matchRetroValues(chart: ChartClass): Promise<KeyNumValue[]> {
+    const keys = ['me', 've', 'ma', 'ju', 'sa'];
+    const values: any[] = [];
+    for (const key of keys) {
+      const gr = chart.graha(key);
+      if (gr instanceof Object) {
+        let progVal = -1;
+        if (gr.lngSpeed <= 0) {
+          const { progress } = await this.speedProgress(
+            key,
+            gr.lngSpeed,
+            chart.jd,
+          );
+          progVal = progress;
+        }
+        values.push({ key, value: progVal });
+      }
+    }
+    return values;
+  }
 
   async calcExtraScoresForChart(cData = null, vakraScale = 60) {
     let numValues = [];
@@ -2475,453 +2545,6 @@ export class AstrologicService {
       .find(criteria)
       .sort({ jd: sortDir })
       .limit(stationKeys.length);
-  }
-
-  /*
-    Development and maintenance
-  */
-  async matchStations(key: string, jd: number): Promise<any> {
-    const row = grahaValues.find(gr => gr.key === key);
-    const num = row instanceof Object ? row.num : -1;
-    const nudge = 1 / 1440;
-    const prev = await this.nextPrevStation(num, jd, '-', true);
-    //const prev2 = await this.nextPrevStation(num, prev.jd - nudge, '-', true);
-    const next = await this.nextPrevStation(num, jd, '-', false);
-    const next2 = await this.nextPrevStation(num, next.jd + nudge, '-', false);
-    const retrograde = prev.station === 'retro-start';
-    const nextDirect = retrograde ? jd : next.jd;
-    const nextRetro = retrograde ? jd : next.jd;
-    const nextLng = next.lng;
-    const prevLng = prev.lng;
-    const nextPeriod = next2.jd - next.jd;
-    const currPeriod = next.jd - prev.jd;
-    return {
-      retrograde,
-      nextDirect,
-      nextRetro,
-      currPeriod,
-      nextPeriod,
-      prevLng,
-      nextLng,
-    };
-  }
-
-  /*
-    Admin
-    AstroWebApp
-  */
-  async transitionsByPlanet(
-    num: number,
-    startYear = 2000,
-    endYear = 2100,
-  ): Promise<Array<SimpleTransition>> {
-    const key = ['all-transitions-by-planet', num, startYear, endYear].join(
-      '_',
-    );
-    const storedResults = await this.redisGet(key);
-    let results = [];
-    if (storedResults instanceof Array && storedResults.length > 0) {
-      results = storedResults;
-    } else {
-      const dbResults = await this._transitionsByPlanet(
-        num,
-        startYear,
-        endYear,
-      );
-      if (dbResults instanceof Array && dbResults.length > 0) {
-        results = dbResults.map(item => {
-          const { jd, datetime, num, speed, lng, acceleration, station } = item;
-          return { jd, datetime, num, speed, lng, acceleration, station };
-        });
-        this.redisSet(key, results);
-      }
-    }
-    return results;
-  }
-
-  /*
-   * Admin, AstroWebApp
-   */
-  async _transitionsByPlanet(
-    num: number,
-    startYear = 2000,
-    endYear = 2100,
-  ): Promise<Array<BodySpeed>> {
-    const station = { $ne: 'sample' };
-    const otherParams = { month: 1, day: 1, hour: 0 };
-    const startJd = calcJulDateFromParts({ year: startYear, ...otherParams });
-    const endJd = calcJulDateFromParts({ year: endYear, ...otherParams });
-    const jd = { $gte: startJd, $lte: endJd };
-    const criteria = num >= 0 ? { num, station, jd } : { station, jd };
-    const data = await this.bodySpeedModel
-      .find(criteria)
-      .sort({ jd: 1 })
-      .limit(25000)
-      .exec();
-    return data;
-  }
-
-  /*
-   * Development and Maintenance
-   */
-  async speedPatternsByPlanet(num: number): Promise<Array<BodySpeed>> {
-    let minJd = 0;
-    const last2 = await this.bodySpeedModel
-      .find({ num, station: { $ne: 'sample' } })
-      .sort({ jd: -1 })
-      .limit(2)
-      .exec();
-
-    if (last2 instanceof Array && last2.length > 1) {
-      minJd = last2[1].jd;
-    }
-    const data = await this.bodySpeedModel
-      .find({ num, station: 'sample', jd: { $gt: minJd } })
-      .sort({ jd: 1 })
-      .limit(5000)
-      .exec();
-    const results: Array<BodySpeed> = [];
-    if (data instanceof Array && data.length > 0) {
-      let maxSpd = 0;
-      let minSpd = 0;
-      let maxMatched = false;
-      let minMatched = false;
-      let currPolarity = 1;
-      let prevPolarity = 1;
-      let prevRow: any = null;
-      let rowsMatched = 0;
-      data.forEach(row => {
-        currPolarity = row.speed >= 0 ? 1 : -1;
-        if (currPolarity > 0) {
-          if (row.speed > maxSpd) {
-            maxSpd = row.speed;
-          } else if (!maxMatched && prevRow instanceof Object) {
-            maxMatched = true;
-            if (rowsMatched < 4) {
-              results.push(prevRow);
-              this.saveBodySpeedStation(prevRow.jd, num, 'peak');
-            }
-            rowsMatched++;
-            maxSpd = -1;
-          }
-        }
-        if (currPolarity < 0) {
-          if (row.speed < minSpd) {
-            minSpd = row.speed;
-          } else if (!minMatched && prevRow instanceof Object) {
-            minMatched = true;
-            if (rowsMatched < 4) {
-              results.push(prevRow);
-              this.saveBodySpeedStation(prevRow.jd, num, 'retro-peak');
-            }
-            rowsMatched++;
-            minSpd = 1;
-          }
-        }
-        if (currPolarity !== prevPolarity && prevRow instanceof Object) {
-          rowsMatched++;
-          maxMatched = false;
-          minMatched = false;
-          maxSpd = -1;
-          minSpd = 1;
-          const rs = prevPolarity < 0 ? 'retro-end' : 'retro-start';
-          this.saveBodySpeedStation(prevRow.jd, num, rs);
-          results.push(row);
-        }
-        prevPolarity = currPolarity;
-        prevRow = Object.assign({}, row.toObject());
-        if (rowsMatched >= 4) {
-          rowsMatched = 0;
-        }
-      });
-    }
-    return results;
-  }
-
-  /*
-    Astro UI
-  */
-  async planetStations(
-    num: number,
-    datetime: string,
-    fetchCurrent = false,
-  ): Promise<Array<any>> {
-    const fetchCurrentStr = fetchCurrent ? 'curr' : 'not';
-    const key = ['planet-stations', num, datetime, fetchCurrentStr].join('_');
-    let results = await this.redisGet(key);
-    const valid = results instanceof Array && results.length > 0;
-    if (valid) {
-      return results;
-    } else {
-      results = await this._planetStations(num, datetime, fetchCurrent);
-      if (results instanceof Array) {
-        this.redisSet(key, results);
-      }
-    }
-    return results;
-  }
-
-  /*
-    Astro UI
-  */
-  async _planetStations(
-    num: number,
-    datetime: string,
-    fetchCurrent = false,
-  ): Promise<Array<any>> {
-    const data = new Map<string, any>();
-    data.set('valid', false);
-    const stations = ['peak', 'retro-start', 'retro-peak', 'retro-end'];
-    const assignDSRow = (
-      data: Map<string, any>,
-      station: string,
-      mode: string,
-      row: any,
-    ) => {
-      const { num, jd, datetime, lng, speed } = row;
-      const ds = { num, jd, datetime, lng, speed, retro: speed < 0 };
-      data.set([mode, station].join('__'), ds);
-    };
-    if (isNumeric(num) && validISODateString(datetime)) {
-      const jd = calcJulDate(datetime);
-      if (fetchCurrent) {
-        const current = await calcAcceleration(jd, { num });
-        if (current instanceof Object) {
-          const { start, end } = current;
-          if (start instanceof Object) {
-            data.set('current__spot', {
-              ...start,
-              retro: start.speed < 0,
-              num,
-            });
-            data.set('current__plus-12h', {
-              ...end,
-              retro: end.speed < 0,
-              num,
-              acceleration: current.rate,
-              rising: current.rising,
-              switching: current.switching,
-            });
-          }
-        }
-      }
-      for (const station of stations) {
-        const row = await this.nextPrevStation(num, jd, station, true);
-        if (row instanceof Object) {
-          assignDSRow(data, station, 'prev', row);
-        }
-        const row2 = await this.nextPrevStation(num, jd, station, false);
-        if (row2 instanceof Object) {
-          assignDSRow(data, station, 'next', row2);
-        }
-      }
-    }
-    const results: Array<any> = [];
-    [...data.entries()].forEach(entry => {
-      const [key, row] = entry;
-      if (row instanceof Object) {
-        results.push({
-          station: key,
-          ...row,
-        });
-      }
-    });
-    results.sort((a, b) => a.jd - b.jd);
-    return results;
-  }
-
-  /*
-    Astro UI
-  */
-  async fetchBavTimeline(
-    geo: LngLat,
-    startJd = 0,
-    endJd = 0,
-  ): Promise<SignTimelineSet[]> {
-    const key = ['bav_timeline', startJd.toFixed(2), endJd.toFixed(2)].join(
-      '_',
-    );
-    const storedResults = await this.redisGet(key);
-    const hasStored =
-      storedResults instanceof Array && storedResults.length > 5;
-    const grahas = hasStored
-      ? storedResults
-      : await calcCoreSignTimeline(startJd, endJd);
-    if (!hasStored && grahas instanceof Array && grahas.length > 5) {
-      this.redisSet(key, grahas);
-    }
-    const ascKey = [
-      'bav_asc_timeline',
-      geo.lat.toFixed(3),
-      geo.lng.toFixed(3),
-      startJd.toFixed(2),
-      endJd.toFixed(2),
-    ].join('_');
-    const storedAscResult = await this.redisGet(ascKey);
-    const hasAscStored = storedAscResult instanceof Object;
-    const ascSet = hasAscStored
-      ? storedAscResult
-      : await calcAscendantTimelineSet(geo, startJd, endJd);
-    if (ascSet instanceof Object) {
-      grahas.push(ascSet);
-      if (!hasAscStored) {
-        this.redisSet(ascKey, ascSet);
-      }
-    }
-    return grahas;
-  }
-
-  /*
-    Astro UI
-  */
-  async fetchKakshaTimeline(
-    geo: LngLat,
-    startJd = 0,
-    endJd = 0,
-    excludeKeys = [],
-  ): Promise<SignTimelineSet[]> {
-    const includeAscendant = excludeKeys.includes('as') === false;
-    const keyParts = ['kakshya_tl', startJd, endJd];
-    const excludeMoon = excludeKeys.includes('mo');
-    if (excludeMoon) {
-      keyParts.push('ex_mo');
-    }
-    const key = keyParts.join('_');
-    const storedResults = await this.redisGet(key);
-    const hasStored =
-      storedResults instanceof Array && storedResults.length > 5;
-    const grahas = hasStored
-      ? storedResults
-      : await calcCoreKakshaTimeline(startJd, endJd, excludeMoon);
-    if (!hasStored && grahas instanceof Array && grahas.length > 5) {
-      this.redisSet(key, grahas);
-    }
-    if (includeAscendant) {
-      const ascKey = [
-        'kakshya_asc_tl',
-        geo.lat.toFixed(3),
-        geo.lng.toFixed(3),
-        startJd,
-        endJd,
-      ].join('_');
-      const storedAscResult = await this.redisGet(ascKey);
-      const hasAscStored = storedAscResult instanceof Object;
-      const ascSet = hasAscStored
-        ? storedAscResult
-        : await calcAscendantKakshaSet(geo, startJd, endJd);
-      if (ascSet instanceof Object) {
-        const lng = Object.keys(ascSet).includes('lng')
-          ? ascSet.lng
-          : ascSet.longitude;
-        const sign = Math.floor(lng / 30) + 1;
-        grahas.push({ ...ascSet, lng, sign });
-        if (!hasAscStored) {
-          this.redisSet(ascKey, ascSet);
-        }
-      }
-    }
-    return grahas;
-  }
-
-  /*
-    Astro UI
-  */
-  async fetchKakshaTimelineData(
-    chartID = '',
-    geo: GeoPos,
-    startJd = 0,
-    endJd = 0,
-    excludeKeys = [],
-    ayanamshaKey = 'true_citra',
-  ) {
-    const chartData = await this.getChart(chartID);
-    const simpleChart =
-      chartData instanceof Object
-        ? simplifyChart(chartData, ayanamshaKey)
-        : null;
-    const birthGrahas =
-      simpleChart instanceof Object
-        ? simpleChart.grahas.map(gr => {
-            const { key, lng, sign } = gr;
-            return { key, lng, sign };
-          })
-        : [];
-    const ascendantLng = simpleChart.ascendant;
-    birthGrahas.push({
-      key: 'as',
-      lng: ascendantLng,
-      sign: Math.floor(ascendantLng / 30) + 1,
-    });
-    const keys = ['sa', 'ju', 'ma', 'su', 've', 'me', 'mo', 'as'];
-    const lngs = keys.map(key => {
-      const gr = birthGrahas.find(g => g.key === key);
-      const lng = gr instanceof Object ? gr.lng : 0;
-      return { key, lng };
-    });
-    const kakshyaKeys = keys.filter(k => excludeKeys.includes(k) === false);
-
-    const bavGrid = getAshtakavargaBodyGrid(lngs, simpleChart.jd);
-
-    const grahaItems = await this.fetchKakshaTimeline(
-      geo,
-      startJd,
-      endJd,
-      excludeKeys,
-    );
-    const times = grahaItems
-      .map(row => {
-        const { key, jd, dt, longitude, sign, nextMatches } = row;
-        const first = { key, jd, dt, lng: longitude, sign };
-        const subs = nextMatches.map(r => {
-          const { jd, dt, lng, sign } = r;
-          return { key, jd, dt, lng, sign };
-        });
-        return [first, ...subs];
-      })
-      .reduce((a, b) => a.concat(b), [])
-      .filter(sub => sub.jd < endJd);
-    times.sort((a, b) => a.jd - b.jd);
-    const rows = [];
-    const kakshyaMap: Map<number, any> = new Map();
-    const numKeys = kakshyaKeys.length;
-
-    times.forEach(row => {
-      const index96 = Math.floor(row.lng / (360 / 96));
-      const num = index96 + 1;
-      const kakshyaIndex = index96 % 8;
-      const kakshyaKey = keys[kakshyaIndex];
-      const rowIndex = keys.indexOf(row.key);
-      const signIndex = Math.floor(row.lng / 30);
-      const bavRow =
-        signIndex >= 0 && signIndex < bavGrid.length
-          ? bavGrid[signIndex]
-          : null;
-      const bavValueRows = bavRow instanceof Object ? bavRow.values : [];
-      const bavKeys =
-        kakshyaIndex < bavValueRows.length
-          ? bavValueRows[kakshyaIndex].values
-          : [];
-      if (notEmptyString(kakshyaKey)) {
-        kakshyaMap.set(rowIndex, {
-          lord: kakshyaKey,
-          lng: row.lng,
-          hasBindu: bavKeys.includes(kakshyaKey),
-          sign: Math.floor(row.lng / 30) + 1,
-          num,
-        });
-        if (kakshyaMap.size === numKeys) {
-          rows.push({
-            jd: row.jd,
-            items: [...kakshyaMap.entries()].map(entry => {
-              const [subIndex, value] = entry;
-              const key = keys[subIndex];
-              return { key, ...value };
-            }),
-          });
-        }
-      }
-    });
-    return { rows, datetime: chartData.datetime, geo: chartData.geo };
   }
 
   /*
