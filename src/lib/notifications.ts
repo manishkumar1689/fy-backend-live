@@ -3,6 +3,7 @@ import { googleFCMKeyPath, googleFCMBase, googleFCMDomain } from '../.config';
 import { isNumeric, notEmptyString } from './validators';
 import { extractKeyedItemValue } from './converters';
 import { CreateFlagDTO } from '../feedback/dto/create-flag.dto';
+import { updateLogFile } from './files';
 
 const initApp = () => {
   if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
@@ -177,6 +178,29 @@ export const pushMessage = async (
       });
   } catch (e) {
     result.error = e;
+  }
+  if (!result.valid) {
+    if (result.data instanceof Object && result.data.results instanceof Array) {
+      const datetime = new Date().toISOString();
+      let errorCaptured = false;
+      const shortToken = token.substring(0, 10) + '...';
+      result.data.results.forEach(row => {
+        if (row instanceof Object) {
+          const { error } = row;
+          if (error instanceof Object) {
+            const appendMode = error.code !== "messaging/mismatched-credential";
+            const filenameBase = appendMode ? 'fcm' : 'fcm.credentials';
+            updateLogFile(`${filenameBase}.error.log`, JSON.stringify({ datetime, code: error.code, token: shortToken} ), appendMode);
+            errorCaptured = true;
+          } else {
+            updateLogFile(`fcm.error.log`, JSON.stringify({ datetime, ...row, token: shortToken} ), true);
+          }
+        }
+      });
+      if (!errorCaptured) {
+        updateLogFile('fcm.error.log', JSON.stringify({ datetime, code: "unknown", token: shortToken } ));
+      }
+    }    
   }
   return result;
 };

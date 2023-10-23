@@ -9,10 +9,11 @@ import {
   sourcesDirectory,
   ephemerisPath,
   mediaDirectory,
+  logsDirectory,
 } from '../.config';
 import { hashMapToObject } from './entities';
 import { imageSize } from 'image-size';
-import { emptyString, isNumber, notEmptyString } from './validators';
+import { isNumber, notEmptyString } from './validators';
 import { resizeImage } from './resize';
 import * as util from 'util';
 const exec = require('child_process').exec;
@@ -92,6 +93,12 @@ export const mediaPath = (type = 'media', subDir = '') => {
     case 'image':
       relPath = mediaDirectory;
       break;
+      case 'logs':
+      case 'log':
+      case 'error':
+      case 'errors':
+        relPath = logsDirectory;
+        break;
   }
   if (notEmptyString(subDir)) {
     relPath += '/' + subDir;
@@ -337,6 +344,17 @@ export const generateImageStyle = (filename: string, params = null) => {
 export const writeExportFile = (filename: string, data, folder = 'exports') => {
   const fp = buildFullPath(filename, folder);
   return fs.writeFileSync(fp, data);
+};
+
+export const updateLogFile = (filename: string, data = null, appendMode = true) => {
+  if (notEmptyString(data)) {
+    const fp = buildFullPath(filename, 'logs');
+    if (appendMode) {
+      return fs.appendFileSync(fp, data + "\n");
+    } else {
+      return fs.writeFileSync(fp, data + "\n");
+    }
+  }
 };
 
 export const writeSourceFile = (filename: string, data) => {
