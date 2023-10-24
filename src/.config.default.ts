@@ -17,6 +17,7 @@ export const mongo = {
   name: 'findingyou',
   user: 'stargazer',
   pass: 'T0XcJfpIBsFGkUY7',
+  host: 'localhost', // could be remote domain with optional port
 };
 
 //export const astroCalcApi = 'https://astroapi.findingyou.co';

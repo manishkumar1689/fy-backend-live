@@ -147,6 +147,7 @@ export const pushMessage = async (
   title = '',
   body = '',
   payload = null,
+  toEmail = ''
 ) => {
   const result: any = { valid: false, error: null, data: null };
   try {
@@ -180,6 +181,7 @@ export const pushMessage = async (
     result.error = e;
   }
   if (!result.valid) {
+    const email = notEmptyString(toEmail) ? toEmail : 'N/A';
     if (result.data instanceof Object && result.data.results instanceof Array) {
       const datetime = new Date().toISOString();
       let errorCaptured = false;
@@ -190,15 +192,15 @@ export const pushMessage = async (
           if (error instanceof Object) {
             const appendMode = error.code !== "messaging/mismatched-credential";
             const filenameBase = appendMode ? 'fcm' : 'fcm.credentials';
-            updateLogFile(`${filenameBase}.error.log`, JSON.stringify({ datetime, code: error.code, token: shortToken} ), appendMode);
+            updateLogFile(`${filenameBase}.error.log`, JSON.stringify({ datetime, code: error.code, email, token: shortToken} ), appendMode);
             errorCaptured = true;
           } else {
-            updateLogFile(`fcm.error.log`, JSON.stringify({ datetime, ...row, token: shortToken} ), true);
+            updateLogFile(`fcm.error.log`, JSON.stringify({ datetime, ...row, email, token: shortToken} ), true);
           }
         }
       });
       if (!errorCaptured) {
-        updateLogFile('fcm.error.log', JSON.stringify({ datetime, code: "unknown", token: shortToken } ));
+        updateLogFile('fcm.error.log', JSON.stringify({ datetime, code: "unknown", email, token: shortToken } ));
       }
     }    
   }
@@ -213,6 +215,7 @@ export const sendNotificationMessage = async (
   notificationKey = '',
   nickName = '',
   profileImg = '',
+  toEmail = ''
 ): Promise<any> => {
   let result: any = { valid: false };
   const { key, type, value, user, targetUser } = createFlagDTO;
@@ -253,7 +256,7 @@ export const sendNotificationMessage = async (
       if (notEmptyString(profileImg, 5)) {
         payload.profileImg = profileImg;
       }
-      result = await pushMessage(targetDeviceToken, title, body, payload);
+      result = await pushMessage(targetDeviceToken, title, body, payload, toEmail);
     }
   }
   return result;

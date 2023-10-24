@@ -632,6 +632,10 @@ export class AstrologicService {
     return { items, range, max };
   }
 
+  /*
+  * Build a Mongo aggregation for kuta matches stored in paired chart record
+  * AstroUI / Potential future development
+  */
   buildKutaSteps(k1: string, k2: string, kutaKey = '', range = [0, 5]) {
     const [min, max] =
       range instanceof Array && range.length > 1 ? range : [0, 5];

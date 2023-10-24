@@ -202,16 +202,16 @@ export class FeedbackController {
     customBody = '',
     notificationKey = '',
     nickName = '',
-    profileImg = '',
+    profileImg = ''
   ) {
     const { user, targetUser } = createFlagDTO;
     const blockStatus = await this.feedbackService.isBlocked(user, targetUser);
     const reason = blockStatus.blocked
       ? 'Interaction blocked'
       : 'missing device token(s)';
-    const targetDeviceTokens = blockStatus.blocked
-      ? []
-      : await this.userService.getUserDeviceTokens(targetUser);
+    const targetInfo = blockStatus.blocked ? { identifier: '', tokens: []} : await this.userService.getUserIdentifierAndDeviceTokens(targetUser);
+    
+    const targetDeviceTokens = targetInfo.tokens instanceof Array ? targetInfo.tokens : [];
     const fcm = {
       valid: false,
       reason,
@@ -227,6 +227,7 @@ export class FeedbackController {
         notificationKey,
         nickName,
         profileImg,
+        targetInfo.identifier
       );
       if (result instanceof Object && result.valid) {
         fcm.valid = true;
@@ -245,7 +246,8 @@ export class FeedbackController {
       : '';
     const title = params.has('title') ? params.get('title') : '';
     const body = params.has('body') ? params.get('body') : '';
-    const fcm = await pushMessage(targetDeviceToken, title, body);
+    const toEmail = params.has('to') ? params.get('to') : '';
+    const fcm = await pushMessage(targetDeviceToken, title, body, toEmail);
     return res.json(fcm);
   }
 
@@ -497,7 +499,7 @@ export class FeedbackController {
           targetUser: toId,
         };
         for (const token of otherUser.deviceTokens) {
-          const result = await pushMessage(token, title, body, payload);
+          const result = await pushMessage(token, title, body, payload, otherUser.identifier);
           if (result instanceof Object && result.valid) {
             fcm = result;
           }

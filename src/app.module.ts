@@ -21,7 +21,7 @@ import { AnswerSetSchema } from './user/schemas/answer-set.schema';
 @Module({
   imports: [
     MongooseModule.forRoot(
-      `mongodb://${mongo.user}:${mongo.pass}@localhost/${mongo.name}`,
+      `mongodb://${mongo.user}:${mongo.pass}@${mongo.host}/${mongo.name}`,
       {
         useNewUrlParser: true,
       },
