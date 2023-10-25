@@ -26,12 +26,10 @@ export const UserSchema = new mongoose.Schema({
     type: String,
     required: false,
     unique: false,
-    // identifier may not always be an email, but must unique
-    // use client-side validation instead
-    /* validate: {
-      validator: validator.isEmail,
-      message: '{VALUE} is not a valid email',
-    }, */
+    // This is not necessarily the same as the user's primary identifier, usually as email,
+    // It's the ID return by a third-party social provider and only applicable
+    // when logging in via Google/Facebook/OtherSocialPlatform
+    // Unlike identifier this need not be unique
   },
   mode: {
     type: String,
@@ -95,13 +93,18 @@ export const UserSchema = new mongoose.Schema({
   },
   active: Boolean,
   test: Boolean,
+  deleted: { // new 2023-10-25 
+    type: Boolean,
+    required: false,
+    default: false,
+  },
   boosts: { type: Number, required: false, default: 0 },
   status: [StatusSchema],
-  deviceToken: {
+  /* deviceToken: {
     type: String, // dev legacy, remove
     default: '',
     required: false,
-  },
+  }, */
   deviceTokens: {
     type: [String],
     default: [],

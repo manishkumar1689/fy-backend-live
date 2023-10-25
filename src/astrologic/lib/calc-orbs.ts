@@ -193,6 +193,16 @@ export const calcDist360 = (lng1: number, lng2: number): number => {
   return minDiff;
 };
 
+const isValidAspectResult = (row: AspectResult): boolean => {
+  if (typeof row.lng1 === 'number' && typeof row.lng2 === 'number') {
+    return row.lng1 >= 0 && row.lng2 >= 0;
+  } else if (row.lng1 instanceof Object && row.lng2 instanceof Object) {
+    return row.lng1.jd >= 0 && row.lng2.jd >= 0;
+  } else {
+    return false;
+  }
+}
+
 export const calcAspect = (
   lng1: number,
   lng2: number,
@@ -239,7 +249,7 @@ export const buildCoreAspects = (
             };
           }
         })
-        .filter(row => row.lng1 >= 0 && row.lng2 >= 0)
+        .filter(isValidAspectResult)
         .map(row => {
           const aspected = row.aspectDiff <= tolerance;
           return { ...row, aspected };

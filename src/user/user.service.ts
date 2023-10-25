@@ -365,6 +365,7 @@ export class UserService {
 
   buildCriteria = (criteria: object, activeOnly: boolean): object => {
     const filter = new Map<string, any>();
+    filter.set('deleted', { $ne: true });
     if (criteria instanceof Object) {
       const keys = Object.keys(criteria);
       for (const key of keys) {

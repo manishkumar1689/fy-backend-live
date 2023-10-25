@@ -18,6 +18,7 @@ import { resizeImage } from './resize';
 import * as util from 'util';
 const exec = require('child_process').exec;
 const run = util.promisify(exec);
+const MAX_LOG_FILE_SIZE = 4 * 1024 * 1024; // 4MB
 
 export const mimeFileFilter = (req, file, callback) => {
   const ext = path.extname(file.originalname);
@@ -349,6 +350,15 @@ export const writeExportFile = (filename: string, data, folder = 'exports') => {
 export const updateLogFile = (filename: string, data = null, appendMode = true) => {
   if (notEmptyString(data)) {
     const fp = buildFullPath(filename, 'logs');
+    const size = fs.statSync(fp).size;
+    console.log(size);
+    if (size > MAX_LOG_FILE_SIZE) {
+      const dtParts = new Date().toISOString().split('T');
+      const hr = dtParts.length > 0 ? dtParts[1].split(':').shift() : '';
+      const dtSuffix = [dtParts[0], hr].join('h');
+      const backupName = fp.replace(/\.log$/, `.${dtSuffix}.log`);
+      fs.renameSync(fp, backupName);
+    }
     if (appendMode) {
       return fs.appendFileSync(fp, data + "\n");
     } else {

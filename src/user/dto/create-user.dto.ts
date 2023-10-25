@@ -80,8 +80,8 @@ export class CreateUserDTO {
   @ApiProperty()
   readonly token: string;
 
-  @ApiProperty()
-  readonly deviceToken?: string; // dev legacy, remove
+/*   @ApiProperty()
+  readonly deviceToken?: string; // dev legacy, remove */
 
   @ApiProperty()
   readonly deviceTokens?: string[];

@@ -146,11 +146,6 @@ import {
 import { objectToMap } from '../lib/entities';
 import { PreferenceDTO } from '../user/dto/preference.dto';
 import { calcPreviousMidnightJd } from './lib/julian-date';
-import { buildSbcScoreGrid, traverseAllNak28Cells } from './lib/calc-sbc';
-import {
-  calcKotaChakraScoreData,
-  calcKotaChakraScoreSet,
-} from './lib/settings/kota-values';
 import { process5PRulesWithPeaks, processTransitionData } from './lib/calc-5p';
 
 @Controller('astrologic')
@@ -162,8 +157,6 @@ export class AstrologicController {
     private settingService: SettingService,
     private dictionaryService: DictionaryService,
   ) {}
-
-
 
   /*
     #mobile
