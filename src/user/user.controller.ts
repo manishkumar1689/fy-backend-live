@@ -2118,12 +2118,7 @@ export class UserController {
       chart.geo,
       chart.isDayTime,
     );
-/*     trData.transposed.forEach(row => {
-      console.log(row.key, row.items.map(r => {
-        const dt = julToISODate(r.value);
-        return { ...r,dt }
-      }));
-    }) */
+
     const transitions = processTransitionData(trData, midNightJd, endJd);
   
     const ppData = await process5PRulesWithPeaks(

@@ -2732,14 +2732,6 @@ export const calculatePanchaPakshiDataRaw = async (
         const notMatchedRuleNames = rules
           .map(r => r.name)
           .filter(nm => matchedRulesNames.indexOf(nm) < 0);
-        /*         console.log(times.map(time => {
-          const before = time.end < time.peak;
-          const beforeStart = time.peak < time.start;
-          const s = new Date(time.start * 1000).toISOString();
-          const p = new Date(time.peak * 1000).toISOString();
-          const e = new Date(time.end * 1000).toISOString();
-          return {...time, before, beforeStart, s, p, e};
-        })) */
         data.set('rules', rules.map(simplifyRule));
         if (showMinutes) {
           data.set('minutes', scores);
@@ -2754,7 +2746,6 @@ export const calculatePanchaPakshiDataRaw = async (
           data.set('matchRuleNames', matchedRulesNames);
           data.set('notMatchedRuleNames', notMatchedRuleNames);
           data.set('minuteMatches', minuteMatches);
-          //data.set('matchedTransitions', matchedTransitions);
         }
       }
     }

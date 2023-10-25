@@ -351,7 +351,6 @@ export const updateLogFile = (filename: string, data = null, appendMode = true) 
   if (notEmptyString(data)) {
     const fp = buildFullPath(filename, 'logs');
     const size = fs.statSync(fp).size;
-    console.log(size);
     if (size > MAX_LOG_FILE_SIZE) {
       const dtParts = new Date().toISOString().split('T');
       const hr = dtParts.length > 0 ? dtParts[1].split(':').shift() : '';
