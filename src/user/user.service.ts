@@ -1491,7 +1491,8 @@ export class UserService {
     const milliSecsInMonth = numDaysAgo * 24 * 60 * 60 * 1000;
     const oneMonthAgoTs = Date.now() - milliSecsInMonth;
     const oneMonthAgo = new Date(oneMonthAgoTs);
-    const users = await this.userModel.find({ deleted: true, modifiedAt: { $gte: oneMonthAgo} });
+    // older than N days ago
+    const users = await this.userModel.find({ deleted: true, modifiedAt: { $lte: oneMonthAgo} });
     const deletedUsers: User[] = [];
     if (users instanceof Array) {
       for (const user of users) {
