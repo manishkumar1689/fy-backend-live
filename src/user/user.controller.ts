@@ -3067,13 +3067,9 @@ export class UserController {
     @Param('adminUserID') adminUserID,
   ) {
     let status = HttpStatus.NOT_ACCEPTABLE;
-    let authorised = false;
     const result = { valid: false, authorised: false, user: null };
-    if (isValidObjectId(adminUserID)) {
-      authorised = await this.userService.isAdminUser(adminUserID);
-    } else {
-      authorised = await this.userService.matchesToken(userID, adminUserID);
-    }
+    const authorised = isValidObjectId(adminUserID)? 
+      await this.userService.isAdminUser(adminUserID) : this.userService.matchesToken(userID, adminUserID);
     if (authorised) {
       result.authorised = true;
       if (isValidObjectId(userID)) {
@@ -3082,6 +3078,7 @@ export class UserController {
           result.user = extractSimplified(user, ['password']);
           result.valid = true;
           status = HttpStatus.OK;
+          // Deleted related data
           await this.userService.deleteAnswersByUserAndType(userID, 'jungian');
           await this.astrologicService.deleteChartByUser(userID);
           await this.feedbackService.deleteByFromUser(userID);

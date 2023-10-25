@@ -1,5 +1,5 @@
 import { matchNakshatra } from './core';
-import { julToDateFormat, julToISODate, julToUnixTime } from './date-funcs';
+import { julToDateFormat, julToUnixTime } from './date-funcs';
 import { TransitionItem } from './interfaces';
 import { unixTimeToJul } from './julian-date';
 import { Chart } from './models/chart';

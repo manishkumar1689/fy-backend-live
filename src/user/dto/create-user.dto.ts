@@ -80,11 +80,11 @@ export class CreateUserDTO {
   @ApiProperty()
   readonly token: string;
 
-/*   @ApiProperty()
-  readonly deviceToken?: string; // dev legacy, remove */
+  @ApiProperty()
+  readonly deviceToken?: string; // When logging only one deviceToken
 
   @ApiProperty()
-  readonly deviceTokens?: string[];
+  readonly deviceTokens?: string[]; // only used by admin or in theort
 
   @ApiProperty()
   readonly likeStartTs?: number;

@@ -1475,9 +1475,33 @@ export class UserService {
   }
 
   // Delete a User
-  async deleteUser(UserID: string): Promise<any> {
-    const deletedUser = await this.userModel.findByIdAndRemove(UserID);
+  async deleteUser(userID: string): Promise<any> {
+    const deletedUser = await this.userModel.findByIdAndRemove(userID);
     return deletedUser;
+  }
+
+  // Mark as delete a User
+  async markDeleted(userID: string): Promise<User> {
+    const user = await this.userModel.findByIdAndUpdate(userID, { active: false, deleted: true, modifiedAt: new Date() });
+    return user;
+  }
+
+  // Mark as deleted a User since numDaysAgo
+  async removeDeletedUsers(numDaysAgo = 31): Promise<User[]> {
+    const milliSecsInMonth = numDaysAgo * 24 * 60 * 60 * 1000;
+    const oneMonthAgoTs = Date.now() - milliSecsInMonth;
+    const oneMonthAgo = new Date(oneMonthAgoTs);
+    const users = await this.userModel.find({ deleted: true, modifiedAt: { $gte: oneMonthAgo} });
+    const deletedUsers: User[] = [];
+    if (users instanceof Array) {
+      for (const user of users) {
+        const deletedUser = await this.userModel.findByIdAndRemove(user._id);
+        if (deletedUser) {
+          deletedUsers.push(deletedUser);
+        }
+      }
+    }
+    return deletedUsers;
   }
 
   async isValidRoleUser(userID: string, role: string): Promise<boolean> {
