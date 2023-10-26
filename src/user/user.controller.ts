@@ -3055,8 +3055,8 @@ export class UserController {
     };
   }
 
-  @Delete('delete/:userID/:adminUserID')
-  async deleteUser(
+  @Delete('hard-delete/:userID/:adminUserID')
+  async hardDeleteUser(
     @Res() res,
     @Param('userID') userID,
     @Param('adminUserID') adminUserID,
@@ -3085,7 +3085,32 @@ export class UserController {
     }
     return res.status(status).json(result);
   }
-
+  @Delete('delete/:userID/:adminUserID')
+  async deleteUser(
+    @Res() res,
+    @Param('userID') userID,
+    @Param('adminUserID') adminUserID,
+  ) {
+    let status = HttpStatus.NOT_ACCEPTABLE;
+    const result = { valid: false, authorised: false, user: null };
+    const authorised = isValidObjectId(adminUserID)? 
+      await this.userService.isAdminUser(adminUserID) : this.userService.matchesToken(userID, adminUserID);
+    if (authorised) {
+      result.authorised = true;
+      if (isValidObjectId(userID)) {
+        const user = await this.userService.markDeleted(userID);
+        if (user instanceof Model) {
+          result.user = extractSimplified(user, ['password']);
+          result.valid = true;
+          status = HttpStatus.OK;
+          
+        } else {
+          status = HttpStatus.NOT_FOUND;
+        }
+      }
+    }
+    return res.status(status).json(result);
+  }
   @Get('blocks/:userID/:mode?')
   async listBlocks(@Res() res, @Param('userID') userID, @Param('mode') mode) {
     const items: BlockRecord[] = [];
