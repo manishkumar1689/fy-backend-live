@@ -2702,45 +2702,6 @@ export class UserService {
     return items;
   }
 
-  async fixPreferences(start = 0, limit = 1000, prefOpts: any[] = []) {
-    const users = await this.list(start, limit);
-    const updatedUsers = [];
-    for (const user of users) {
-      const { _id, preferences, gender, test } = user.toObject();
-      if (preferences instanceof Array) {
-        for (let i = 0; i < preferences.length; i++) {
-          if (preferences[i] instanceof Object) {
-            const opt = prefOpts.find(po => po.key === preferences[i].key);
-            if (opt instanceof Object) {
-              preferences[i].type = opt.type;
-              if (preferences[i].key === 'gender' && test) {
-                const isHo = Math.random() < 1 / 30;
-                const isBi = Math.random() < 1 / 30;
-                const first =
-                  (gender === 'm' && !isHo) || (gender === 'f' && isHo)
-                    ? 'f'
-                    : 'm';
-                const opts = [first];
-                if (isBi) {
-                  const sec = first === 'f' ? 'm' : 'f';
-                  opts.push(sec);
-                }
-                preferences[i].value = opts;
-              }
-            }
-          }
-        }
-        const edited = { preferences } as CreateUserDTO;
-        const ud = await this.updateUser(_id, edited);
-        if (ud instanceof Object) {
-          updatedUsers.push(ud.user);
-        }
-        //updatedUsers.push(test,gender, preferences.find(po => po.key === 'gender'));
-      }
-    }
-    return { updated: updatedUsers.length };
-  }
-
   validatePreference(mo: MatchedOption, matchedPref: PrefKeyValue) {
     let valid = false;
     let { value } = mo;

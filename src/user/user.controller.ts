@@ -3268,26 +3268,6 @@ export class UserController {
   }
 
   /*
-    #development
-  */
-  @Get('fix-preferences/:start?/:limit?')
-  async fixPreferences(
-    @Res() res,
-    @Param('start') start,
-    @Param('limit') limit,
-  ) {
-    const startInt = smartCastInt(start, 0);
-    const limitInt = smartCastInt(limit, 10);
-    const preferences = await this.settingService.getPreferences();
-    const data = await this.userService.fixPreferences(
-      startInt,
-      limitInt,
-      preferences,
-    );
-    return res.json(data);
-  }
-
-  /*
     #mobile
   */
   @Post('profile-upload/:userID/:type/:mediaRef?/:title?')
