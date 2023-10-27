@@ -9,7 +9,6 @@ import {
   hashMapToObject,
   extractObject,
   extractSimplified,
-  extractDocId,
   isObjectWith,
 } from '../lib/entities';
 import * as bcrypt from 'bcrypt';
@@ -21,7 +20,6 @@ import {
   isNumericType,
   isSystemFileName,
   notEmptyString,
-  validEmail,
   validISODateString,
   validUri,
 } from '../lib/validators';
@@ -46,17 +44,14 @@ import {
 import { MediaItemDTO } from './dto/media-item.dto';
 import { PreferenceDTO } from './dto/preference.dto';
 import { matchFileTypeAndMime } from '../lib/files';
-import { PublicUser } from './interfaces/public-user.interface';
 import {
   assignJungianDomainValues,
   extractDefaultJungianPersonalityTypeLetters,
   extractFromBasicJungianSummary,
   jungianAnswersToResults,
-  normalizedToPreference,
   summariseJungianAnswers,
 } from '../setting/lib/mappers';
 import { defaultPushNotifications } from '../lib/notifications';
-import { AnswerDTO } from './dto/answer.dto';
 import { AnswerSet } from './interfaces/answer-set.interface';
 import { KeyNumValue } from '../lib/interfaces';
 import {
@@ -116,8 +111,6 @@ export interface LangPn {
 export class UserService {
   constructor(
     @InjectModel('User') private readonly userModel: Model<User>,
-    @InjectModel('PublicUser')
-    private readonly publicUserModel: Model<PublicUser>,
     @InjectModel('AnswerSet')
     private readonly answerSetModel: Model<AnswerSet>,
     private readonly mailerService: MailerService,
@@ -2731,153 +2724,6 @@ export class UserService {
     return valid;
   }
 
-  // save / update a single user with basic data
-  async savePublic(inData = null): Promise<PublicUser> {
-    const obj = inData instanceof Object ? inData : {};
-    const keys = Object.keys(obj);
-    let publicUser = null;
-    const dt = new Date();
-    if (keys.includes('_id') && notEmptyString(obj._id, 16)) {
-      publicUser = await this.publicUserModel.findById(obj._id);
-    } else if (
-      keys.includes('identifier') &&
-      notEmptyString(obj.identifier, 2)
-    ) {
-      publicUser = await this.publicUserModel.findOne({
-        identifier: obj.identifier,
-      });
-      if (!publicUser) {
-        const idRgx = new RegExp(obj.identifier, 'i');
-        publicUser = await this.publicUserModel.findOne({ identifier: idRgx });
-      }
-    }
-    const isNew = !(publicUser instanceof Model);
-    const uMap: Map<string, any> = new Map();
-    keys.forEach(k => {
-      if (
-        [
-          'nickName',
-          'identifier',
-          'useragent',
-          'gender',
-          'dob',
-          'geo',
-        ].includes(k)
-      ) {
-        uMap.set(k, obj[k]);
-      }
-    });
-    if (
-      keys.includes('preferences') &&
-      obj.preferences instanceof Array &&
-      obj.preferences.length > 0
-    ) {
-      const userObj = isNew ? {} : publicUser.toObject();
-      const currentPreferences = isNew
-        ? []
-        : userObj.preferences instanceof Array && userObj.preferences.length > 0
-        ? userObj.preferences
-        : [];
-      obj.preferences
-        .filter(obj => obj instanceof Object)
-        .forEach(pref => {
-          const { key, value, type } = pref;
-          if (notEmptyString(key) && isNumeric(value) && notEmptyString(type)) {
-            const currIndex = currentPreferences.findIndex(
-              pr => pr.key === pref.key,
-            );
-            const newPref = normalizedToPreference(
-              { key, value: smartCastInt(value, 0) },
-              type,
-            );
-            if (currIndex < 0) {
-              currentPreferences.push(newPref);
-            } else {
-              currentPreferences[currIndex] = newPref;
-            }
-          }
-        });
-      uMap.set('preferences', currentPreferences);
-    }
-    uMap.set('modifiedAt', dt);
-    if (isNew) {
-      uMap.set('createdAt', dt);
-    }
-    let savedUser = null;
-    const edited = Object.fromEntries(uMap);
-    if (isNew) {
-      const newUser = new this.publicUserModel(edited);
-      savedUser = await newUser.save();
-    } else {
-      const userID = extractDocId(publicUser);
-      await this.publicUserModel.findByIdAndUpdate(userID, edited);
-      savedUser = await this.publicUserModel.findById(userID);
-    }
-    return savedUser;
-  }
-
-  async savePublicPreference(
-    id = '',
-    preference: PreferenceDTO,
-  ): Promise<boolean> {
-    let valid = false;
-    const pUser = await this.publicUserModel.findById(id);
-    if (pUser instanceof Model) {
-      const { key } = preference;
-      const userObj = pUser.toObject();
-      const keys = Object.keys(userObj);
-      const preferences =
-        keys.includes('preferences') && userObj.preferences instanceof Array
-          ? userObj.preferences
-          : [];
-      const prefIndex = preferences.findIndex(pr => pr.key === key);
-      if (prefIndex < 0) {
-        preferences.push(preference);
-      } else {
-        preferences[prefIndex] = preference;
-      }
-      await this.publicUserModel
-        .findByIdAndUpdate(id, {
-          preferences,
-        })
-        .exec();
-      valid = true;
-    }
-    return valid;
-  }
-
-  async saveSurveyAnswers(
-    userID = '',
-    type = 'jungian',
-    answers: AnswerDTO[] = [],
-    shift = -3,
-  ) {
-    const adjustedAnswers = answers.map(answer => {
-      const { key, value, domain, subdomain } = answer;
-      const newValue = value + shift;
-      return { key, value: newValue, domain, subdomain };
-    });
-    const dt = new Date();
-    const baseSet = {
-      answers: adjustedAnswers,
-      createdAt: dt,
-      modifiedAt: dt,
-    };
-    const answerSet = {
-      user: userID,
-      type,
-      ...baseSet,
-    };
-    const current = await this.getAnswerSet(userID, type);
-    if (current instanceof Object) {
-      await this.answerSetModel.update({ userID, type }, baseSet);
-    } else {
-      const newSet = new this.answerSetModel(answerSet);
-      await newSet.save();
-    }
-    return answerSet;
-  }
-
   async deleteAnswersByUserAndType(
     userID: string,
     type = 'jungian',
@@ -3038,162 +2884,5 @@ export class UserService {
     return items;
   }
 
-  async getPublicUser(ref = '', refType = 'identifier') {
-    const filter: Map<string, any> = new Map();
-    let matchEmail = false;
-    switch (refType) {
-      case 'identifier':
-      case 'email':
-        matchEmail = true;
-        break;
-      case 'id':
-      case '_id':
-        matchEmail = false;
-        break;
-      default:
-        matchEmail = validEmail(ref);
-        break;
-    }
-    if (matchEmail) {
-      const rgx = new RegExp(ref, 'i');
-      filter.set('identifier', rgx);
-    } else {
-      filter.set('_id', ref);
-    }
-    const criteria = Object.fromEntries(filter.entries());
-    return await this.publicUserModel.findOne(criteria);
-  }
-
-  async getPublicUsers(start = 0, limit = 100, criteria = null) {
-    const critObj = criteria instanceof Object ? criteria : {};
-
-    const filter: Map<string, any> = new Map();
-    Object.entries(critObj).forEach(([key, val]) => {
-      switch (key) {
-        case 'usearch':
-          const rgx = new RegExp('\\b' + val, 'i');
-          filter.set('$or', [{ identifier: rgx }, { nickName: rgx }]);
-          break;
-        case 'active':
-          filter.set('active', smartCastBool(val, true));
-          break;
-        case 'answers':
-          filter.set('numPrefs', {
-            $gt: smartCastInt(val, 0),
-          });
-          break;
-      }
-    });
-    const matchCriteria = Object.fromEntries(filter.entries());
-    const steps = [
-      { $match: matchCriteria },
-      {
-        $project: {
-          nickName: 1,
-          identifier: 1,
-          useragent: 1,
-          active: 1,
-          'geo.lat': 1,
-          'geo.lng': 1,
-          gender: 1,
-          numPrefs: {
-            $cond: {
-              if: { $isArray: '$preferences' },
-              then: { $size: '$preferences' },
-              else: 0,
-            },
-          },
-          'preferences.key': 1,
-          'preferences.type': 1,
-          'preferences.value': 1,
-          dob: 1,
-          createdAt: 1,
-          modifiedAt: 1,
-        },
-      },
-      {
-        $match: matchCriteria,
-      },
-      {
-        $skip: start,
-      },
-      {
-        $limit: limit,
-      },
-    ];
-
-    return await this.publicUserModel.aggregate(steps);
-  }
-
-  async fetchPublicAstroPairs(start = 0, maxUsers = 100) {
-    const steps = [
-      {
-        $match: {
-          'preferences.type': 'simple_astro_pair',
-        },
-      },
-      {
-        $project: {
-          identifier: 1,
-          nickName: 1,
-          simplePairs: {
-            $filter: {
-              input: '$preferences',
-              as: 'pc',
-              cond: { $eq: ['$$pc.type', 'simple_astro_pair'] },
-            },
-          },
-        },
-      },
-      {
-        $sort: {
-          modifiedAt: -1,
-        },
-      },
-      {
-        $skip: start,
-      },
-      {
-        $limit: maxUsers,
-      },
-    ];
-    const items = await this.publicUserModel.aggregate(steps);
-    return items
-      .map(row => {
-        return row.simplePairs
-          .filter(sp => sp.value instanceof Object)
-          .map(sp => {
-            return {
-              email: row.identifier,
-              userName: row.nickName,
-              key: sp.key,
-              ...sp.value,
-            };
-          });
-      })
-      .reduce((a, b) => a.concat(b));
-  }
-
-  async removePublicPreference(uid: string, key: string) {
-    const pu = await this.publicUserModel.findById(uid);
-    const exists = pu instanceof Model;
-    const result = { exists, removed: false };
-    if (exists) {
-      const puObj = pu.toObject();
-      const { preferences } = puObj;
-      if (preferences instanceof Array) {
-        const prefIndex = preferences.findIndex(pr => pr.key === key);
-        if (prefIndex >= 0) {
-          preferences.splice(prefIndex, 1);
-          const updated = await this.publicUserModel.findByIdAndUpdate(uid, {
-            preferences,
-          });
-          if (updated) {
-            result.removed = true;
-          }
-        }
-      }
-    }
-    return result;
-  }
+ 
 }

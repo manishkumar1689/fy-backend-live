@@ -4,7 +4,6 @@ import { UserController } from './user.controller';
 import { UserService } from './user.service';
 import { MessageService } from '../message/message.service';
 import { UserSchema } from './schemas/user.schema';
-import { PublicUserSchema } from './schemas/public-user.schema';
 import { MessageSchema } from '../message/schemas/message.schema';
 import { GeoService } from './../geo/geo.service';
 import { SettingService } from './../setting/setting.service';
@@ -32,7 +31,6 @@ import { LexemeSchema } from '../dictionary/schemas/lexeme.schema';
     HttpModule,
     MongooseModule.forFeature([
       { name: 'User', schema: UserSchema },
-      { name: 'PublicUser', schema: PublicUserSchema },
       { name: 'AnswerSet', schema: AnswerSetSchema },
       { name: 'Message', schema: MessageSchema },
       { name: 'Setting', schema: SettingSchema },

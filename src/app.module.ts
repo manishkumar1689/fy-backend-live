@@ -15,7 +15,6 @@ import { SnippetModule } from './snippet/snippet.module';
 import { UserService } from './user/user.service';
 import { UserSchema } from './user/schemas/user.schema';
 import { FeedbackModule } from './feedback/feedback.module';
-import { PublicUserSchema } from './user/schemas/public-user.schema';
 import { AnswerSetSchema } from './user/schemas/answer-set.schema';
 
 @Module({
@@ -28,10 +27,6 @@ import { AnswerSetSchema } from './user/schemas/answer-set.schema';
     ),
     MongooseModule.forFeature([
       { name: 'User', schema: UserSchema },
-      {
-        name: 'PublicUser',
-        schema: PublicUserSchema,
-      },
       {
         name: 'AnswerSet',
         schema: AnswerSetSchema,

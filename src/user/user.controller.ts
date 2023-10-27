@@ -2983,25 +2983,6 @@ export class UserController {
     }
     return res.status(userStatus.status).json(Object.fromEntries(result));
   }
-
-  /*
-   * WebWidgets
-   * Deletes a simple astro pair object within a public user record
-   */
-  @Delete('public-pair-delete/:uid/:key')
-  async deletePublicPair(@Res() res, @Param('uid') uid, @Param('key') key) {
-    const { exists, removed } = await this.userService.removePublicPreference(
-      uid,
-      key,
-    );
-    const status = exists
-      ? removed
-        ? HttpStatus.OK
-        : HttpStatus.NOT_MODIFIED
-      : HttpStatus.NOT_FOUND;
-    return res.status(status).json({ valid: exists, removed });
-  }
-
   /*
     #mobile
   */
@@ -3389,7 +3370,7 @@ export class UserController {
     res.json(result);
   }
 
-  async sendMail(emailParams: EmailParamsDTO) {
+  async sendMail(emailParams: EmailParamsDTO) { 
     const { to, toName, subject, html, from, fromName } = emailParams;
     const result = { valid: false, sent: false, error: null, response: null };
     const fromAddress = notEmptyString(from) ? from : mailDetails.fromAddress;
