@@ -408,6 +408,9 @@ export class UserController {
       case 'not_found':
         status = HttpStatus.NOT_FOUND;
         break;
+        case 'email_exists':
+          // skip leave status a default
+          break;
       default:
         if (hasUser) {
           status = keys.length > 0 ? HttpStatus.OK : HttpStatus.NOT_ACCEPTABLE;

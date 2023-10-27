@@ -1022,8 +1022,27 @@ export class UserService {
         const prefs = this.mergePreferences(user, createUserDTO.preferences);
         userObj.preferences = prefs;
       }
+      let hasEmailConflict = false
+      if (editKeys.includes('identifier')) {
+        if (userObj.identifier !== user.identifier) {
+          const otherUser = await this.findOneByEmail(userObj.identifier);
+          if (otherUser instanceof Object) {
+            hasEmailConflict = notEmptyString(otherUser.identifier);
+            reasonKey = "email_exists";
+            message = "new email already exists";
+            valid = false;
+            // reset basic userObj to current values and do not update
+            userObj.identifier = user.identifier;
+            userObj.modifiedAt = user.modifiedAt;
+          }
+        }
+      }
+      // prevent save if the password fields are present, but not authenticated
+      // allow if password fields are absent
       const mayNotEditPassword = hasPassword && !mayEditPassword;
-      if (editKeys.length > 0 && !mayNotEditPassword) {
+      const maySave = !mayNotEditPassword && !hasEmailConflict;
+      
+      if (editKeys.length > 0 && maySave) {
         updatedUser = await this.userModel.findByIdAndUpdate(userID, userObj, {
           new: true,
         });
