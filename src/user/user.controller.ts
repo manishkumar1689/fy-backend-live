@@ -44,7 +44,7 @@ import {
   toBase64,
   tokenTo6Digits,
 } from '../lib/hash';
-import { mailDetails, maxResetMinutes, webBaseUrl } from '../.config';
+import { mailDetails, maxResetMinutes, webBaseUrl, fcmErrorFile } from '../.config';
 import * as bcrypt from 'bcrypt';
 import {
   extractDocId,
@@ -80,6 +80,7 @@ import {
   matchFileTypeAndMime,
   mediaPath,
   uploadMediaFile,
+  readJsonFileFromOs
 } from '../lib/files';
 import { PreferenceDTO } from './dto/preference.dto';
 import {
@@ -237,6 +238,12 @@ export class UserController {
       valid,
       user: userObj,
     };
+    return res.json(result);
+  }
+
+  @Get('read-file-fcm')
+  async readFileFcm(@Res() res) {
+    const result = await readJsonFileFromOs(fcmErrorFile);
     return res.json(result);
   }
 

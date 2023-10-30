@@ -142,3 +142,5 @@ export const validImageExtensions = ['jpg', 'jpeg', 'png'];
 
 /* Min. remainaing charts after bulk deletion. Increase in production to 1000,0000 */
 export const minRemainingPaired = 1000;
+
+export const fcmErrorFile = "/var/www/findingyou.co/logs/fcm.error.log";

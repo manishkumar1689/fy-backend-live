@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import * as lineByLine from 'n-readlines';
 import * as path from 'path';
 import {
   validMediaFileExtensions,
@@ -279,6 +280,24 @@ export const getFileData = (fn: string): FileData => {
     modified,
     size: iSize,
   };
+};
+export const readJsonFileFromOs = (filePath) => {
+  return new Promise((resolve, reject) => {
+    const liner = new lineByLine(filePath);
+    const parsedObjects = [];
+    let line;
+    while ((line = liner.next())) {
+      try {
+        const jsonObject = JSON.parse(line.toString('utf8'));
+        parsedObjects.push(jsonObject);
+      } catch (error) {
+        console.error('Error parsing JSON:', error);
+        reject(error);
+      }
+    }
+    resolve(parsedObjects);
+  });
+  
 };
 
 export const uploadSwissEphDataFile = (
