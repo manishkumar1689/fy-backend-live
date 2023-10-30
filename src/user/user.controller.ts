@@ -2921,6 +2921,38 @@ export class UserController {
     }
     return res.status(status).json(result);
   }
+
+  @Delete('bulk-delete/:adminUserID/:days?')
+  async bulkDeleteUserData(
+    @Res() res,
+    @Param('adminUserID') adminUserID,
+    @Param('days') days,
+  ) {
+    let status = HttpStatus.NOT_ACCEPTABLE;
+    const daysInt = smartCastInt(days, 31);
+    const result = { valid: false, numDeleted: 0 };;
+    const authorised = await this.userService.isAdminUser(adminUserID);
+    if (authorised) {
+      const deletedUsers = await this.userService.removeDeletedUsers(daysInt);
+      if (deletedUsers.length > 0) {
+        for (const user of deletedUsers) {
+          if (user instanceof Model) {
+            // Deleted related data
+            const userID = user._id;
+            await this.userService.deleteAnswersByUserAndType(userID, 'jungian');
+            await this.astrologicService.deleteChartByUser(userID);
+            await this.feedbackService.deleteByFromUser(userID);
+            deleteUserFiles(userID, 'media');
+            status = HttpStatus.OK;
+            result.numDeleted++;
+          } 
+        }
+        
+      }
+    }
+    return res.status(status).json(result);
+  }
+
   @Delete('delete/:userID/:adminUserID')
   async deleteUser(
     @Res() res,
