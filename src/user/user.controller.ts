@@ -2947,7 +2947,6 @@ export class UserController {
             result.numDeleted++;
           } 
         }
-        
       }
     }
     return res.status(status).json(result);

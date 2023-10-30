@@ -185,22 +185,21 @@ export const pushMessage = async (
     if (result.data instanceof Object && result.data.results instanceof Array) {
       const datetime = new Date().toISOString();
       let errorCaptured = false;
-      const shortToken = token.substring(0, 10) + '...';
       result.data.results.forEach(row => {
         if (row instanceof Object) {
           const { error } = row;
           if (error instanceof Object) {
             const appendMode = error.code !== "messaging/mismatched-credential";
             const filenameBase = appendMode ? 'fcm' : 'fcm.credentials';
-            updateLogFile(`${filenameBase}.error.log`, JSON.stringify({ datetime, code: error.code, email, token: shortToken} ), appendMode);
+            updateLogFile(`${filenameBase}.error.log`, JSON.stringify({ datetime, code: error.code, email, token } ), appendMode);
             errorCaptured = true;
           } else {
-            updateLogFile(`fcm.error.log`, JSON.stringify({ datetime, ...row, email, token: shortToken} ), true);
+            updateLogFile(`fcm.error.log`, JSON.stringify({ datetime, ...row, email, token } ), true);
           }
         }
       });
       if (!errorCaptured) {
-        updateLogFile('fcm.error.log', JSON.stringify({ datetime, code: "unknown", email, token: shortToken } ));
+        updateLogFile('fcm.error.log', JSON.stringify({ datetime, code: "unknown", email, token } ));
       }
     }    
   }
