@@ -149,7 +149,7 @@ export const pushMessage = async (
   payload = null,
   toEmail = ''
 ) => {
-  const result: any = { valid: false, error: null, data: null };
+  const result: any = { valid: false, error: null, data: null, reason: '' };
   try {
     const hasPayload =
       payload instanceof Object && Object.keys(payload).includes('value');
@@ -173,6 +173,9 @@ export const pushMessage = async (
           results.length > 0 &&
           isNumeric(successCount) &&
           successCount > 0;
+        if (result.valid) {
+          result.reason = 'ok';
+        }
       })
       .catch(e => {
         result.error = e;
@@ -191,6 +194,7 @@ export const pushMessage = async (
           if (error instanceof Object) {
             const appendMode = error.code !== "messaging/mismatched-credential";
             const filenameBase = appendMode ? 'fcm' : 'fcm.credentials';
+            result.reason = error.code;
             updateLogFile(`${filenameBase}.error.log`, JSON.stringify({ datetime, code: error.code, email, token } ), appendMode);
             errorCaptured = true;
           } else {
