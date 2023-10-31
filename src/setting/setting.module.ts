@@ -7,7 +7,6 @@ import { UserService } from './../user/user.service';
 import { UserSchema } from '../user/schemas/user.schema';
 import { ProtocolSchema } from './schemas/protocol.schema';
 import { PredictiveRuleSetSchema } from './schemas/predictive-rule-set.schema';
-import { PublicUserSchema } from '../user/schemas/public-user.schema';
 import { AnswerSetSchema } from '../user/schemas/answer-set.schema';
 import { SnippetSchema } from '../snippet/schemas/snippet.schema';
 import { SnippetService } from '../snippet/snippet.service';
@@ -21,7 +20,6 @@ import { TranslatedItemSchema } from '../snippet/schemas/translated-item.schema'
       { name: 'Protocol', schema: ProtocolSchema },
       { name: 'PredictiveRuleSet', schema: PredictiveRuleSetSchema },
       { name: 'User', schema: UserSchema },
-      { name: 'PublicUser', schema: PublicUserSchema },
       { name: 'AnswerSet', schema: AnswerSetSchema },
       { name: 'Snippet', schema: SnippetSchema },
       { name: 'TranslatedItem', schema: TranslatedItemSchema },

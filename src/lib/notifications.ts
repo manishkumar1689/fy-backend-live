@@ -149,7 +149,7 @@ export const pushMessage = async (
   payload = null,
   toEmail = ''
 ) => {
-  const result: any = { valid: false, error: null, data: null };
+  const result: any = { valid: false, error: null, data: null, reason: '' };
   try {
     const hasPayload =
       payload instanceof Object && Object.keys(payload).includes('value');
@@ -173,6 +173,9 @@ export const pushMessage = async (
           results.length > 0 &&
           isNumeric(successCount) &&
           successCount > 0;
+        if (result.valid) {
+          result.reason = 'ok';
+        }
       })
       .catch(e => {
         result.error = e;
@@ -185,22 +188,22 @@ export const pushMessage = async (
     if (result.data instanceof Object && result.data.results instanceof Array) {
       const datetime = new Date().toISOString();
       let errorCaptured = false;
-      const shortToken = token.substring(0, 10) + '...';
       result.data.results.forEach(row => {
         if (row instanceof Object) {
           const { error } = row;
           if (error instanceof Object) {
             const appendMode = error.code !== "messaging/mismatched-credential";
             const filenameBase = appendMode ? 'fcm' : 'fcm.credentials';
-            updateLogFile(`${filenameBase}.error.log`, JSON.stringify({ datetime, code: error.code, email, token: shortToken} ), appendMode);
+            result.reason = error.code;
+            updateLogFile(`${filenameBase}.error.log`, JSON.stringify({ datetime, code: error.code, email, token } ), appendMode);
             errorCaptured = true;
           } else {
-            updateLogFile(`fcm.error.log`, JSON.stringify({ datetime, ...row, email, token: shortToken} ), true);
+            updateLogFile(`fcm.error.log`, JSON.stringify({ datetime, ...row, email, token } ), true);
           }
         }
       });
       if (!errorCaptured) {
-        updateLogFile('fcm.error.log', JSON.stringify({ datetime, code: "unknown", email, token: shortToken } ));
+        updateLogFile('fcm.error.log', JSON.stringify({ datetime, code: "unknown", email, token } ));
       }
     }    
   }

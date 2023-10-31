@@ -111,18 +111,13 @@ import {
   normalizedToPreference,
   normalizeFacetedPromptItem,
   filterMapSurveyByType,
-  mergePsychometricFeedback,
   summariseJungianAnswers,
   big5FacetedScaleOffset,
   compareJungianPolarities,
   extractSurveyScoresByType,
 } from '../setting/lib/mappers';
-import { PublicUserDTO } from './dto/public-user.dto';
-import { User } from './interfaces/user.interface';
-import { mergeProgressSets } from '../astrologic/lib/settings/progression';
 import { IdSetDTO } from './dto/id-set.dto';
 import {
-  basicSetToFullChart,
   Chart,
   extractPanchangaData,
 } from '../astrologic/lib/models/chart';
@@ -137,7 +132,6 @@ import { LogoutDTO } from './dto/logout.dto';
 import { ResetDTO } from './dto/reset.dto';
 import { EmailParamsDTO } from './dto/email-params.dto';
 import { filterByLang, matchValidLang } from '../lib/mappers';
-import { Kuta } from '../astrologic/lib/kuta';
 import {
   calcPreviousMidnightJd,
   julToDateParts,
@@ -421,6 +415,9 @@ export class UserController {
       case 'not_found':
         status = HttpStatus.NOT_FOUND;
         break;
+        case 'email_exists':
+          // skip leave status a default
+          break;
       default:
         if (hasUser) {
           status = keys.length > 0 ? HttpStatus.OK : HttpStatus.NOT_ACCEPTABLE;
@@ -2901,167 +2898,6 @@ export class UserController {
     return { valid, responses, analysis };
   }
 
-  @Post('test-surveys/:type/:refresh?')
-  async testBig4Faceted(
-    @Res() res,
-    @Param('type') type,
-    @Param('refresh') refresh,
-    @Body() items: FacetedItemDTO[],
-  ) {
-    const cached = smartCastInt(refresh, 0) < 1;
-    const feedbackItems = await this.getFacetedFeedbackItems(type, cached);
-    const {
-      responses,
-      analysis,
-    } = await this.settingService.analyseFacetedByType(
-      type,
-      items,
-      feedbackItems,
-      cached,
-    );
-    return res.send({ responses, analysis });
-  }
-
-  @Post('public-save')
-  async savePublicUser(
-    @Res() res,
-    @Body() userData: PublicUserDTO,
-    @Query() query,
-  ) {
-    const publicUser = await this.userService.savePublic(userData);
-    const valid = publicUser instanceof Model;
-    const params = objectToMap(query);
-    const showPsychRaw = params.has('psych') ? params.get('psych') : '1';
-    const showPsych = smartCastInt(showPsychRaw, 1) > 0;
-    let userObj: any = {};
-    let facetedAnswers = [];
-    let jungianAnswers = [];
-    let facetedAnalysis: any = {};
-    let jungianAnalysis: any = {};
-    if (valid) {
-      const {
-        _id,
-        nickName,
-        identifier,
-        useragent,
-        dob,
-        gender,
-        geo,
-        preferences,
-        modifiedAt,
-        createdAt,
-      } = publicUser.toObject();
-      userObj = {
-        _id,
-        nickName,
-        identifier,
-        useragent,
-        dob,
-        gender,
-        geo,
-        modifiedAt,
-        createdAt,
-      };
-      if (preferences.length > 0 && showPsych) {
-        const prefData = await this.settingService.processPreferences(
-          preferences,
-        );
-        if (prefData.jungianAnswers.length > 0) {
-          const fbJungian = await this.getFacetedFeedbackItems(
-            'jungian',
-            false,
-          );
-          jungianAnswers = prefData.jungianAnswers;
-          jungianAnalysis = prefData.jungianAnalysis;
-          mergePsychometricFeedback(jungianAnalysis, fbJungian, 'jungian');
-        }
-        if (prefData.facetedAnswers.length > 0) {
-          const fbFaceted = await this.getFacetedFeedbackItems(
-            'faceted',
-            false,
-          );
-          facetedAnswers = prefData.facetedAnswers;
-          facetedAnalysis = prefData.facetedAnalysis;
-          mergePsychometricFeedback(facetedAnalysis, fbFaceted, 'faceted');
-        }
-      }
-    }
-    const result = showPsych
-      ? {
-          valid,
-          ...userObj,
-          facetedAnswers,
-          facetedAnalysis,
-          jungianAnswers,
-          jungianAnalysis,
-        }
-      : {
-          valid,
-          ...userObj,
-        };
-    return res.send(result);
-  }
-
-  /*
-   * Aux. method used with public user objects
-   */
-  mapPublicUser(
-    user: User,
-    facetedQuestions: any[] = [],
-    jungianQuestions: any[] = [],
-  ) {
-    const {
-      _id,
-      nickName,
-      identifier,
-      active,
-      geo,
-      gender,
-      preferences,
-      dob,
-      createdAt,
-      modifiedAt,
-    } = user;
-    const facetedAnswers = filterMapSurveyByType(
-      preferences,
-      'faceted',
-      facetedQuestions,
-    );
-    const facetedAnalysis = analyseAnswers('faceted', facetedAnswers);
-
-    const jungianAnswers = filterMapSurveyByType(
-      preferences,
-      'jungian',
-      jungianQuestions,
-    );
-    const jungianCompleted = jungianAnswers.length >= jungianQuestions.length;
-    const jungianAnalysis = jungianCompleted
-      ? analyseAnswers('jungian', jungianAnswers)
-      : {};
-    const miniCharts = preferences
-      .filter(pr => pr.type === 'simple_astro_pair')
-      .map(row => {
-        const { key, value } = row;
-        return { key, ...value };
-      });
-    return {
-      _id,
-      nickName,
-      identifier,
-      active,
-      geo,
-      gender,
-      dob,
-      createdAt,
-      modifiedAt,
-      facetedAnswers,
-      facetedAnalysis,
-      jungianAnswers,
-      jungianAnalysis,
-      miniCharts,
-    };
-  }
-
   @Delete('hard-delete/:userID/:adminUserID')
   async hardDeleteUser(
     @Res() res,
@@ -3092,6 +2928,37 @@ export class UserController {
     }
     return res.status(status).json(result);
   }
+
+  @Delete('bulk-delete/:adminUserID/:days?')
+  async bulkDeleteUserData(
+    @Res() res,
+    @Param('adminUserID') adminUserID,
+    @Param('days') days,
+  ) {
+    let status = HttpStatus.NOT_ACCEPTABLE;
+    const daysInt = smartCastInt(days, 31);
+    const result = { valid: false, numDeleted: 0 };;
+    const authorised = await this.userService.isAdminUser(adminUserID);
+    if (authorised) {
+      const deletedUsers = await this.userService.removeDeletedUsers(daysInt);
+      if (deletedUsers.length > 0) {
+        for (const user of deletedUsers) {
+          if (user instanceof Model) {
+            // Deleted related data
+            const userID = user._id;
+            await this.userService.deleteAnswersByUserAndType(userID, 'jungian');
+            await this.astrologicService.deleteChartByUser(userID);
+            await this.feedbackService.deleteByFromUser(userID);
+            deleteUserFiles(userID, 'media');
+            status = HttpStatus.OK;
+            result.numDeleted++;
+          } 
+        }
+      }
+    }
+    return res.status(status).json(result);
+  }
+
   @Delete('delete/:userID/:adminUserID')
   async deleteUser(
     @Res() res,
@@ -3157,143 +3024,6 @@ export class UserController {
     }
     return res.status(userStatus.status).json(Object.fromEntries(result));
   }
-
-  /*
-   * WebWidgets
-   * Deletes a simple astro pair object within a public user record
-   */
-  @Delete('public-pair-delete/:uid/:key')
-  async deletePublicPair(@Res() res, @Param('uid') uid, @Param('key') key) {
-    const { exists, removed } = await this.userService.removePublicPreference(
-      uid,
-      key,
-    );
-    const status = exists
-      ? removed
-        ? HttpStatus.OK
-        : HttpStatus.NOT_MODIFIED
-      : HttpStatus.NOT_FOUND;
-    return res.status(status).json({ valid: exists, removed });
-  }
-
-  /*
-   * WebWidgets and Admin
-   * Fetches public users for use with the widget admin area.
-   */
-  @Get('public-users/:start?/:limit?')
-  async getPublicUsers(
-    @Res() res,
-    @Param('start') start,
-    @Param('limit') limit,
-  ) {
-    const startInt = smartCastInt(start, 0);
-    const limitInt = smartCastInt(limit, 10);
-    const users = await this.userService.getPublicUsers(startInt, limitInt);
-    const {
-      facetedQuestions,
-      jungianQuestions,
-    } = await this.settingService.getPsychometricSurveys();
-    const items = users.map(user =>
-      this.mapPublicUser(user, facetedQuestions, jungianQuestions),
-    );
-    return res.json(items);
-  }
-
-  /*
-   * WebWidgets
-   * Fetches public user info identified by their email or ID for use with simple
-   * widgets where no privacy is required.
-   */
-  @Get('public-user/:ref/:refMode?')
-  async getPublicUser(
-    @Res() res,
-    @Param('ref') ref,
-    @Param('refMode') refMode,
-    @Query() query,
-  ) {
-    const refModeKey = notEmptyString(refMode) ? refMode : 'auto';
-    let data: any = { valid: false };
-    const params = objectToMap(query);
-    const loadP2 = smartCastInt(params.get('p2'), 0) > 0;
-    const loadKutas = smartCastInt(params.get('kutas'), 0) > 0;
-    if (notEmptyString(ref, 6) && (isValidObjectId(ref) || validEmail(ref))) {
-      const {
-        facetedQuestions,
-        jungianQuestions,
-      } = await this.settingService.getPsychometricSurveys();
-      const user = await this.userService.getPublicUser(ref, refModeKey);
-      if (user instanceof Model) {
-        data = this.mapPublicUser(
-          user.toObject(),
-          facetedQuestions,
-          jungianQuestions,
-        );
-        if (data.facetedAnswers.length > 0) {
-          const fbFaceted = await this.getFacetedFeedbackItems(
-            'faceted',
-            false,
-          );
-          mergePsychometricFeedback(data.facetedAnalysis, fbFaceted, 'faceted');
-        }
-        if (data.jungianAnswers.length > 0) {
-          const fbJungian = await this.getFacetedFeedbackItems(
-            'jungian',
-            false,
-          );
-          mergePsychometricFeedback(data.jungianAnalysis, fbJungian, 'jungian');
-        }
-        const pkNumRef = params.has('pn') ? params.get('pn') : '1';
-        const pkNum = isNumeric(pkNumRef) ? parseInt(pkNumRef) : 1;
-        const cKey = ['astro_pair', pkNum].join('_');
-        if (loadP2) {
-          await mergeProgressSets(data, cKey);
-        }
-        if (loadKutas) {
-          const pairData = data.miniCharts.find(mc => mc.key === cKey);
-          if (pairData instanceof Object) {
-            const c1 = basicSetToFullChart(pairData.p1);
-            const c2 = basicSetToFullChart(pairData.p2);
-            c1.setAyanamshaItemByKey('true_citra');
-            c2.setAyanamshaItemByKey('true_citra');
-            const kutaSet = await this.settingService.getKutaSettings();
-            const kutaBuilder = new Kuta(c1, c2);
-            kutaBuilder.loadCompatibility(kutaSet);
-            const grahaKeys = ['su', 'mo', 've', 'as'];
-            data.kutas = kutaBuilder.calcAllSingleKutas(
-              true,
-              grahaKeys,
-              'dvadasha',
-              false,
-            );
-            data.pcKey = cKey;
-          }
-        }
-        data.valid = true;
-      }
-    }
-    return res.json(data);
-  }
-
-  /*
-    #development
-  */
-  @Get('fix-preferences/:start?/:limit?')
-  async fixPreferences(
-    @Res() res,
-    @Param('start') start,
-    @Param('limit') limit,
-  ) {
-    const startInt = smartCastInt(start, 0);
-    const limitInt = smartCastInt(limit, 10);
-    const preferences = await this.settingService.getPreferences();
-    const data = await this.userService.fixPreferences(
-      startInt,
-      limitInt,
-      preferences,
-    );
-    return res.json(data);
-  }
-
   /*
     #mobile
   */
@@ -3681,7 +3411,7 @@ export class UserController {
     res.json(result);
   }
 
-  async sendMail(emailParams: EmailParamsDTO) {
+  async sendMail(emailParams: EmailParamsDTO) { 
     const { to, toName, subject, html, from, fromName } = emailParams;
     const result = { valid: false, sent: false, error: null, response: null };
     const fromAddress = notEmptyString(from) ? from : mailDetails.fromAddress;
